@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import '../../core/constants/api_constants.dart';
@@ -8,11 +9,9 @@ class ApiService {
   factory ApiService() => _instance;
 
   late final Dio _dio;
-  late final CookieJar _cookieJar;
+  CookieJar? _cookieJar;
 
   ApiService._internal() {
-    _cookieJar = CookieJar();
-
     _dio = Dio(BaseOptions(
       baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(seconds: 30),
@@ -24,8 +23,11 @@ class ApiService {
       },
     ));
 
-    // Add cookie manager interceptor
-    _dio.interceptors.add(CookieManager(_cookieJar));
+    // CookieManager tidak support web
+    if (!kIsWeb) {
+      _cookieJar = CookieJar();
+      _dio.interceptors.add(CookieManager(_cookieJar!));
+    }
 
     // Add logging interceptor for debugging
     _dio.interceptors.add(InterceptorsWrapper(
@@ -54,11 +56,11 @@ class ApiService {
   }
 
   Dio get dio => _dio;
-  CookieJar get cookieJar => _cookieJar;
+  CookieJar? get cookieJar => _cookieJar;
 
   // Clear cookies (for logout)
   Future<void> clearCookies() async {
-    await _cookieJar.deleteAll();
+    await _cookieJar?.deleteAll();
   }
 
   // Generic GET request

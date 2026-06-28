@@ -5,6 +5,7 @@ import '../../../core/constants/form_options.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../data/models/sub_dimensions/utilitas_dasar.dart';
 import '../../../providers/utilitas_dasar_provider.dart';
+import '../../widgets/common/app_shell.dart';
 import '../../widgets/common/sub_dimension_dropdown.dart';
 import '../../widgets/common/percentage_input.dart';
 
@@ -15,8 +16,7 @@ class UtilitasDasarFormScreen extends ConsumerStatefulWidget {
   ConsumerState<UtilitasDasarFormScreen> createState() => _UtilitasDasarFormScreenState();
 }
 
-class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScreen>
-    with SingleTickerProviderStateMixin {
+class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScreen> {
   final _formKey = GlobalKey<FormState>();
   int _year = DateTime.now().year;
 
@@ -31,25 +31,8 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
 
   bool _isLoading = false;
 
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: ForuiThemeConfig.animationMedium,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
-    _animationController.forward();
-  }
-
   @override
   void dispose() {
-    _animationController.dispose();
     _persentaseRumahTidakLayakHuniController.dispose();
     super.dispose();
   }
@@ -97,17 +80,12 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Indikator Utilitas Dasar'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SingleChildScrollView(
+    return AppShell(
+      child: Column(
+        children: [
+          _buildTopHeader(context, 'Indikator Utilitas Dasar', 'Input data utilitas dasar desa'),
+          Expanded(
+            child: SingleChildScrollView(
           padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
           child: Card(
             elevation: ForuiThemeConfig.elevationMedium,
@@ -271,6 +249,47 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
             ),
           ),
         ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopHeader(BuildContext context, String title, String subtitle) {
+    final isDesktop = AppShell.isDesktop(context);
+    return Container(
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16),
+      child: Row(
+        children: [
+          if (!isDesktop)
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => context.pop(),
+            color: const Color(0xFF1A2E1F),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1A2E1F))),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7C74))),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

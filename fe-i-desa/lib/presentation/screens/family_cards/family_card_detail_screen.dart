@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../providers/family_card_detail_provider.dart';
 import '../../../data/repositories/villager_repository.dart';
-import '../../widgets/common/app_sidebar.dart';
+import '../../widgets/common/app_shell.dart';
 import '../../widgets/villagers/avatar_circle.dart';
 import '../../widgets/family_cards/villager_form_dialog.dart';
 
@@ -20,16 +20,8 @@ class FamilyCardDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final detailState = ref.watch(familyCardDetailProvider(nik));
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Row(
-        children: [
-          // Sidebar
-          const AppSidebar(),
-
-          // Main Content
-          Expanded(
-            child: detailState.when(
+    return AppShell(
+      child: detailState.when(
               data: (familyCardDetail) {
                 if (familyCardDetail == null) {
                   return _buildNotFoundState(context);
@@ -77,23 +69,33 @@ class FamilyCardDetailScreen extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => _buildErrorState(context, ref, error),
             ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildHeader(BuildContext context, WidgetRef ref, String familyHeadName) {
+    final isDesktop = AppShell.isDesktop(context);
     return Container(
-      padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-      color: Colors.white,
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 28 : 14),
       child: Row(
         children: [
+          if (!isDesktop)
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
           IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => context.pop(),
+            color: ForuiThemeConfig.textPrimary,
           ),
-          const SizedBox(width: ForuiThemeConfig.spacingSmall),
+          const SizedBox(width: 4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
