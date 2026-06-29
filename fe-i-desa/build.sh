@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 echo "=== Installing Flutter ==="
@@ -8,9 +8,6 @@ if [ ! -d "flutter" ]; then
 fi
 
 export PATH="$PATH:$(pwd)/flutter/bin"
-
-echo "=== Flutter doctor ==="
-flutter doctor --android-licenses || true
 
 echo "=== Getting dependencies ==="
 flutter pub get
