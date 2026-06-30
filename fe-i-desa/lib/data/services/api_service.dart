@@ -10,6 +10,15 @@ class ApiService {
   late final Dio _dio;
   late final CookieJar _cookieJar;
 
+  // In-memory token set after login; sent as Authorization: Bearer on every request.
+  // This is necessary for Flutter Web where browsers block manual Cookie headers
+  // in cross-origin XHR requests (Netlify → Railway).
+  static String? _authToken;
+
+  static void setAuthToken(String? token) {
+    _authToken = token;
+  }
+
   ApiService._internal() {
     _cookieJar = CookieJar();
 
@@ -19,13 +28,22 @@ class ApiService {
       receiveTimeout: const Duration(seconds: 30),
       headers: ApiConstants.defaultHeaders,
       validateStatus: (status) {
-        // Accept all status codes to handle errors manually
         return status != null && status < 500;
       },
     ));
 
-    // Add cookie manager interceptor
+    // Add cookie manager interceptor (works on native; web falls back to Bearer)
     _dio.interceptors.add(CookieManager(_cookieJar));
+
+    // Inject Authorization header when token is available
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (_authToken != null) {
+          options.headers['Authorization'] = 'Bearer $_authToken';
+        }
+        return handler.next(options);
+      },
+    ));
 
     // Add logging interceptor for debugging
     _dio.interceptors.add(InterceptorsWrapper(

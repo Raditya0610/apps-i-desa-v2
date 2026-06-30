@@ -76,11 +76,11 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 	cookie := fiber.Cookie{
 		Name:     "AppsIDesaCookie",
 		Value:    response.Token,
-		MaxAge:   3600, // 1 hour
+		MaxAge:   3600,
 		Expires:  time.Now().Add(time.Hour),
-		Secure:   false, // set true in production with HTTPS
+		Secure:   true,   // required with SameSite=None
 		HTTPOnly: true,
-		SameSite: "Lax",
+		SameSite: "None", // allow cross-origin (Netlify → Railway)
 	}
 
 	ctx.Cookie(&cookie)
@@ -97,9 +97,9 @@ func (c *AuthController) Logout(ctx *fiber.Ctx) error {
 		Value:    "",
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
-		Secure:   false,
+		Secure:   true,
 		HTTPOnly: true,
-		SameSite: "Lax",
+		SameSite: "None",
 	})
 
 	return ctx.Status(fiber.StatusOK).JSON(response)

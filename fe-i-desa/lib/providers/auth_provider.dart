@@ -50,6 +50,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     final isLoggedIn = await _authService.isLoggedIn();
     final username = await _authService.getUsername();
+    if (isLoggedIn) {
+      // Restore Bearer token so ApiService interceptor can attach it to requests.
+      // Without this, the token is in secure storage but not in memory after restart.
+      await _authService.restoreAuthToken();
+    }
     state = state.copyWith(
       isAuthenticated: isLoggedIn,
       username: username,

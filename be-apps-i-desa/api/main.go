@@ -38,6 +38,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"os"
 	"sync"
 
 	"Apps-I_Desa_Backend/config"
@@ -101,8 +102,17 @@ func initializeApp() (*fiber.App, error) {
 			TimeZone:   "UTC",
 		}))
 
-		// CORS middleware - allow all origins for desktop app
-		app.Use(cors.New())
+		// CORS middleware
+		allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+		if allowedOrigins == "" {
+			allowedOrigins = "http://localhost:3000,http://localhost:8080,http://localhost:5000"
+		}
+		app.Use(cors.New(cors.Config{
+			AllowOrigins:     allowedOrigins,
+			AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+			AllowHeaders:     "Content-Type,Accept,Authorization",
+			AllowCredentials: true,
+		}))
 
 		// Setup all routes
 		setupRoutes(app)
