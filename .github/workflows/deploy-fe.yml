@@ -1,0 +1,49 @@
+name: Build and Deploy Flutter Web to Netlify
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Enable Flutter Web
+        working-directory: fe-i-desa
+        run: |
+          flutter config --enable-web
+          flutter create --platforms web .
+
+      - name: Install Dependencies
+        working-directory: fe-i-desa
+        run: flutter pub get
+
+      - name: Build Web
+        working-directory: fe-i-desa
+        run: |
+          flutter build web --release \
+            --dart-define=BASE_URL=https://be-apps-i-desa-production.up.railway.app
+
+      - name: Deploy to Netlify
+        uses: netlify/actions/cli@master
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        with:
+          args: deploy --dir=fe-i-desa/build/web --prod
