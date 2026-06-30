@@ -63,26 +63,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<Map<String, dynamic>> login(String username, String password) async {
-    // isLoading intentionally NOT set here — loading is handled locally
-    // in the login screen to avoid the router redirecting to /splash.
-    state = state.copyWith(error: null);
+    print('[AUTH PROVIDER] Login started for: $username');
+    state = state.copyWith(isLoading: true, error: null);
 
     final result = await _authService.login(username, password);
+    print('[AUTH PROVIDER] Login result: ${result['success']}');
 
-    if (!result['success']) {
+    if (result['success']) {
+      print('[AUTH PROVIDER] Setting authenticated state to true');
+      state = state.copyWith(
+        isAuthenticated: true,
+        username: username,
+        isLoading: false,
+      );
+      print('[AUTH PROVIDER] State updated - isAuthenticated: ${state.isAuthenticated}');
+    } else {
+      print('[AUTH PROVIDER] Login failed: ${result['message']}');
       state = state.copyWith(
         isAuthenticated: false,
+        isLoading: false,
         error: result['message'],
       );
     }
-    // On success: caller must invoke finalizeLogin() after showing animation.
 
     return result;
-  }
-
-  /// Called by the login screen after the success animation completes.
-  void finalizeLogin(String username) {
-    state = state.copyWith(isAuthenticated: true, username: username);
   }
 
   Future<Map<String, dynamic>> register(

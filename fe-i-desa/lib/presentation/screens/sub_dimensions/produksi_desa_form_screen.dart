@@ -5,7 +5,6 @@ import '../../../core/constants/form_options.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../data/models/sub_dimensions/produksi_desa.dart';
 import '../../../providers/produksi_desa_provider.dart';
-import '../../widgets/common/app_shell.dart';
 import '../../widgets/common/sub_dimension_dropdown.dart';
 
 class ProduksiDesaFormScreen extends ConsumerStatefulWidget {
@@ -15,7 +14,8 @@ class ProduksiDesaFormScreen extends ConsumerStatefulWidget {
   ConsumerState<ProduksiDesaFormScreen> createState() => _ProduksiDesaFormScreenState();
 }
 
-class _ProduksiDesaFormScreenState extends ConsumerState<ProduksiDesaFormScreen> {
+class _ProduksiDesaFormScreenState extends ConsumerState<ProduksiDesaFormScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   int _year = DateTime.now().year;
 
@@ -30,6 +30,28 @@ class _ProduksiDesaFormScreenState extends ConsumerState<ProduksiDesaFormScreen>
   String? _telahDilakukanKerjaSamaDenganPihakKetiga;
 
   bool _isLoading = false;
+
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: ForuiThemeConfig.animationMedium,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) {
@@ -77,12 +99,17 @@ class _ProduksiDesaFormScreenState extends ConsumerState<ProduksiDesaFormScreen>
 
   @override
   Widget build(BuildContext context) {
-    return AppShell(
-      child: Column(
-        children: [
-          _buildTopHeader(context, 'Indikator Produksi Desa', 'Input data produksi desa'),
-          Expanded(
-            child: SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Indikator Produksi Desa'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
           child: Card(
             elevation: ForuiThemeConfig.elevationMedium,
@@ -287,47 +314,6 @@ class _ProduksiDesaFormScreenState extends ConsumerState<ProduksiDesaFormScreen>
             ),
           ),
         ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopHeader(BuildContext context, String title, String subtitle) {
-    final isDesktop = AppShell.isDesktop(context);
-    return Container(
-      height: 64,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16),
-      child: Row(
-        children: [
-          if (!isDesktop)
-            Builder(
-              builder: (ctx) => IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(ctx).openDrawer(),
-              ),
-            ),
-          IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => context.pop(),
-            color: const Color(0xFF1A2E1F),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1A2E1F))),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7C74))),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
