@@ -11,6 +11,11 @@ class ApiService {
   late final Dio _dio;
   CookieJar? _cookieJar;
 
+  // In-memory token for Flutter Web — browsers block cookies on cross-origin
+  // requests (Netlify → Railway), so we fall back to Authorization: Bearer.
+  static String? _authToken;
+  static void setAuthToken(String? token) => _authToken = token;
+
   ApiService._internal() {
     _dio = Dio(BaseOptions(
       baseUrl: ApiConstants.baseUrl,
@@ -28,6 +33,16 @@ class ApiService {
       _cookieJar = CookieJar();
       _dio.interceptors.add(CookieManager(_cookieJar!));
     }
+
+    // Inject Bearer token on every request (required for web cross-origin)
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (_authToken != null) {
+          options.headers['Authorization'] = 'Bearer $_authToken';
+        }
+        return handler.next(options);
+      },
+    ));
 
     // Add logging interceptor for debugging
     _dio.interceptors.add(InterceptorsWrapper(

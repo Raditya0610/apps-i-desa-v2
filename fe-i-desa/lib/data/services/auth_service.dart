@@ -83,6 +83,7 @@ class AuthService {
         // Save token and username
         await _write(_tokenKey, token);
         await _write(_usernameKey, username);
+        ApiService.setAuthToken(token);
 
         // Extract and save village_id if available in response
         if (data.containsKey('user')) {
@@ -120,6 +121,7 @@ class AuthService {
 
       // Clear storage and cookies
       await _deleteAll();
+      ApiService.setAuthToken(null);
       if (AppConfig.useMockApi) {
         await _mockApiService.clearAuth();
       } else {
@@ -133,6 +135,7 @@ class AuthService {
     } catch (e) {
       // Even if the API call fails, clear local data
       await _deleteAll();
+      ApiService.setAuthToken(null);
       if (AppConfig.useMockApi) {
         await _mockApiService.clearAuth();
       } else {
@@ -182,10 +185,14 @@ class AuthService {
     }
   }
 
-  // Check if user is logged in
+  // Check if user is logged in (also restores token into ApiService on app start)
   Future<bool> isLoggedIn() async {
     final token = await _read(_tokenKey);
-    return token != null && token.isNotEmpty;
+    if (token != null && token.isNotEmpty) {
+      ApiService.setAuthToken(token);
+      return true;
+    }
+    return false;
   }
 
   // Get stored token
