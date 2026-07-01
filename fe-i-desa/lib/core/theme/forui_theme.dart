@@ -2,24 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 
 class ForuiThemeConfig {
-  // Green color palette (from existing theme)
-  static const Color primaryGreen = Color(0xFF2E7D32);
-  static const Color lightGreen = Color(0xFF4CAF50);
-  static const Color darkGreen = Color(0xFF1B5E20);
-  static const Color accentGreen = Color(0xFF66BB6A);
-  static const Color surfaceGreen = Color(0xFFF1F8E9);
+  // === Desa Nusantara Palette ===
+  // Forest greens — alam, tumbuhan, pertanian
+  static const Color primaryGreen = Color(0xFF2D6A4F);
+  static const Color lightGreen = Color(0xFF52B788);
+  static const Color darkGreen = Color(0xFF1B3A2D);
+  static const Color accentGreen = Color(0xFF74C69D);
+  static const Color surfaceGreen = Color(0xFFF0F7F4);
+
+  // Harvest gold — padi, kemakmuran, kehangatan
+  static const Color gold = Color(0xFFE9B44C);
+  static const Color goldLight = Color(0xFFFFF3D0);
+  static const Color goldDark = Color(0xFFB8860B);
+
+  // Sky & water — langit pedesaan, sungai
+  static const Color skyBlue = Color(0xFF4A90E2);
+  static const Color skyLight = Color(0xFFDCEDFA);
+
+  // Earth — tanah, tradisi
+  static const Color earth = Color(0xFF8B6F47);
+  static const Color earthLight = Color(0xFFF5EDE3);
 
   // Neutral colors
-  static const Color backgroundColor = Color(0xFFF5F5F5);
+  static const Color backgroundColor = Color(0xFFF4F7F5);
   static const Color surfaceColor = Color(0xFFFFFFFF);
-  static const Color errorColor = Color(0xFFD32F2F);
-  static const Color successColor = Color(0xFF388E3C);
-  static const Color warningColor = Color(0xFFF57C00);
+  static const Color errorColor = Color(0xFFD62828);
+  static const Color successColor = Color(0xFF2D6A4F);
+  static const Color warningColor = Color(0xFFE9B44C);
 
-  // Text colors
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color textHint = Color(0xFF9E9E9E);
+  // Text colors — sedikit hangat, tidak terlalu dingin
+  static const Color textPrimary = Color(0xFF1A2E1F);
+  static const Color textSecondary = Color(0xFF6B7C74);
+  static const Color textHint = Color(0xFFA8B9B0);
 
   // Border radius
   static const double borderRadiusSmall = 12.0;
@@ -47,19 +61,31 @@ class ForuiThemeConfig {
 
   // Gradient definitions
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryGreen, accentGreen],
+    colors: [darkGreen, primaryGreen],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient sidebarGradient = LinearGradient(
+    colors: [Color(0xFF132820), darkGreen],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  static const LinearGradient goldGradient = LinearGradient(
+    colors: [Color(0xFFE9B44C), Color(0xFFF5C97A)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFF8FFF8)],
+    colors: [Color(0xFFFFFFFF), surfaceGreen],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient backgroundGradient = LinearGradient(
-    colors: [Color(0xFFF5F5F5), surfaceGreen],
+    colors: [backgroundColor, surfaceGreen],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -78,7 +104,8 @@ class ForuiThemeConfig {
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryGreen,
         primary: primaryGreen,
-        secondary: accentGreen,
+        secondary: gold,
+        tertiary: skyBlue,
         surface: surfaceColor,
         error: errorColor,
       ),
@@ -86,7 +113,7 @@ class ForuiThemeConfig {
 
       // AppBar Theme
       appBarTheme: const AppBarTheme(
-        backgroundColor: primaryGreen,
+        backgroundColor: darkGreen,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,

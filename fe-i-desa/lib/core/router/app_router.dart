@@ -24,141 +24,166 @@ import '../../presentation/screens/sub_dimensions/kelembagaan_pelayanan_desa_for
 import '../../presentation/screens/sub_dimensions/tata_kelola_keuangan_desa_form_screen.dart';
 import '../../presentation/screens/splash/splash_screen.dart';
 
-// Router Provider
+// ChangeNotifier bridge so GoRouter can listen to Riverpod auth state.
+class _AuthChangeNotifier extends ChangeNotifier {
+  _AuthChangeNotifier(Ref ref) {
+    ref.listen<AuthState>(authStateProvider, (_, __) => notifyListeners());
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final authChangeNotifier = _AuthChangeNotifier(ref);
 
   return GoRouter(
     initialLocation: '/',
+    // refreshListenable keeps the same GoRouter instance alive and re-runs
+    // redirect whenever auth state changes — fixes the "need to refresh" bug.
+    refreshListenable: authChangeNotifier,
     redirect: (context, state) {
+      // Use ref.read (not watch) — GoRouter calls this in response to
+      // refreshListenable notifications, not inside a widget build.
+      final authState = ref.read(authStateProvider);
       final isAuthenticated = authState.isAuthenticated;
       final isLoading = authState.isLoading;
       final isAuthRoute = state.matchedLocation == '/login' ||
-                         state.matchedLocation == '/register';
+          state.matchedLocation == '/register';
       final isSplashRoute = state.matchedLocation == '/splash';
 
-      print('[ROUTER] Redirect check - Auth: $isAuthenticated, Loading: $isLoading, Route: ${state.matchedLocation}');
-
-      // While loading auth status, show splash screen
-      if (isLoading && !isSplashRoute) {
-        print('[ROUTER] Auth loading, redirecting to /splash');
-        return '/splash';
-      }
-
-      // If done loading and on splash, redirect based on auth status
-      if (!isLoading && isSplashRoute) {
-        print('[ROUTER] Auth loaded, redirecting from splash to ${isAuthenticated ? '/' : '/login'}');
-        return isAuthenticated ? '/' : '/login';
-      }
-
-      // If not authenticated and not on auth pages, redirect to login
-      if (!isLoading && !isAuthenticated && !isAuthRoute) {
-        print('[ROUTER] Not authenticated, redirecting to /login');
-        return '/login';
-      }
-
-      // If authenticated and on auth pages, redirect to dashboard
-      if (!isLoading && isAuthenticated && isAuthRoute) {
-        print('[ROUTER] Authenticated on auth page, redirecting to /');
-        return '/';
-      }
-
-      print('[ROUTER] No redirect needed');
+      if (isLoading && !isSplashRoute) return '/splash';
+      if (!isLoading && isSplashRoute) return isAuthenticated ? '/' : '/login';
+      if (!isLoading && !isAuthenticated && !isAuthRoute) return '/login';
+      if (!isLoading && isAuthenticated && isAuthRoute) return '/';
       return null;
     },
     routes: [
       GoRoute(
         path: '/splash',
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) => _page(state, const SplashScreen(), auth: true),
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) => _page(state, const LoginScreen(), auth: true),
       ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        pageBuilder: (context, state) => _page(state, const RegisterScreen(), auth: true),
       ),
       GoRoute(
         path: '/',
-        builder: (context, state) => const DashboardScreen(),
+        pageBuilder: (context, state) => _page(state, const DashboardScreen()),
       ),
       GoRoute(
         path: '/family-cards',
-        builder: (context, state) => const FamilyCardsScreen(),
+        pageBuilder: (context, state) => _page(state, const FamilyCardsScreen()),
       ),
       GoRoute(
         path: '/family-cards/add',
-        builder: (context, state) => const AddFamilyCardScreen(),
+        pageBuilder: (context, state) => _page(state, const AddFamilyCardScreen()),
       ),
       GoRoute(
         path: '/family-cards/:nik',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final nik = state.pathParameters['nik']!;
-          return FamilyCardDetailScreen(nik: nik);
+          return _page(state, FamilyCardDetailScreen(nik: nik));
         },
       ),
       GoRoute(
         path: '/sub-dimensions',
-        builder: (context, state) => const SubDimensionsHubScreen(),
+        pageBuilder: (context, state) => _page(state, const SubDimensionsHubScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/pendidikan',
-        builder: (context, state) => const PendidikanFormScreen(),
+        pageBuilder: (context, state) => _page(state, const PendidikanFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/kesehatan',
-        builder: (context, state) => const KesehatanFormScreen(),
+        pageBuilder: (context, state) => _page(state, const KesehatanFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/utilitas-dasar',
-        builder: (context, state) => const UtilitasDasarFormScreen(),
+        pageBuilder: (context, state) => _page(state, const UtilitasDasarFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/aktivitas',
-        builder: (context, state) => const AktivitasFormScreen(),
+        pageBuilder: (context, state) => _page(state, const AktivitasFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/fasilitas-masyarakat',
-        builder: (context, state) => const FasilitasMasyarakatFormScreen(),
+        pageBuilder: (context, state) => _page(state, const FasilitasMasyarakatFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/produksi-desa',
-        builder: (context, state) => const ProduksiDesaFormScreen(),
+        pageBuilder: (context, state) => _page(state, const ProduksiDesaFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/fasilitas-ekonomi',
-        builder: (context, state) => const FasilitasPendukungEkonomiFormScreen(),
+        pageBuilder: (context, state) => _page(state, const FasilitasPendukungEkonomiFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/pengelolaan-lingkungan',
-        builder: (context, state) => const PengelolaanLingkunganFormScreen(),
+        pageBuilder: (context, state) => _page(state, const PengelolaanLingkunganFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/penanggulangan-bencana',
-        builder: (context, state) => const PenanggulanganBencanaFormScreen(),
+        pageBuilder: (context, state) => _page(state, const PenanggulanganBencanaFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/kondisi-akses-jalan',
-        builder: (context, state) => const KondisiAksesJalanFormScreen(),
+        pageBuilder: (context, state) => _page(state, const KondisiAksesJalanFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/kemudahan-akses',
-        builder: (context, state) => const KemudahanAksesFormScreen(),
+        pageBuilder: (context, state) => _page(state, const KemudahanAksesFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/kelembagaan-pelayanan',
-        builder: (context, state) => const KelembagaanPelayananDesaFormScreen(),
+        pageBuilder: (context, state) => _page(state, const KelembagaanPelayananDesaFormScreen()),
       ),
       GoRoute(
         path: '/sub-dimensions/tata-kelola-keuangan',
-        builder: (context, state) => const TataKelolaKeuanganDesaFormScreen(),
+        pageBuilder: (context, state) => _page(state, const TataKelolaKeuanganDesaFormScreen()),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Error: ${state.error}'),
-      ),
+      body: Center(child: Text('Error: ${state.error}')),
     ),
   );
 });
+
+CustomTransitionPage<void> _page(
+  GoRouterState state,
+  Widget child, {
+  bool auth = false,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 220),
+    reverseTransitionDuration: const Duration(milliseconds: 180),
+    transitionsBuilder: auth ? _fadeTransition : _fadeSlideTransition,
+  );
+}
+
+Widget _fadeSlideTransition(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  return FadeTransition(
+    opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+    child: child,
+  );
+}
+
+Widget _fadeTransition(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  return FadeTransition(
+    opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+    child: child,
+  );
+}

@@ -5,7 +5,7 @@ import '../../../core/theme/forui_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../data/models/family_card.dart';
 import '../../../providers/family_card_provider.dart';
-import '../../widgets/common/app_sidebar.dart';
+import '../../widgets/common/app_shell.dart';
 
 class AddFamilyCardScreen extends ConsumerStatefulWidget {
   const AddFamilyCardScreen({super.key});
@@ -96,32 +96,15 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Row(
+    return AppShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sidebar
-          const AppSidebar(),
-
-          // Main Content
+          _buildHeader(context),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                _buildHeader(context),
-
-                // Scrollable Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-                    child: _buildFormCard(context),
-                  ),
-                ),
-
-                // Footer
-                _buildFooter(),
-              ],
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+              child: _buildFormCard(context),
             ),
           ),
         ],
@@ -130,33 +113,46 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final isDesktop = AppShell.isDesktop(context);
     return Container(
-      padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-      color: Colors.white,
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 28 : 14),
       child: Row(
         children: [
+          if (!isDesktop)
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
           IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => context.pop(),
+            color: ForuiThemeConfig.textPrimary,
           ),
-          const SizedBox(width: ForuiThemeConfig.spacingSmall),
+          const SizedBox(width: 4),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   'Tambah Kartu Keluarga',
                   style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                     color: ForuiThemeConfig.textPrimary,
                   ),
                 ),
-                SizedBox(height: 4),
                 Text(
                   'Tambahkan data kartu keluarga baru',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: ForuiThemeConfig.textSecondary,
                   ),
                 ),
@@ -204,26 +200,28 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
                   ),
                 ),
                 const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Informasi Kartu Keluarga',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: ForuiThemeConfig.textPrimary,
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Informasi Kartu Keluarga',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: ForuiThemeConfig.textPrimary,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Lengkapi data kartu keluarga di bawah ini',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: ForuiThemeConfig.textSecondary,
+                      SizedBox(height: 2),
+                      Text(
+                        'Lengkapi data kartu keluarga di bawah ini',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: ForuiThemeConfig.textSecondary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -497,18 +495,4 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
     );
   }
 
-  Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      color: Colors.white,
-      alignment: Alignment.center,
-      child: Text(
-        '© 2025 Apps I-Desa. Hak Cipta Dilindungi.',
-        style: TextStyle(
-          fontSize: 12,
-          color: Colors.grey[600],
-        ),
-      ),
-    );
-  }
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import '../../core/constants/api_constants.dart';
@@ -8,34 +9,32 @@ class ApiService {
   factory ApiService() => _instance;
 
   late final Dio _dio;
-  late final CookieJar _cookieJar;
+  CookieJar? _cookieJar;
 
-  // In-memory token set after login; sent as Authorization: Bearer on every request.
-  // This is necessary for Flutter Web where browsers block manual Cookie headers
-  // in cross-origin XHR requests (Netlify → Railway).
+  // In-memory token for Flutter Web — browsers block cookies on cross-origin
+  // requests (Netlify → Railway), so we fall back to Authorization: Bearer.
   static String? _authToken;
-
-  static void setAuthToken(String? token) {
-    _authToken = token;
-  }
+  static void setAuthToken(String? token) => _authToken = token;
 
   ApiService._internal() {
-    _cookieJar = CookieJar();
-
     _dio = Dio(BaseOptions(
       baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       headers: ApiConstants.defaultHeaders,
       validateStatus: (status) {
+        // Accept all status codes to handle errors manually
         return status != null && status < 500;
       },
     ));
 
-    // Add cookie manager interceptor (works on native; web falls back to Bearer)
-    _dio.interceptors.add(CookieManager(_cookieJar));
+    // CookieManager tidak support web
+    if (!kIsWeb) {
+      _cookieJar = CookieJar();
+      _dio.interceptors.add(CookieManager(_cookieJar!));
+    }
 
-    // Inject Authorization header when token is available
+    // Inject Bearer token on every request (required for web cross-origin)
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         if (_authToken != null) {
@@ -72,11 +71,11 @@ class ApiService {
   }
 
   Dio get dio => _dio;
-  CookieJar get cookieJar => _cookieJar;
+  CookieJar? get cookieJar => _cookieJar;
 
   // Clear cookies (for logout)
   Future<void> clearCookies() async {
-    await _cookieJar.deleteAll();
+    await _cookieJar?.deleteAll();
   }
 
   // Generic GET request

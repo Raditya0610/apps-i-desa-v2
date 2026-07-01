@@ -83,8 +83,6 @@ class AuthService {
         // Save token and username
         await _write(_tokenKey, token);
         await _write(_usernameKey, username);
-
-        // Make token available to ApiService interceptor (needed for Flutter Web)
         ApiService.setAuthToken(token);
 
         // Extract and save village_id if available in response
@@ -121,9 +119,9 @@ class AuthService {
     try {
       await _api.post(ApiConstants.logout);
 
-      // Clear token, storage and cookies
-      ApiService.setAuthToken(null);
+      // Clear storage and cookies
       await _deleteAll();
+      ApiService.setAuthToken(null);
       if (AppConfig.useMockApi) {
         await _mockApiService.clearAuth();
       } else {
@@ -136,8 +134,8 @@ class AuthService {
       };
     } catch (e) {
       // Even if the API call fails, clear local data
-      ApiService.setAuthToken(null);
       await _deleteAll();
+      ApiService.setAuthToken(null);
       if (AppConfig.useMockApi) {
         await _mockApiService.clearAuth();
       } else {
@@ -187,16 +185,14 @@ class AuthService {
     }
   }
 
-  // Check if user is logged in
+  // Check if user is logged in (also restores token into ApiService on app start)
   Future<bool> isLoggedIn() async {
     final token = await _read(_tokenKey);
-    return token != null && token.isNotEmpty;
-  }
-
-  // Restore token to ApiService after app restart (token survives in secure storage)
-  Future<void> restoreAuthToken() async {
-    final token = await _read(_tokenKey);
-    ApiService.setAuthToken(token);
+    if (token != null && token.isNotEmpty) {
+      ApiService.setAuthToken(token);
+      return true;
+    }
+    return false;
   }
 
   // Get stored token

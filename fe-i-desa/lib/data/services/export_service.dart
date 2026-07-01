@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:csv/csv.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+import 'file_saver/file_saver.dart';
 
 class ExportService {
   /// Export villagers data to Excel format
@@ -77,21 +76,13 @@ class ExportService {
         sheet.setColumnWidth(i, 20);
       }
 
-      // Save file
-      final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final filePath = '${directory.path}/data_penduduk_$timestamp.xlsx';
-
       final fileBytes = excel.save();
       if (fileBytes != null) {
-        final file = File(filePath);
-        await file.writeAsBytes(fileBytes);
-        return filePath;
+        return saveBytesFile(fileBytes, 'data_penduduk_$timestamp.xlsx');
       }
-
       return null;
     } catch (e) {
-      print('Error exporting to Excel: $e');
       return null;
     }
   }
@@ -100,59 +91,26 @@ class ExportService {
   static Future<String?> exportToCsv(List<Map<String, dynamic>> data) async {
     try {
       final List<List<dynamic>> rows = [];
-
-      // Add headers
       rows.add([
-        'NIK',
-        'Nama Lengkap',
-        'Jenis Kelamin',
-        'Tempat Lahir',
-        'Tanggal Lahir',
-        'Umur',
-        'Agama',
-        'Pendidikan',
-        'Pekerjaan',
-        'Status Perkawinan',
-        'Status Hubungan',
-        'Kewarganegaraan',
-        'Nama Ayah',
-        'Nama Ibu',
+        'NIK', 'Nama Lengkap', 'Jenis Kelamin', 'Tempat Lahir',
+        'Tanggal Lahir', 'Umur', 'Agama', 'Pendidikan', 'Pekerjaan',
+        'Status Perkawinan', 'Status Hubungan', 'Kewarganegaraan',
+        'Nama Ayah', 'Nama Ibu',
       ]);
-
-      // Add data rows
-      for (final villager in data) {
+      for (final v in data) {
         rows.add([
-          villager['nik'] ?? '',
-          villager['name'] ?? villager['nama_lengkap'] ?? '',
-          villager['jenis_kelamin'] ?? '',
-          villager['tempat_lahir'] ?? '',
-          villager['tanggal_lahir'] ?? '',
-          villager['age']?.toString() ?? '',
-          villager['agama'] ?? '',
-          villager['pendidikan'] ?? '',
-          villager['pekerjaan'] ?? '',
-          villager['status_perkawinan'] ?? '',
-          villager['status_hubungan'] ?? '',
-          villager['kewarganegaraan'] ?? '',
-          villager['nama_ayah'] ?? '',
-          villager['nama_ibu'] ?? '',
+          v['nik'] ?? '', v['name'] ?? v['nama_lengkap'] ?? '',
+          v['jenis_kelamin'] ?? '', v['tempat_lahir'] ?? '',
+          v['tanggal_lahir'] ?? '', v['age']?.toString() ?? '',
+          v['agama'] ?? '', v['pendidikan'] ?? '', v['pekerjaan'] ?? '',
+          v['status_perkawinan'] ?? '', v['status_hubungan'] ?? '',
+          v['kewarganegaraan'] ?? '', v['nama_ayah'] ?? '', v['nama_ibu'] ?? '',
         ]);
       }
-
-      // Convert to CSV
       final csv = const ListToCsvConverter().convert(rows);
-
-      // Save file
-      final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final filePath = '${directory.path}/data_penduduk_$timestamp.csv';
-
-      final file = File(filePath);
-      await file.writeAsString(csv);
-
-      return filePath;
+      return saveStringFile(csv, 'data_penduduk_$timestamp.csv');
     } catch (e) {
-      print('Error exporting to CSV: $e');
       return null;
     }
   }
@@ -204,26 +162,17 @@ class ExportService {
         }
       }
 
-      // Auto-fit columns
-      sheet.setColumnWidth(0, 25); // No KK
-      sheet.setColumnWidth(1, 25); // Kepala Keluarga
-      sheet.setColumnWidth(3, 18); // Jumlah Anggota
+      sheet.setColumnWidth(0, 25);
+      sheet.setColumnWidth(1, 25);
+      sheet.setColumnWidth(2, 18);
 
-      // Save file
-      final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final filePath = '${directory.path}/data_kartu_keluarga_$timestamp.xlsx';
-
       final fileBytes = excel.save();
       if (fileBytes != null) {
-        final file = File(filePath);
-        await file.writeAsBytes(fileBytes);
-        return filePath;
+        return saveBytesFile(fileBytes, 'data_kartu_keluarga_$timestamp.xlsx');
       }
-
       return null;
     } catch (e) {
-      print('Error exporting family cards to Excel: $e');
       return null;
     }
   }
@@ -233,38 +182,18 @@ class ExportService {
       List<Map<String, dynamic>> data) async {
     try {
       final List<List<dynamic>> rows = [];
-
-      // Add headers
-      rows.add([
-        'No KK',
-        'Kepala Keluarga',
-        'Jumlah Anggota',
-      ]);
-
-      // Add data rows
-      for (final familyCard in data) {
+      rows.add(['No KK', 'Kepala Keluarga', 'Jumlah Anggota']);
+      for (final fc in data) {
         rows.add([
-          familyCard['nik'] ?? '',
-          familyCard['nama_lengkap'] ?? '',
-          familyCard['alamat'] ?? '',
-          familyCard['jumlah_anggota']?.toString() ?? '0',
+          fc['nik'] ?? '',
+          fc['nama_lengkap'] ?? '',
+          fc['jumlah_anggota']?.toString() ?? '0',
         ]);
       }
-
-      // Convert to CSV
       final csv = const ListToCsvConverter().convert(rows);
-
-      // Save file
-      final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final filePath = '${directory.path}/data_kartu_keluarga_$timestamp.csv';
-
-      final file = File(filePath);
-      await file.writeAsString(csv);
-
-      return filePath;
+      return saveStringFile(csv, 'data_kartu_keluarga_$timestamp.csv');
     } catch (e) {
-      print('Error exporting family cards to CSV: $e');
       return null;
     }
   }

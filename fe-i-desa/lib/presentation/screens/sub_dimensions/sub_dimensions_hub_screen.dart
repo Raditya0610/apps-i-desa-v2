@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/forui_theme.dart';
-import '../../widgets/common/app_sidebar.dart';
+import '../../widgets/common/app_shell.dart';
 
 class SubDimensionsHubScreen extends StatefulWidget {
   const SubDimensionsHubScreen({super.key});
@@ -115,40 +115,24 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       orElse: () => _categories.first,
     );
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: Row(
+    return AppShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AppSidebar(),
+          _buildHeader(context),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                _buildHeader(context),
-
-                // Main Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Hero Card with IDM Score
-                        _buildHeroCard(),
-                        const SizedBox(height: ForuiThemeConfig.spacingLarge),
-
-                        // Three Score Cards
-                        _buildScoreCardsRow(),
-                        const SizedBox(height: ForuiThemeConfig.spacingLarge),
-
-                        // Detail & Input Section
-                        _buildDetailInputSection(selectedCategoryData),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeroCard(),
+                  const SizedBox(height: ForuiThemeConfig.spacingLarge),
+                  _buildScoreCardsRow(context),
+                  const SizedBox(height: ForuiThemeConfig.spacingLarge),
+                  _buildDetailInputSection(selectedCategoryData),
+                ],
+              ),
             ),
           ),
         ],
@@ -157,209 +141,232 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final isDesktop = AppShell.isDesktop(context);
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ForuiThemeConfig.spacingLarge,
-        vertical: ForuiThemeConfig.spacingMedium,
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
       ),
-      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 28 : 14),
       child: Row(
         children: [
+          if (!isDesktop)
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
+          const SizedBox(width: 4),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   'Indikator Desa Membangun',
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
                     color: ForuiThemeConfig.textPrimary,
                   ),
                 ),
-                SizedBox(height: 4),
                 Text(
                   'Data Terpadu Desa',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: ForuiThemeConfig.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          // Search bar
-          Container(
-            width: 250,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 12),
-                Icon(Icons.search, size: 20, color: Colors.grey[500]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Cari data...',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 14,
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
+          if (isDesktop)
+            Container(
+              width: 220,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F7F5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE8EDE9)),
+              ),
+              child: const TextField(
+                decoration: InputDecoration(
+                  hintText: 'Cari data...',
+                  hintStyle: TextStyle(
+                      fontSize: 13, color: ForuiThemeConfig.textHint),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      size: 17, color: ForuiThemeConfig.textHint),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 9),
                 ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(width: ForuiThemeConfig.spacingMedium),
-          // Notification icon
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
-            ),
-            child: Icon(Icons.notifications_outlined, color: Colors.grey[600]),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildHeroCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF1B5E20),
-            ForuiThemeConfig.primaryGreen,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxWidth < 500;
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1B5E20), ForuiThemeConfig.primaryGreen],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius:
+              BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
         ),
-        borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Year badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+        child: compact
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _heroYearBadge(),
+                  const SizedBox(height: 12),
+                  const Text('Desa Mandiri',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text('Status Indeks Desa Membangun (IDM) tertinggi.',
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 13)),
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 14, color: Colors.white.withValues(alpha: 0.9)),
-                      const SizedBox(width: 6),
-                      Text(
-                        'TAHUN 2025',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      const Text('0.895',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              height: 1)),
+                      const SizedBox(width: 10),
+                      Text('Skor Indeks\nKomposit',
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 12)),
                     ],
                   ),
-                ),
-                const SizedBox(height: ForuiThemeConfig.spacingMedium),
-                // Village status
-                const Text(
-                  'Desa Mandiri',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _heroYearBadge(),
+                        const SizedBox(height: 14),
+                        const Text('Desa Mandiri',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 30,
+                                fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        Text('Status Indeks Desa Membangun (IDM) tertinggi.',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 14)),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Status Indeks Desa Membangun (IDM) tertinggi.',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 14,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text('0.895',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 52,
+                              fontWeight: FontWeight.bold,
+                              height: 1)),
+                      const SizedBox(height: 6),
+                      Text('Skor Indeks Komposit',
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 13)),
+                    ],
                   ),
-                ),
-              ],
-            ),
-          ),
-          // IDM Score
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text(
-                '0.895',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 56,
-                  fontWeight: FontWeight.bold,
-                  height: 1,
-                ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Skor Indeks Komposit',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
+      );
+    });
+  }
+
+  Widget _heroYearBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.calendar_today,
+              size: 12, color: Colors.white.withValues(alpha: 0.9)),
+          const SizedBox(width: 6),
+          Text('TAHUN 2025',
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 
-  Widget _buildScoreCardsRow() {
-    return const Row(
+  Widget _buildScoreCardsRow(BuildContext context) {
+    const cards = [
+      _ScoreCard(
+        title: 'Ketahanan Sosial',
+        score: 0.912,
+        status: 'Sangat Baik',
+        color: Color(0xFF00897B),
+        icon: Icons.people_alt_outlined,
+      ),
+      _ScoreCard(
+        title: 'Ketahanan Ekonomi',
+        score: 0.845,
+        status: 'Baik - Perlu Peningkatan UMKM',
+        color: Color(0xFFFFA000),
+        icon: Icons.monetization_on_outlined,
+      ),
+      _ScoreCard(
+        title: 'Ketahanan Lingkungan',
+        score: 0.928,
+        status: 'Sangat Baik',
+        color: Color(0xFF43A047),
+        icon: Icons.eco_outlined,
+      ),
+    ];
+
+    if (AppShell.isDesktop(context)) {
+      return Row(
+        children: [
+          Expanded(child: cards[0]),
+          const SizedBox(width: ForuiThemeConfig.spacingMedium),
+          Expanded(child: cards[1]),
+          const SizedBox(width: ForuiThemeConfig.spacingMedium),
+          Expanded(child: cards[2]),
+        ],
+      );
+    }
+
+    return Column(
       children: [
-        Expanded(
-          child: _ScoreCard(
-            title: 'Ketahanan Sosial',
-            score: 0.912,
-            status: 'Sangat Baik',
-            color: Color(0xFF00897B),
-            icon: Icons.people_alt_outlined,
-          ),
-        ),
-        SizedBox(width: ForuiThemeConfig.spacingMedium),
-        Expanded(
-          child: _ScoreCard(
-            title: 'Ketahanan Ekonomi',
-            score: 0.845,
-            status: 'Baik - Perlu Peningkatan UMKM',
-            color: Color(0xFFFFA000),
-            icon: Icons.monetization_on_outlined,
-          ),
-        ),
-        SizedBox(width: ForuiThemeConfig.spacingMedium),
-        Expanded(
-          child: _ScoreCard(
-            title: 'Ketahanan Lingkungan',
-            score: 0.928,
-            status: 'Sangat Baik',
-            color: Color(0xFF43A047),
-            icon: Icons.eco_outlined,
-          ),
-        ),
+        cards[0],
+        const SizedBox(height: ForuiThemeConfig.spacingMedium),
+        cards[1],
+        const SizedBox(height: ForuiThemeConfig.spacingMedium),
+        cards[2],
       ],
     );
   }
@@ -377,48 +384,56 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
           // Section Header
           Padding(
             padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Detail & Input Data IDM',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: ForuiThemeConfig.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Pilih kategori untuk memperbarui data indikator.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Save data functionality
-                  },
-                  icon: const Icon(Icons.save_outlined, size: 18),
-                  label: const Text('Simpan Data'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ForuiThemeConfig.primaryGreen,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
+            child: LayoutBuilder(builder: (context, constraints) {
+              final compact = constraints.maxWidth < 480;
+              final titleCol = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Detail & Input Data IDM',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: ForuiThemeConfig.textPrimary,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Pilih kategori untuk memperbarui data.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                ],
+              );
+              final saveBtn = ElevatedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.save_outlined, size: 16),
+                label: const Text('Simpan Data'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ForuiThemeConfig.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
-              ],
-            ),
+              );
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    titleCol,
+                    const SizedBox(height: 12),
+                    saveBtn,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: titleCol),
+                  saveBtn,
+                ],
+              );
+            }),
           ),
 
           // Category Tabs
@@ -453,60 +468,73 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Category Header
-                Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: ForuiThemeConfig.surfaceGreen,
-                        borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
-                      ),
-                      child: Icon(
-                        selectedCategoryData.icon,
-                        color: ForuiThemeConfig.primaryGreen,
-                        size: 24,
-                      ),
+                LayoutBuilder(builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 480;
+                  final iconBox = Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: ForuiThemeConfig.surfaceGreen,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            selectedCategoryData.title,
-                            style: const TextStyle(
-                              fontSize: 18,
+                    child: Icon(selectedCategoryData.icon,
+                        color: ForuiThemeConfig.primaryGreen, size: 22),
+                  );
+                  final infoCol = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(selectedCategoryData.title,
+                          style: const TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: ForuiThemeConfig.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            selectedCategoryData.description,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
+                              color: ForuiThemeConfig.textPrimary)),
+                      const SizedBox(height: 3),
+                      Text(selectedCategoryData.description,
+                          style: TextStyle(
+                              fontSize: 13, color: Colors.grey[600])),
+                    ],
+                  );
+                  final openBtn = OutlinedButton.icon(
+                    onPressed: () =>
+                        context.push(selectedCategoryData.route),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                    label: const Text('Buka Form'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ForuiThemeConfig.primaryGreen,
+                      side: const BorderSide(
+                          color: ForuiThemeConfig.primaryGreen),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: () => context.push(selectedCategoryData.route),
-                      icon: const Icon(Icons.open_in_new, size: 16),
-                      label: const Text('Buka Form Lengkap'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: ForuiThemeConfig.primaryGreen,
-                        side: const BorderSide(color: ForuiThemeConfig.primaryGreen),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                  if (compact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          iconBox,
+                          const SizedBox(width: 12),
+                          Expanded(child: infoCol),
+                        ]),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                            width: double.infinity,
+                            child: openBtn),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      iconBox,
+                      const SizedBox(width: 12),
+                      Expanded(child: infoCol),
+                      const SizedBox(width: 12),
+                      openBtn,
+                    ],
+                  );
+                }),
                 const SizedBox(height: ForuiThemeConfig.spacingLarge),
 
                 // Placeholder for form content

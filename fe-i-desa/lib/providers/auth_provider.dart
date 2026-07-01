@@ -50,11 +50,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     final isLoggedIn = await _authService.isLoggedIn();
     final username = await _authService.getUsername();
-    if (isLoggedIn) {
-      // Restore Bearer token so ApiService interceptor can attach it to requests.
-      // Without this, the token is in secure storage but not in memory after restart.
-      await _authService.restoreAuthToken();
-    }
     state = state.copyWith(
       isAuthenticated: isLoggedIn,
       username: username,
@@ -63,30 +58,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<Map<String, dynamic>> login(String username, String password) async {
-    print('[AUTH PROVIDER] Login started for: $username');
-    state = state.copyWith(isLoading: true, error: null);
+    // isLoading intentionally NOT set here — loading is handled locally
+    // in the login screen to avoid the router redirecting to /splash.
+    state = state.copyWith(error: null);
 
     final result = await _authService.login(username, password);
-    print('[AUTH PROVIDER] Login result: ${result['success']}');
 
-    if (result['success']) {
-      print('[AUTH PROVIDER] Setting authenticated state to true');
-      state = state.copyWith(
-        isAuthenticated: true,
-        username: username,
-        isLoading: false,
-      );
-      print('[AUTH PROVIDER] State updated - isAuthenticated: ${state.isAuthenticated}');
-    } else {
-      print('[AUTH PROVIDER] Login failed: ${result['message']}');
+    if (!result['success']) {
       state = state.copyWith(
         isAuthenticated: false,
-        isLoading: false,
         error: result['message'],
       );
     }
+    // On success: caller must invoke finalizeLogin() after showing animation.
 
     return result;
+  }
+
+  /// Called by the login screen after the success animation completes.
+  void finalizeLogin(String username) {
+    state = state.copyWith(isAuthenticated: true, username: username);
   }
 
   Future<Map<String, dynamic>> register(
