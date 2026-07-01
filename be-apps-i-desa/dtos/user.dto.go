@@ -7,3 +7,8 @@ type RegisterRequest struct {
 	Password  string    `json:"password"   validate:"required"`
 	VillageID uuid.UUID `json:"village_id" validate:"required,uuid"`
 }
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=6"`
+}

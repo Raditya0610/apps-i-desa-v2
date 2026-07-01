@@ -32,3 +32,16 @@ func (r *UserRepository) CreateWithTx(tx *gorm.DB, user *models.User) error {
 func (r *UserRepository) BeginTransaction() *gorm.DB {
 	return r.DB.Begin()
 }
+
+func (r *UserRepository) FindByVillageID(villageID string) (*models.User, error) {
+	var user models.User
+	err := r.DB.Where("village_id = ?", villageID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepository) UpdatePassword(tx *gorm.DB, username string, hashedPassword string) error {
+	return tx.Model(&models.User{}).Where("username = ?", username).Update("password", hashedPassword).Error
+}

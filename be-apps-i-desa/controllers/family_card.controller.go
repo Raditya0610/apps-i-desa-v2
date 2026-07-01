@@ -118,6 +118,29 @@ func (c *FamilyCardController) GetFamilyCardByNIK(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusOK).JSON(response)
 }
 
+func (c *FamilyCardController) DeleteFamilyCard(ctx *fiber.Ctx) error {
+	nik := ctx.Params("id")
+	if nik == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "NIK is required",
+		})
+	}
+	if err := c.familyCardService.DeleteFamilyCard(nik); err != nil {
+		if err.Error() == "family card not found" {
+			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"message": "Family card not found",
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to delete family card",
+			"error":   err.Error(),
+		})
+	}
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Family card deleted successfully",
+	})
+}
+
 func (c *FamilyCardController) GetAllFamilyCards(ctx *fiber.Ctx) error {
 	response, err := c.familyCardService.GetAllFamilyCardsByVillageID(ctx)
 	if err != nil {

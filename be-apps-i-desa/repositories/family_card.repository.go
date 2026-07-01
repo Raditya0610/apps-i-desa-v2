@@ -119,3 +119,7 @@ func (r *FamilyCardRepository) CountDistinctKecamatan(villageID *uuid.UUID) (int
 	}
 	return count, nil
 }
+
+func (r *FamilyCardRepository) DeleteFamilyCardByNIK(tx *gorm.DB, nik string) error {
+	return tx.Delete(&models.FamilyCard{}, "nik = ?", nik).Error
+}

@@ -80,3 +80,30 @@ func (c *UserController) Register(ctx *fiber.Ctx) error {
 
 	return ctx.Status(fiber.StatusCreated).JSON(response)
 }
+
+func (c *UserController) ChangePassword(ctx *fiber.Ctx) error {
+	var req dtos.ChangePasswordRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
+	}
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Validation failed", "error": err.Error()})
+	}
+
+	villageID, ok := ctx.Locals("village").(string)
+	if !ok || villageID == "" {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+	}
+
+	resp, err := c.userService.ChangePassword(villageID, &req)
+	if err != nil {
+		status := fiber.StatusInternalServerError
+		if err.Error() == "user not found" {
+			status = fiber.StatusNotFound
+		} else if err.Error() == "old password is incorrect" {
+			status = fiber.StatusUnauthorized
+		}
+		return ctx.Status(status).JSON(fiber.Map{"message": err.Error()})
+	}
+	return ctx.JSON(resp)
+}

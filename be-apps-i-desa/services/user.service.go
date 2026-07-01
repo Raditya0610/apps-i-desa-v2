@@ -79,3 +79,35 @@ func (s *UserService) Register(request *dtos.RegisterRequest) (*dtos.MessageResp
 		Message: "User registered successfully",
 	}, nil
 }
+
+func (s *UserService) ChangePassword(villageID string, req *dtos.ChangePasswordRequest) (*dtos.MessageResponse, error) {
+	user, err := s.userRepo.FindByVillageID(villageID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, errors.New("failed to find user")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.OldPassword)); err != nil {
+		return nil, errors.New("old password is incorrect")
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, errors.New("error hashing password")
+	}
+
+	tx := s.userRepo.BeginTransaction()
+	defer tx.Rollback()
+
+	if err := s.userRepo.UpdatePassword(tx, user.Username, string(hashed)); err != nil {
+		return nil, errors.New("failed to update password")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, errors.New("failed to commit transaction")
+	}
+
+	return &dtos.MessageResponse{Message: "Password changed successfully"}, nil
+}

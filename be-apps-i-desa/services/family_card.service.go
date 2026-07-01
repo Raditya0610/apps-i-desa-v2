@@ -117,6 +117,38 @@ func (s *FamilyCardService) GetFamilyCardByNIK(nik string) (*dtos.GetAllFamilyMe
 	}, nil
 }
 
+func (s *FamilyCardService) DeleteFamilyCard(nik string) error {
+	tx := s.familyCardRepo.BeginTransaction()
+	defer tx.Rollback()
+
+	existing, err := s.familyCardRepo.GetFamilyCardByNIK(&nik)
+	if err != nil {
+		return errors.New("family card not found")
+	}
+	if existing == nil {
+		return errors.New("family card not found")
+	}
+
+	// Delete all villagers belonging to this family card first
+	villagers, err := s.villagerRepo.GetVillagersByFamilyCardNIK(&nik)
+	if err != nil {
+		return errors.New("failed to get villagers for family card")
+	}
+	for _, v := range villagers {
+		if err := s.villagerRepo.DeleteVillagerWithTx(tx, &v.NIK); err != nil {
+			return errors.New("failed to delete villager")
+		}
+	}
+
+	if err := s.familyCardRepo.DeleteFamilyCardByNIK(tx, nik); err != nil {
+		return errors.New("failed to delete family card")
+	}
+	if err := tx.Commit().Error; err != nil {
+		return errors.New("failed to commit transaction")
+	}
+	return nil
+}
+
 func (s *FamilyCardService) GetAllFamilyCardsByVillageID(
 	ctx *fiber.Ctx,
 ) (*dtos.GetAllFamilyCardsResponse, error) {
