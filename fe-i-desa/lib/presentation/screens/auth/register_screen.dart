@@ -24,9 +24,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? _errorMessage;
 
   final List<Map<String, String>> _villages = [
-    {'id': '83eb95cc-e9ac-425f-8cef-2c3db0e0c24a', 'name': 'Ohoi Iso'},
-    {'id': '9caa4ba3-3d4a-4fad-a5a0-6ca8ebc41ef7', 'name': 'Ohoi Disuk'},
-    {'id': 'ce964e83-4a13-45eb-a2e5-9b903b0c9033', 'name': 'Ohoi Wain Baru'},
+    {'id': 'c8f4d46e-8461-44ac-bfb9-a1b45e09de4a', 'name': 'Ohoi Elaar Let'},
+    {'id': '4b0bfbfd-738f-439e-ad00-4ce70f1b4c7d', 'name': 'Ohoi Elaar Ngursoin'},
+    {'id': '7e4f816a-d9c0-4ffc-9999-c6edd2e657d1', 'name': 'Ohoi Elaar Lamagorang'},
   ];
 
   @override
