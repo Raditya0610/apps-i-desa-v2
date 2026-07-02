@@ -198,6 +198,7 @@ class _TopBar extends ConsumerWidget {
             constraints: const BoxConstraints(minWidth: 220, maxWidth: 240),
             onSelected: (value) {
               if (value == 'logout') _confirmLogout(context, ref);
+              if (value == 'change-password') context.push('/change-password');
             },
             itemBuilder: (_) => [
               // ── Profile header ──
@@ -271,6 +272,29 @@ class _TopBar extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+              // ── Change Password ──
+              PopupMenuItem(
+                value: 'change-password',
+                height: 46,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: ForuiThemeConfig.surfaceGreen,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.lock_outline_rounded, color: ForuiThemeConfig.primaryGreen, size: 16),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Ganti Password',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: ForuiThemeConfig.textPrimary)),
+                  ],
                 ),
               ),
               const PopupMenuDivider(height: 1),

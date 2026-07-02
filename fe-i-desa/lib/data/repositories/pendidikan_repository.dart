@@ -31,4 +31,39 @@ class PendidikanRepository {
       };
     }
   }
+
+  Future<List<Pendidikan>> getAll() async {
+    try {
+      final response = await _apiService.get(ApiConstants.subDimensionPendidikan);
+      if (response.statusCode == 200) {
+        final list = response.data as List;
+        return list.map((json) => Pendidikan.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> update(String id, Pendidikan data) async {
+    try {
+      final response = await _apiService.put(ApiConstants.subDimensionPendidikanById(id), data: data.toJson());
+      if (response.statusCode == 200) return {'success': true, 'message': 'Data berhasil diperbarui'};
+      final d = response.data as Map<String, dynamic>;
+      return {'success': false, 'message': d['message'] ?? 'Gagal memperbarui data'};
+    } catch (e) {
+      return {'success': false, 'message': ApiService.getErrorMessage(e)};
+    }
+  }
+
+  Future<Map<String, dynamic>> delete(String id) async {
+    try {
+      final response = await _apiService.delete(ApiConstants.subDimensionPendidikanById(id));
+      if (response.statusCode == 200) return {'success': true, 'message': 'Data berhasil dihapus'};
+      final d = response.data as Map<String, dynamic>;
+      return {'success': false, 'message': d['message'] ?? 'Gagal menghapus data'};
+    } catch (e) {
+      return {'success': false, 'message': ApiService.getErrorMessage(e)};
+    }
+  }
 }

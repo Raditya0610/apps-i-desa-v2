@@ -1,4 +1,4 @@
-import '../models/sub_dimensions/tata_kelola_keuangan_desa.dart';
+﻿import '../models/sub_dimensions/tata_kelola_keuangan_desa.dart';
 import '../services/api_service.dart';
 import '../../core/constants/api_constants.dart';
 
@@ -29,6 +29,42 @@ class TataKelolaKeuanganDesaRepository {
         'success': false,
         'message': ApiService.getErrorMessage(e),
       };
+    }
+  }
+
+
+  Future<List<TataKelolaKeuanganDesa>> getAll() async {
+    try {
+      final response = await _apiService.get(ApiConstants.subDimensionTataKelolaKeuanganDesa);
+      if (response.statusCode == 200) {
+        final list = response.data as List;
+        return list.map((json) => TataKelolaKeuanganDesa.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> update(String id, TataKelolaKeuanganDesa data) async {
+    try {
+      final response = await _apiService.put(ApiConstants.subDimensionTataKelolaKeuanganDesaById(id), data: data.toJson());
+      if (response.statusCode == 200) return {'success': true, 'message': 'Data berhasil diperbarui'};
+      final d = response.data as Map<String, dynamic>;
+      return {'success': false, 'message': d['message'] ?? 'Gagal memperbarui data'};
+    } catch (e) {
+      return {'success': false, 'message': ApiService.getErrorMessage(e)};
+    }
+  }
+
+  Future<Map<String, dynamic>> delete(String id) async {
+    try {
+      final response = await _apiService.delete(ApiConstants.subDimensionTataKelolaKeuanganDesaById(id));
+      if (response.statusCode == 200) return {'success': true, 'message': 'Data berhasil dihapus'};
+      final d = response.data as Map<String, dynamic>;
+      return {'success': false, 'message': d['message'] ?? 'Gagal menghapus data'};
+    } catch (e) {
+      return {'success': false, 'message': ApiService.getErrorMessage(e)};
     }
   }
 }

@@ -47,6 +47,36 @@ class _FamilyCardsScreenState extends ConsumerState<FamilyCardsScreen> {
   int get totalPages =>
       (filteredFamilyCards.length / itemsPerPage).ceil().clamp(1, 999999);
 
+  Future<void> _confirmDeleteFamilyCard(BuildContext context, String nik, String name) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Hapus Kartu Keluarga'),
+        content: Text('Yakin ingin menghapus KK atas nama "$name"?\nSemua anggota keluarga juga akan dihapus.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: ForuiThemeConfig.errorColor, foregroundColor: Colors.white),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final result = await ref.read(familyCardsProvider.notifier).deleteFamilyCard(nik);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result['message']),
+        backgroundColor: result['success'] == true ? ForuiThemeConfig.primaryGreen : ForuiThemeConfig.errorColor,
+      ));
+    }
+  }
+
   Future<void> _handleExport(BuildContext context) async {
     final choice = await showDialog<String>(
       context: context,
@@ -369,7 +399,7 @@ class _FamilyCardsScreenState extends ConsumerState<FamilyCardsScreen> {
                             color: ForuiThemeConfig.textSecondary,
                             letterSpacing: 0.5))),
                 const SizedBox(
-                    width: 72,
+                    width: 80,
                     child: Text('AKSI',
                         style: TextStyle(
                             fontSize: 11,
@@ -440,7 +470,7 @@ class _FamilyCardsScreenState extends ConsumerState<FamilyCardsScreen> {
                                   color: ForuiThemeConfig.textSecondary)),
                         ),
                         SizedBox(
-                          width: 72,
+                          width: 80,
                           child: Row(
                             children: [
                               IconButton(
@@ -450,6 +480,15 @@ class _FamilyCardsScreenState extends ConsumerState<FamilyCardsScreen> {
                                 onPressed: () =>
                                     context.push('/family-cards/${card.nik}'),
                                 tooltip: 'Detail',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, size: 17),
+                                color: ForuiThemeConfig.errorColor,
+                                onPressed: () => _confirmDeleteFamilyCard(context, card.nik, card.name),
+                                tooltip: 'Hapus',
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                               ),
@@ -522,7 +561,16 @@ class _FamilyCardsScreenState extends ConsumerState<FamilyCardsScreen> {
                           fontWeight: FontWeight.w600,
                           color: ForuiThemeConfig.primaryGreen)),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  color: ForuiThemeConfig.errorColor,
+                  onPressed: () => _confirmDeleteFamilyCard(context, card.nik, card.name),
+                  tooltip: 'Hapus',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 4),
                 const Icon(Icons.chevron_right_rounded,
                     color: ForuiThemeConfig.textHint, size: 20),
               ],

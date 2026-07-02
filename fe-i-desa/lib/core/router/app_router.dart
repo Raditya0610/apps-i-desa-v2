@@ -23,6 +23,7 @@ import '../../presentation/screens/sub_dimensions/kemudahan_akses_form_screen.da
 import '../../presentation/screens/sub_dimensions/kelembagaan_pelayanan_desa_form_screen.dart';
 import '../../presentation/screens/sub_dimensions/tata_kelola_keuangan_desa_form_screen.dart';
 import '../../presentation/screens/splash/splash_screen.dart';
+import '../../presentation/screens/auth/change_password_screen.dart';
 
 // ChangeNotifier bridge so GoRouter can listen to Riverpod auth state.
 class _AuthChangeNotifier extends ChangeNotifier {
@@ -142,6 +143,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/sub-dimensions/tata-kelola-keuangan',
         pageBuilder: (context, state) => _page(state, const TataKelolaKeuanganDesaFormScreen()),
+      ),
+      GoRoute(
+        path: '/change-password',
+        pageBuilder: (context, state) => _page(state, const ChangePasswordScreen()),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

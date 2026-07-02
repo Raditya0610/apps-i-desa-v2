@@ -69,6 +69,14 @@ class FamilyCardsNotifier extends StateNotifier<FamilyCardsState> {
     return result;
   }
 
+  Future<Map<String, dynamic>> deleteFamilyCard(String nik) async {
+    final result = await _repository.deleteFamilyCard(nik);
+    if (result['success'] == true) {
+      await loadFamilyCards();
+    }
+    return result;
+  }
+
   Future<void> refresh() async {
     await loadFamilyCards();
   }
