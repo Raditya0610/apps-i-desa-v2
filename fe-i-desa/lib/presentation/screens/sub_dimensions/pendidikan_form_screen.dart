@@ -118,7 +118,7 @@ class _PendidikanFormScreenState extends ConsumerState<PendidikanFormScreen> {
             child: Padding(
               padding: const EdgeInsets.all(ForuiThemeConfig.spacingXLarge),
               child: Form(
-                key: _formKey ?? '',
+                key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -215,7 +215,7 @@ class _PendidikanFormScreenState extends ConsumerState<PendidikanFormScreen> {
 
                     PercentageInput(
                       label: 'APM PAUD',
-                      controller: _apmPaudController ?? '',
+                      controller: _apmPaudController,
                       hintText: 'Angka Partisipasi Murni (0-100)',
                     ),
                     const SizedBox(height: ForuiThemeConfig.spacingXLarge),
@@ -236,7 +236,7 @@ class _PendidikanFormScreenState extends ConsumerState<PendidikanFormScreen> {
 
                     PercentageInput(
                       label: 'APM SD',
-                      controller: _apmSdController ?? '',
+                      controller: _apmSdController,
                       hintText: 'Angka Partisipasi Murni (0-100)',
                     ),
                     const SizedBox(height: ForuiThemeConfig.spacingXLarge),
@@ -257,7 +257,7 @@ class _PendidikanFormScreenState extends ConsumerState<PendidikanFormScreen> {
 
                     PercentageInput(
                       label: 'APM SMP',
-                      controller: _apmSmpController ?? '',
+                      controller: _apmSmpController,
                       hintText: 'Angka Partisipasi Murni (0-100)',
                     ),
                     const SizedBox(height: ForuiThemeConfig.spacingXLarge),
@@ -278,7 +278,7 @@ class _PendidikanFormScreenState extends ConsumerState<PendidikanFormScreen> {
 
                     PercentageInput(
                       label: 'APM SMA',
-                      controller: _apmSmaController ?? '',
+                      controller: _apmSmaController,
                       hintText: 'Angka Partisipasi Murni (0-100)',
                     ),
                     const SizedBox(height: ForuiThemeConfig.spacingXLarge),
@@ -302,7 +302,7 @@ class _PendidikanFormScreenState extends ConsumerState<PendidikanFormScreen> {
                         Expanded(
                           flex: 2,
                           child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _handleSubmit ?? '',
+                            onPressed: _isLoading ? null : _handleSubmit,
                             icon: _isLoading
                                 ? const SizedBox(
                                     height: 20,
@@ -380,7 +380,7 @@ class _PendidikanFormScreenState extends ConsumerState<PendidikanFormScreen> {
         const Spacer(),
         if (_editingId != null)
           TextButton.icon(
-            onPressed: _clearForm ?? '',
+            onPressed: _clearForm,
             icon: const Icon(Icons.add_circle_outline, size: 16),
             label: const Text('Batal Edit'),
             style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary),
@@ -422,7 +422,7 @@ class _PendidikanFormScreenState extends ConsumerState<PendidikanFormScreen> {
           const Spacer(),
           if (isEditing)
             TextButton.icon(
-              onPressed: _clearForm ?? '',
+              onPressed: _clearForm,
               icon: const Icon(Icons.close, size: 14),
               label: const Text('Batal'),
               style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary, padding: EdgeInsets.zero),
