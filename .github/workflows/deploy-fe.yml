@@ -38,7 +38,7 @@ jobs:
         working-directory: fe-i-desa
         run: |
           flutter build web --release \
-            --dart-define=BASE_URL=https://be-apps-i-desa-production.up.railway.app
+            --dart-define=BASE_URL=https://apps-i-desa-v2-production.up.railway.app
 
       - name: Deploy to Netlify
         uses: netlify/actions/cli@master

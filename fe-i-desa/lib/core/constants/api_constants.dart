@@ -3,7 +3,7 @@ class ApiConstants {
   //   flutter run --dart-define=BASE_URL=http://localhost:3000
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'https://be-apps-i-desa.vercel.app',
+    defaultValue: 'https://apps-i-desa-v2-production.up.railway.app',
   );
   static const String apiPrefix = '/api';
 
@@ -40,6 +40,27 @@ class ApiConstants {
   static const String subDimensionKemudahanAkses = '$apiPrefix/sub-dimensions/kemudahan-akses';
   static const String subDimensionKelembagaanPelayananDesa = '$apiPrefix/sub-dimensions/kelembagaan-pelayanan-desa';
   static const String subDimensionTataKelolaKeuanganDesa = '$apiPrefix/sub-dimensions/tata-kelola-keuangan-desa';
+
+  // IDM Scores
+  static const String idmScores = '$apiPrefix/sub-dimensions/idm-scores';
+
+  // User
+  static const String changePassword = '$apiPrefix/users/change-password';
+
+  // Sub-dimension by ID helpers
+  static String subDimensionPendidikanById(String id) => '$subDimensionPendidikan/$id';
+  static String subDimensionKesehatanById(String id) => '$subDimensionKesehatan/$id';
+  static String subDimensionUtilitasDasarById(String id) => '$subDimensionUtilitasDasar/$id';
+  static String subDimensionAktivitasById(String id) => '$subDimensionAktivitas/$id';
+  static String subDimensionFasilitasMasyarakatById(String id) => '$subDimensionFasilitasMasyarakat/$id';
+  static String subDimensionProduksiDesaById(String id) => '$subDimensionProduksiDesa/$id';
+  static String subDimensionFasilitasPendukungEkonomiById(String id) => '$subDimensionFasilitasPendukungEkonomi/$id';
+  static String subDimensionPengelolaanLingkunganById(String id) => '$subDimensionPengelolaanLingkungan/$id';
+  static String subDimensionPenanggulanganBencanaById(String id) => '$subDimensionPenanggulanganBencana/$id';
+  static String subDimensionKondisiAksesJalanById(String id) => '$subDimensionKondisiAksesJalan/$id';
+  static String subDimensionKemudahanAksesById(String id) => '$subDimensionKemudahanAkses/$id';
+  static String subDimensionKelembagaanPelayananDesaById(String id) => '$subDimensionKelembagaanPelayananDesa/$id';
+  static String subDimensionTataKelolaKeuanganDesaById(String id) => '$subDimensionTataKelolaKeuanganDesa/$id';
 
   // Cookie
   static const String cookieName = 'AppsIDesaCookie';

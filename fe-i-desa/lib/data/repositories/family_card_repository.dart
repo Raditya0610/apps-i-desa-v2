@@ -62,6 +62,29 @@ class FamilyCardRepository {
     }
   }
 
+  Future<Map<String, dynamic>> deleteFamilyCard(String nik) async {
+    try {
+      final response = await _api.delete(ApiConstants.familyCardById(nik));
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Kartu keluarga berhasil dihapus',
+        };
+      } else {
+        final data = response.data as Map<String, dynamic>;
+        return {
+          'success': false,
+          'message': ApiService.getResponseError(data, fallback: 'Gagal menghapus kartu keluarga'),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': ApiService.getErrorMessage(e),
+      };
+    }
+  }
+
   Future<Map<String, dynamic>> createFamilyCard(FamilyCard familyCard) async {
     try {
       final response = await _api.post(

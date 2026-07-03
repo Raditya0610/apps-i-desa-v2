@@ -2,6 +2,7 @@ package routes
 
 import (
 	"Apps-I_Desa_Backend/controllers"
+	"Apps-I_Desa_Backend/middleware"
 	"Apps-I_Desa_Backend/repositories"
 	"Apps-I_Desa_Backend/services"
 	"github.com/gofiber/fiber/v2"
@@ -15,4 +16,5 @@ func SetupUserRoutes(app *fiber.App) {
 
 	userRoutes := app.Group("/api/users")
 	userRoutes.Post("/register", userController.Register)
+	userRoutes.Put("/change-password", middleware.JWTAuth(), userController.ChangePassword)
 }

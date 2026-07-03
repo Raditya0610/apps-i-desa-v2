@@ -26,7 +26,7 @@ func (r *VillagerRepository) BeginTransaction() *gorm.DB {
 
 func (r *VillagerRepository) FindVillagerByNIK(nik *string) (*models.Villager, error) {
 	var villager models.Villager
-	err := r.DB.Where("nik = ?", &nik).First(&villager).Error
+	err := r.DB.Where("nik = ?", nik).First(&villager).Error
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (r *VillagerRepository) GetVillagersByFamilyCardNIK(
 	familyCardNIK *string,
 ) ([]*dtos.GetFamilyMember, error) {
 	var villagers []*models.Villager
-	err := r.DB.Where("family_card_id = ?", &familyCardNIK).Find(&villagers).Error
+	err := r.DB.Where("family_card_id = ?", familyCardNIK).Find(&villagers).Error
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +62,19 @@ func (r *VillagerRepository) GetVillagersByFamilyCardNIK(
 	}
 
 	return familyMembers, nil
+}
+
+func (r *VillagerRepository) GetVillagersByFamilyCardNIKs(niks []string) ([]*models.Villager, error) {
+	var villagers []*models.Villager
+	err := r.DB.Where("family_card_id IN ?", niks).Find(&villagers).Error
+	if err != nil {
+		return nil, err
+	}
+	return villagers, nil
+}
+
+func (r *VillagerRepository) DeleteVillagersByFamilyCardNIK(tx *gorm.DB, familyCardNIK string) error {
+	return tx.Where("family_card_id = ?", familyCardNIK).Delete(&models.Villager{}).Error
 }
 
 func (r *VillagerRepository) UpdateVillagerWithTx(tx *gorm.DB, villager *models.Villager) error {

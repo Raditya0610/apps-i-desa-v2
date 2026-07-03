@@ -39,7 +39,7 @@ func main() {
 	app.Use(logger.New())
 	app.Use(recover.New())
 
-	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
 	if allowedOrigins == "" {
 		allowedOrigins = "http://localhost:3000,http://localhost:8080,http://localhost:5000"
 	}

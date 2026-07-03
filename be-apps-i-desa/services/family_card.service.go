@@ -117,6 +117,32 @@ func (s *FamilyCardService) GetFamilyCardByNIK(nik string) (*dtos.GetAllFamilyMe
 	}, nil
 }
 
+func (s *FamilyCardService) DeleteFamilyCard(nik string) error {
+	tx := s.familyCardRepo.BeginTransaction()
+	defer tx.Rollback()
+
+	existing, err := s.familyCardRepo.GetFamilyCardByNIK(&nik)
+	if err != nil {
+		return errors.New("family card not found")
+	}
+	if existing == nil {
+		return errors.New("family card not found")
+	}
+
+	// Bulk delete all villagers belonging to this family card
+	if err := s.villagerRepo.DeleteVillagersByFamilyCardNIK(tx, nik); err != nil {
+		return errors.New("failed to delete villagers for family card")
+	}
+
+	if err := s.familyCardRepo.DeleteFamilyCardByNIK(tx, nik); err != nil {
+		return errors.New("failed to delete family card")
+	}
+	if err := tx.Commit().Error; err != nil {
+		return errors.New("failed to commit transaction")
+	}
+	return nil
+}
+
 func (s *FamilyCardService) GetAllFamilyCardsByVillageID(
 	ctx *fiber.Ctx,
 ) (*dtos.GetAllFamilyCardsResponse, error) {
@@ -126,7 +152,6 @@ func (s *FamilyCardService) GetAllFamilyCardsByVillageID(
 		return nil, errors.New("village ID is required")
 	}
 	villageID, err := uuid.Parse(villageIDStr)
-	// Check if the village ID is valid
 	if err != nil {
 		log.Error("Error parsing village ID:", err)
 		return nil, errors.New("village ID is not valid")
@@ -137,25 +162,41 @@ func (s *FamilyCardService) GetAllFamilyCardsByVillageID(
 		log.Error("Error getting all family cards:", err)
 		return nil, errors.New("failed to get all family cards")
 	}
+	if len(familyCards) == 0 {
+		return &dtos.GetAllFamilyCardsResponse{}, nil
+	}
+
+	// Collect all NIKs and fetch villagers in one query
+	niks := make([]string, len(familyCards))
+	for i, card := range familyCards {
+		niks[i] = card.NIK
+	}
+	allVillagers, err := s.villagerRepo.GetVillagersByFamilyCardNIKs(niks)
+	if err != nil {
+		log.Error("Error getting villagers:", err)
+		return nil, errors.New("failed to get villagers")
+	}
+
+	// Group by family_card_id
+	villagersByNIK := make(map[string][]*models.Villager, len(familyCards))
+	for _, v := range allVillagers {
+		villagersByNIK[v.FamilyCardID] = append(villagersByNIK[v.FamilyCardID], v)
+	}
 
 	var response dtos.GetAllFamilyCardsResponse
 	for _, card := range familyCards {
-		villagers, err := s.villagerRepo.GetVillagersByFamilyCardNIK(&card.NIK)
-		if err != nil {
-			log.Error("Error getting villagers for family card:", err)
-			return nil, errors.New("failed to get villagers for family card")
-		}
+		members := villagersByNIK[card.NIK]
 		var kepalaKeluarga string
-		for _, villager := range villagers {
-			if villager.StatusHubungan == "Kepala Keluarga" {
-				kepalaKeluarga = villager.Name
+		for _, v := range members {
+			if v.StatusHubungan == "Kepala Keluarga" {
+				kepalaKeluarga = v.NamaLengkap
 				break
 			}
 		}
 		response.FamilyCards = append(response.FamilyCards, dtos.GetFamilyCardResponse{
 			NIK:          card.NIK,
 			Name:         &kepalaKeluarga,
-			TotalMembers: len(villagers),
+			TotalMembers: len(members),
 		})
 	}
 

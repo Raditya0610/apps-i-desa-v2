@@ -214,4 +214,38 @@ class AuthService {
   Future<void> saveVillageId(String villageId) async {
     await _write(_villageIdKey, villageId);
   }
+
+  // Change Password
+  Future<Map<String, dynamic>> changePassword(
+    String oldPassword,
+    String newPassword,
+  ) async {
+    try {
+      final response = await _apiService.put(
+        ApiConstants.changePassword,
+        data: {
+          'old_password': oldPassword,
+          'new_password': newPassword,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Password berhasil diubah',
+        };
+      } else {
+        final data = response.data as Map<String, dynamic>;
+        return {
+          'success': false,
+          'message': ApiService.getResponseError(data, fallback: 'Gagal mengubah password'),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': ApiService.getErrorMessage(e),
+      };
+    }
+  }
 }

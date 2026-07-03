@@ -43,7 +43,7 @@ func (r *FamilyCardRepository) GetAllFamilyCardsByVillageID(
 	villageID *uuid.UUID,
 ) ([]*models.FamilyCard, error) {
 	var familyCards []*models.FamilyCard
-	err := r.DB.Find(&familyCards).Where("village_id = ?", villageID).Error
+	err := r.DB.Where("village_id = ?", villageID).Find(&familyCards).Error
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (r *FamilyCardRepository) GetAllFamilyCardsByVillageID(
 
 func (r *FamilyCardRepository) GetFamilyCardByNIK(nik *string) (*models.FamilyCard, error) {
 	var familyCard models.FamilyCard
-	err := r.DB.Where("nik = ?", &nik).First(&familyCard).Error
+	err := r.DB.Where("nik = ?", nik).First(&familyCard).Error
 	if err != nil {
 		return nil, err
 	}
@@ -118,4 +118,8 @@ func (r *FamilyCardRepository) CountDistinctKecamatan(villageID *uuid.UUID) (int
 		return 0, err
 	}
 	return count, nil
+}
+
+func (r *FamilyCardRepository) DeleteFamilyCardByNIK(tx *gorm.DB, nik string) error {
+	return tx.Delete(&models.FamilyCard{}, "nik = ?", nik).Error
 }
