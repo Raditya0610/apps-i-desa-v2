@@ -23,36 +23,38 @@ func ConnectDB() *gorm.DB {
 		log.Warn("Error loading .env file, using environment variables")
 	}
 
-	// Validate required environment variables
-	requiredEnvVars := []string{"DB_HOST", "DB_USERNAME", "DB_PASSWORD", "DB_NAME", "DB_PORT"}
-	for _, envVar := range requiredEnvVars {
-		if os.Getenv(envVar) == "" {
-			log.Fatalf("Required environment variable %s is not set", envVar)
+	// Build DSN: prefer DATABASE_URL (Railway/Aiven style), fall back to individual vars
+	var dsn string
+	if url := os.Getenv("DATABASE_URL"); url != "" {
+		dsn = url
+	} else {
+		requiredEnvVars := []string{"DB_HOST", "DB_USERNAME", "DB_PASSWORD", "DB_NAME", "DB_PORT"}
+		for _, envVar := range requiredEnvVars {
+			if os.Getenv(envVar) == "" {
+				log.Fatalf("Required environment variable %s is not set", envVar)
+			}
 		}
-	}
 
-	// Set default values for optional environment variables
-	sslMode := os.Getenv("DB_SSL")
-	if sslMode == "" {
-		sslMode = "disable"
-	}
+		sslMode := os.Getenv("DB_SSL")
+		if sslMode == "" {
+			sslMode = "disable"
+		}
+		timeZone := os.Getenv("DB_TIMEZONE")
+		if timeZone == "" {
+			timeZone = "UTC"
+		}
 
-	timeZone := os.Getenv("DB_TIMEZONE")
-	if timeZone == "" {
-		timeZone = "UTC"
+		dsn = fmt.Sprintf(
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
+			os.Getenv("DB_HOST"),
+			os.Getenv("DB_USERNAME"),
+			os.Getenv("DB_PASSWORD"),
+			os.Getenv("DB_NAME"),
+			os.Getenv("DB_PORT"),
+			sslMode,
+			timeZone,
+		)
 	}
-
-	// Build connection string
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_USERNAME"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_PORT"),
-		sslMode,
-		timeZone,
-	)
 
 	// Connect to the database
 	var err error

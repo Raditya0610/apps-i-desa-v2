@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/forui_theme.dart';
+import '../../../providers/idm_score_provider.dart';
 import '../../widgets/common/app_shell.dart';
 
-class SubDimensionsHubScreen extends StatefulWidget {
+class SubDimensionsHubScreen extends ConsumerStatefulWidget {
   const SubDimensionsHubScreen({super.key});
 
   @override
-  State<SubDimensionsHubScreen> createState() => _SubDimensionsHubScreenState();
+  ConsumerState<SubDimensionsHubScreen> createState() =>
+      _SubDimensionsHubScreenState();
 }
 
-class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
+class _SubDimensionsHubScreenState
+    extends ConsumerState<SubDimensionsHubScreen> {
   String _selectedCategory = 'pendidikan';
 
-  // Category definitions
   final List<_CategoryItem> _categories = [
     const _CategoryItem(
       id: 'pendidikan',
@@ -21,6 +24,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Akses dan fasilitas pendidikan dasar hingga menengah.',
       icon: Icons.menu_book_outlined,
       route: '/sub-dimensions/pendidikan',
+      scoreKey: 'pendidikan',
     ),
     const _CategoryItem(
       id: 'kesehatan',
@@ -28,6 +32,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Fasilitas dan layanan kesehatan masyarakat.',
       icon: Icons.favorite_border,
       route: '/sub-dimensions/kesehatan',
+      scoreKey: 'kesehatan',
     ),
     const _CategoryItem(
       id: 'utilitas-dasar',
@@ -35,6 +40,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Air bersih, listrik, dan sanitasi dasar.',
       icon: Icons.lightbulb_outline,
       route: '/sub-dimensions/utilitas-dasar',
+      scoreKey: 'utilitas_dasar',
     ),
     const _CategoryItem(
       id: 'aktivitas',
@@ -42,6 +48,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Kegiatan sosial dan kemasyarakatan.',
       icon: Icons.auto_awesome_outlined,
       route: '/sub-dimensions/aktivitas',
+      scoreKey: 'aktivitas',
     ),
     const _CategoryItem(
       id: 'fasilitas-masyarakat',
@@ -49,6 +56,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Balai desa, tempat ibadah, dan fasilitas umum.',
       icon: Icons.people_outline,
       route: '/sub-dimensions/fasilitas-masyarakat',
+      scoreKey: 'fasilitas_masyarakat',
     ),
     const _CategoryItem(
       id: 'produksi-desa',
@@ -56,6 +64,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Hasil pertanian, peternakan, dan industri desa.',
       icon: Icons.agriculture_outlined,
       route: '/sub-dimensions/produksi-desa',
+      scoreKey: 'produksi_desa',
     ),
     const _CategoryItem(
       id: 'fasilitas-ekonomi',
@@ -63,6 +72,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Pasar, toko, dan infrastruktur perdagangan.',
       icon: Icons.store_outlined,
       route: '/sub-dimensions/fasilitas-ekonomi',
+      scoreKey: 'fasilitas_pendukung_ekonomi',
     ),
     const _CategoryItem(
       id: 'pengelolaan-lingkungan',
@@ -70,6 +80,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Kelestarian dan kebersihan lingkungan.',
       icon: Icons.eco_outlined,
       route: '/sub-dimensions/pengelolaan-lingkungan',
+      scoreKey: 'pengelolaan_lingkungan',
     ),
     const _CategoryItem(
       id: 'penanggulangan-bencana',
@@ -77,6 +88,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Mitigasi dan tanggap darurat bencana.',
       icon: Icons.warning_amber_outlined,
       route: '/sub-dimensions/penanggulangan-bencana',
+      scoreKey: 'penanggulangan_bencana',
     ),
     const _CategoryItem(
       id: 'kondisi-akses-jalan',
@@ -84,6 +96,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Infrastruktur dan kondisi jalan desa.',
       icon: Icons.route_outlined,
       route: '/sub-dimensions/kondisi-akses-jalan',
+      scoreKey: 'kondisi_akses_jalan',
     ),
     const _CategoryItem(
       id: 'kemudahan-akses',
@@ -91,6 +104,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Transportasi dan komunikasi.',
       icon: Icons.directions_car_outlined,
       route: '/sub-dimensions/kemudahan-akses',
+      scoreKey: 'kemudahan_akses',
     ),
     const _CategoryItem(
       id: 'kelembagaan-pelayanan',
@@ -98,6 +112,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Layanan publik dan kelembagaan desa.',
       icon: Icons.business_outlined,
       route: '/sub-dimensions/kelembagaan-pelayanan',
+      scoreKey: 'kelembagaan_pelayanan_desa',
     ),
     const _CategoryItem(
       id: 'tata-kelola-keuangan',
@@ -105,11 +120,13 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       description: 'Pengelolaan dana dan keuangan desa.',
       icon: Icons.account_balance_outlined,
       route: '/sub-dimensions/tata-kelola-keuangan',
+      scoreKey: 'tata_kelola_keuangan_desa',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final idmState = ref.watch(idmScoreProvider);
     final selectedCategoryData = _categories.firstWhere(
       (c) => c.id == _selectedCategory,
       orElse: () => _categories.first,
@@ -126,11 +143,11 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeroCard(),
+                  _buildHeroCard(idmState),
                   const SizedBox(height: ForuiThemeConfig.spacingLarge),
-                  _buildScoreCardsRow(context),
+                  _buildScoreCardsRow(context, idmState),
                   const SizedBox(height: ForuiThemeConfig.spacingLarge),
-                  _buildDetailInputSection(selectedCategoryData),
+                  _buildDetailInputSection(selectedCategoryData, idmState),
                 ],
               ),
             ),
@@ -182,33 +199,24 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
               ],
             ),
           ),
-          if (isDesktop)
-            Container(
-              width: 220,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F7F5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE8EDE9)),
-              ),
-              child: const TextField(
-                decoration: InputDecoration(
-                  hintText: 'Cari data...',
-                  hintStyle: TextStyle(
-                      fontSize: 13, color: ForuiThemeConfig.textHint),
-                  prefixIcon: Icon(Icons.search_rounded,
-                      size: 17, color: ForuiThemeConfig.textHint),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 9),
-                ),
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded,
+                color: ForuiThemeConfig.primaryGreen),
+            tooltip: 'Perbarui skor',
+            onPressed: () => ref.read(idmScoreProvider.notifier).refresh(),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeroCard() {
+  Widget _buildHeroCard(IdmScoreState idmState) {
+    final scores = idmState.scores;
+    final idm = scores?.idmScore ?? 0.0;
+    final status = scores?.status ?? '-';
+    final year = scores?.year ?? 0;
+    final isLoading = idmState.isLoading;
+
     return LayoutBuilder(builder: (context, constraints) {
       final compact = constraints.maxWidth < 500;
       return Container(
@@ -227,27 +235,37 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _heroYearBadge(),
+                  _heroYearBadge(year),
                   const SizedBox(height: 12),
-                  const Text('Desa Mandiri',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold)),
+                  Text(
+                    isLoading ? 'Menghitung...' : status,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 4),
-                  Text('Status Indeks Desa Membangun (IDM) tertinggi.',
+                  Text('Status Indeks Desa Membangun (IDM).',
                       style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 13)),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      const Text('0.895',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              height: 1)),
+                      isLoading
+                          ? const SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2.5))
+                          : Text(
+                              idm.toStringAsFixed(3),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1),
+                            ),
                       const SizedBox(width: 10),
                       Text('Skor Indeks\nKomposit',
                           style: TextStyle(
@@ -263,30 +281,50 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _heroYearBadge(),
+                        _heroYearBadge(year),
                         const SizedBox(height: 14),
-                        const Text('Desa Mandiri',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold)),
+                        Text(
+                          isLoading ? 'Menghitung...' : status,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold),
+                        ),
                         const SizedBox(height: 6),
-                        Text('Status Indeks Desa Membangun (IDM) tertinggi.',
+                        Text('Status Indeks Desa Membangun (IDM).',
                             style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.85),
                                 fontSize: 14)),
+                        if (scores != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              '${scores.completedCount}/${scores.totalCount} sub-dimensi terisi',
+                              style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                  fontSize: 12),
+                            ),
+                          ),
                       ],
                     ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text('0.895',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 52,
-                              fontWeight: FontWeight.bold,
-                              height: 1)),
+                      isLoading
+                          ? const SizedBox(
+                              width: 52,
+                              height: 52,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 3))
+                          : Text(
+                              idm.toStringAsFixed(3),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 52,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1),
+                            ),
                       const SizedBox(height: 6),
                       Text('Skor Indeks Komposit',
                           style: TextStyle(
@@ -300,7 +338,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
     });
   }
 
-  Widget _heroYearBadge() {
+  Widget _heroYearBadge(int year) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -313,65 +351,74 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
           Icon(Icons.calendar_today,
               size: 12, color: Colors.white.withValues(alpha: 0.9)),
           const SizedBox(width: 6),
-          Text('TAHUN 2025',
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            year > 0 ? 'DATA TAHUN $year' : 'BELUM ADA DATA',
+            style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 11,
+                fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildScoreCardsRow(BuildContext context) {
-    const cards = [
-      _ScoreCard(
+  Widget _buildScoreCardsRow(BuildContext context, IdmScoreState idmState) {
+    final scores = idmState.scores;
+    final isLoading = idmState.isLoading;
+
+    final cards = [
+      _ScoreCardData(
         title: 'Ketahanan Sosial',
-        score: 0.912,
-        status: 'Sangat Baik',
-        color: Color(0xFF00897B),
+        score: scores?.iksScore ?? 0.0,
+        color: const Color(0xFF00897B),
         icon: Icons.people_alt_outlined,
+        isLoading: isLoading,
       ),
-      _ScoreCard(
+      _ScoreCardData(
         title: 'Ketahanan Ekonomi',
-        score: 0.845,
-        status: 'Baik - Perlu Peningkatan UMKM',
-        color: Color(0xFFFFA000),
+        score: scores?.ikeScore ?? 0.0,
+        color: const Color(0xFFFFA000),
         icon: Icons.monetization_on_outlined,
+        isLoading: isLoading,
       ),
-      _ScoreCard(
+      _ScoreCardData(
         title: 'Ketahanan Lingkungan',
-        score: 0.928,
-        status: 'Sangat Baik',
-        color: Color(0xFF43A047),
+        score: scores?.iklScore ?? 0.0,
+        color: const Color(0xFF43A047),
         icon: Icons.eco_outlined,
+        isLoading: isLoading,
       ),
     ];
 
     if (AppShell.isDesktop(context)) {
       return Row(
         children: [
-          Expanded(child: cards[0]),
+          Expanded(child: _ScoreCard(data: cards[0])),
           const SizedBox(width: ForuiThemeConfig.spacingMedium),
-          Expanded(child: cards[1]),
+          Expanded(child: _ScoreCard(data: cards[1])),
           const SizedBox(width: ForuiThemeConfig.spacingMedium),
-          Expanded(child: cards[2]),
+          Expanded(child: _ScoreCard(data: cards[2])),
         ],
       );
     }
 
     return Column(
       children: [
-        cards[0],
+        _ScoreCard(data: cards[0]),
         const SizedBox(height: ForuiThemeConfig.spacingMedium),
-        cards[1],
+        _ScoreCard(data: cards[1]),
         const SizedBox(height: ForuiThemeConfig.spacingMedium),
-        cards[2],
+        _ScoreCard(data: cards[2]),
       ],
     );
   }
 
-  Widget _buildDetailInputSection(_CategoryItem selectedCategoryData) {
+  Widget _buildDetailInputSection(
+      _CategoryItem selectedCategoryData, IdmScoreState idmState) {
+    final subScores = idmState.scores?.subDimensionScores ?? {};
+    final completeness = idmState.scores?.dataCompleteness ?? {};
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -381,95 +428,69 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
           Padding(
             padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-            child: LayoutBuilder(builder: (context, constraints) {
-              final compact = constraints.maxWidth < 480;
-              final titleCol = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Detail & Input Data IDM',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: ForuiThemeConfig.textPrimary,
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Detail & Input Data IDM',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: ForuiThemeConfig.textPrimary,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Pilih kategori untuk memperbarui data.',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                  ),
-                ],
-              );
-              final saveBtn = ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.save_outlined, size: 16),
-                label: const Text('Simpan Data'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ForuiThemeConfig.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
                 ),
-              );
-              if (compact) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    titleCol,
-                    const SizedBox(height: 12),
-                    saveBtn,
-                  ],
-                );
-              }
-              return Row(
-                children: [
-                  Expanded(child: titleCol),
-                  saveBtn,
-                ],
-              );
-            }),
+                const SizedBox(height: 4),
+                Text(
+                  'Pilih kategori untuk mengisi atau memperbarui data.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+              ],
+            ),
           ),
 
           // Category Tabs
           Container(
             height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: ForuiThemeConfig.spacingLarge),
+            padding: const EdgeInsets.symmetric(
+                horizontal: ForuiThemeConfig.spacingLarge),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _categories.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              separatorBuilder: (context, index) =>
+                  const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final category = _categories[index];
                 final isSelected = category.id == _selectedCategory;
+                final hasDone = completeness[category.scoreKey] == true;
                 return _CategoryChip(
                   icon: category.icon,
                   label: category.title,
                   isSelected: isSelected,
-                  onTap: () => setState(() => _selectedCategory = category.id),
+                  hasDone: hasDone,
+                  onTap: () =>
+                      setState(() => _selectedCategory = category.id),
                 );
               },
             ),
           ),
           const SizedBox(height: ForuiThemeConfig.spacingLarge),
 
-          // Divider
           Divider(height: 1, color: Colors.grey.shade200),
 
-          // Selected Category Content
           Padding(
             padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Category Header
                 LayoutBuilder(builder: (context, constraints) {
                   final compact = constraints.maxWidth < 480;
+                  final categoryScore =
+                      subScores[selectedCategoryData.scoreKey];
+                  final isDone =
+                      completeness[selectedCategoryData.scoreKey] == true;
+
                   final iconBox = Container(
                     width: 44,
                     height: 44,
@@ -483,11 +504,35 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
                   final infoCol = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(selectedCategoryData.title,
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: ForuiThemeConfig.textPrimary)),
+                      Row(
+                        children: [
+                          Text(selectedCategoryData.title,
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: ForuiThemeConfig.textPrimary)),
+                          if (isDone && categoryScore != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: Colors.green.shade200),
+                              ),
+                              child: Text(
+                                '${(categoryScore * 100).toStringAsFixed(1)}%',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.green.shade700),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                       const SizedBox(height: 3),
                       Text(selectedCategoryData.description,
                           style: TextStyle(
@@ -498,7 +543,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
                     onPressed: () =>
                         context.push(selectedCategoryData.route),
                     icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                    label: const Text('Buka Form'),
+                    label: Text(isDone ? 'Edit Data' : 'Isi Data'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: ForuiThemeConfig.primaryGreen,
                       side: const BorderSide(
@@ -519,9 +564,7 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
                           Expanded(child: infoCol),
                         ]),
                         const SizedBox(height: 12),
-                        SizedBox(
-                            width: double.infinity,
-                            child: openBtn),
+                        SizedBox(width: double.infinity, child: openBtn),
                       ],
                     );
                   }
@@ -537,34 +580,37 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
                 }),
                 const SizedBox(height: ForuiThemeConfig.spacingLarge),
 
-                // Placeholder for form content
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(ForuiThemeConfig.spacingXLarge),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        selectedCategoryData.icon,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: ForuiThemeConfig.spacingMedium),
-                      Text(
-                        'Klik "Buka Form Lengkap" untuk mengisi data ${selectedCategoryData.title}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                if (subScores.containsKey(selectedCategoryData.scoreKey))
+                  _buildScoreBar(
+                    score: subScores[selectedCategoryData.scoreKey]!,
+                    label: selectedCategoryData.title,
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.all(ForuiThemeConfig.spacingXLarge),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(
+                          ForuiThemeConfig.borderRadiusMedium),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(selectedCategoryData.icon,
+                            size: 48, color: Colors.grey[400]),
+                        const SizedBox(
+                            height: ForuiThemeConfig.spacingMedium),
+                        Text(
+                          'Data ${selectedCategoryData.title} belum diisi.\nKlik "Isi Data" untuk mulai mengisi.',
+                          style: TextStyle(
+                              fontSize: 14, color: Colors.grey[600]),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -572,22 +618,98 @@ class _SubDimensionsHubScreenState extends State<SubDimensionsHubScreen> {
       ),
     );
   }
+
+  Widget _buildScoreBar({required double score, required String label}) {
+    final pct = (score * 100).clamp(0.0, 100.0);
+    final color = score >= 0.8
+        ? const Color(0xFF00897B)
+        : score >= 0.6
+            ? const Color(0xFF43A047)
+            : score >= 0.4
+                ? const Color(0xFFFFA000)
+                : Colors.red.shade400;
+
+    return Container(
+      padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius:
+            BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text('Skor Sub-Dimensi $label',
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: ForuiThemeConfig.textPrimary)),
+              ),
+              Text(
+                '${pct.toStringAsFixed(1)}%',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: score,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 10,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _scoreLabel(score),
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _scoreLabel(double score) {
+    if (score >= 0.8) return 'Sangat Baik — pertahankan kondisi ini';
+    if (score >= 0.6) return 'Baik — masih ada ruang untuk peningkatan';
+    if (score >= 0.4) return 'Cukup — perlu perhatian lebih';
+    if (score > 0) return 'Perlu Peningkatan Segera';
+    return 'Belum ada data yang dimasukkan';
+  }
+}
+
+// ── Data classes ──────────────────────────────────────────────────────────────
+
+class _ScoreCardData {
+  final String title;
+  final double score;
+  final Color color;
+  final IconData icon;
+  final bool isLoading;
+
+  const _ScoreCardData({
+    required this.title,
+    required this.score,
+    required this.color,
+    required this.icon,
+    required this.isLoading,
+  });
 }
 
 class _ScoreCard extends StatelessWidget {
-  final String title;
-  final double score;
-  final String status;
-  final Color color;
-  final IconData icon;
+  final _ScoreCardData data;
 
-  const _ScoreCard({
-    required this.title,
-    required this.score,
-    required this.status,
-    required this.color,
-    required this.icon,
-  });
+  const _ScoreCard({required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -608,24 +730,30 @@ class _ScoreCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: data.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: Icon(data.icon, color: data.color, size: 20),
               ),
-              Text(
-                score.toStringAsFixed(3),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: ForuiThemeConfig.textPrimary,
-                ),
-              ),
+              data.isLoading
+                  ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: data.color))
+                  : Text(
+                      data.score.toStringAsFixed(3),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: ForuiThemeConfig.textPrimary,
+                      ),
+                    ),
             ],
           ),
           const SizedBox(height: ForuiThemeConfig.spacingMedium),
           Text(
-            title,
+            data.title,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -633,22 +761,13 @@ class _ScoreCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: ForuiThemeConfig.spacingSmall),
-          // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: score,
+              value: data.score,
               backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(color),
+              valueColor: AlwaysStoppedAnimation<Color>(data.color),
               minHeight: 6,
-            ),
-          ),
-          const SizedBox(height: ForuiThemeConfig.spacingSmall),
-          Text(
-            status,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
             ),
           ),
         ],
@@ -661,12 +780,14 @@ class _CategoryChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
+  final bool hasDone;
   final VoidCallback onTap;
 
   const _CategoryChip({
     required this.icon,
     required this.label,
     required this.isSelected,
+    required this.hasDone,
     required this.onTap,
   });
 
@@ -678,9 +799,12 @@ class _CategoryChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? ForuiThemeConfig.primaryGreen : Colors.white,
-          borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
+          borderRadius:
+              BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
           border: Border.all(
-            color: isSelected ? ForuiThemeConfig.primaryGreen : Colors.grey.shade300,
+            color: isSelected
+                ? ForuiThemeConfig.primaryGreen
+                : Colors.grey.shade300,
           ),
         ),
         child: Row(
@@ -700,6 +824,11 @@ class _CategoryChip extends StatelessWidget {
                 color: isSelected ? Colors.white : Colors.grey[700],
               ),
             ),
+            if (hasDone && !isSelected) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.check_circle,
+                  size: 14, color: Colors.green.shade400),
+            ],
           ],
         ),
       ),
@@ -713,6 +842,7 @@ class _CategoryItem {
   final String description;
   final IconData icon;
   final String route;
+  final String scoreKey;
 
   const _CategoryItem({
     required this.id,
@@ -720,5 +850,6 @@ class _CategoryItem {
     required this.description,
     required this.icon,
     required this.route,
+    required this.scoreKey,
   });
 }

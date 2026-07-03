@@ -1370,3 +1370,182 @@ func (s *SubDimensionService) UpdateTataKelolaKeuanganDesa(rawID string, req *dt
 	}
 	return tx.Commit().Error
 }
+
+// GetIDMScores fetches the latest record from each sub-dimension table and
+// calculates IKS, IKE, IKL, and the composite IDM score for the village.
+func (s *SubDimensionService) GetIDMScores(ctx *fiber.Ctx) (*dtos.IDMScoreResponse, error) {
+	villageIDStr := ctx.Locals("village").(string)
+	if villageIDStr == "" {
+		return nil, errors.New("village ID not found")
+	}
+	villageID, err := uuid.Parse(villageIDStr)
+	if err != nil {
+		return nil, errors.New("invalid village ID")
+	}
+
+	scores := make(map[string]float64)
+	complete := make(map[string]bool)
+	latestYear := 0
+
+	tryYear := func(year int) {
+		if year > latestYear {
+			latestYear = year
+		}
+	}
+
+	// Ketahanan Sosial sub-dimensions
+	if r, err := s.subDimensionRepo.GetLatestPendidikanByVillage(villageID); err == nil {
+		scores["pendidikan"] = scorePendidikan(r)
+		complete["pendidikan"] = true
+		tryYear(r.Year)
+	} else {
+		scores["pendidikan"] = 0
+		complete["pendidikan"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestKesehatanByVillage(villageID); err == nil {
+		scores["kesehatan"] = scoreKesehatan(r)
+		complete["kesehatan"] = true
+		tryYear(r.Year)
+	} else {
+		scores["kesehatan"] = 0
+		complete["kesehatan"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestUtilitasDasarByVillage(villageID); err == nil {
+		scores["utilitas_dasar"] = scoreUtilitasDasar(r)
+		complete["utilitas_dasar"] = true
+		tryYear(r.Year)
+	} else {
+		scores["utilitas_dasar"] = 0
+		complete["utilitas_dasar"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestAktivitasByVillage(villageID); err == nil {
+		scores["aktivitas"] = scoreAktivitas(r)
+		complete["aktivitas"] = true
+		tryYear(r.Year)
+	} else {
+		scores["aktivitas"] = 0
+		complete["aktivitas"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestFasilitasMasyarakatByVillage(villageID); err == nil {
+		scores["fasilitas_masyarakat"] = scoreFasilitasMasyarakat(r)
+		complete["fasilitas_masyarakat"] = true
+		tryYear(r.Year)
+	} else {
+		scores["fasilitas_masyarakat"] = 0
+		complete["fasilitas_masyarakat"] = false
+	}
+
+	// Ketahanan Ekonomi sub-dimensions
+	if r, err := s.subDimensionRepo.GetLatestProduksiDesaByVillage(villageID); err == nil {
+		scores["produksi_desa"] = scoreProduksiDesa(r)
+		complete["produksi_desa"] = true
+		tryYear(r.Year)
+	} else {
+		scores["produksi_desa"] = 0
+		complete["produksi_desa"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestFasilitasPendukungEkonomiByVillage(villageID); err == nil {
+		scores["fasilitas_pendukung_ekonomi"] = scoreFasilitasPendukungEkonomi(r)
+		complete["fasilitas_pendukung_ekonomi"] = true
+		tryYear(r.Year)
+	} else {
+		scores["fasilitas_pendukung_ekonomi"] = 0
+		complete["fasilitas_pendukung_ekonomi"] = false
+	}
+
+	// Ketahanan Lingkungan sub-dimensions
+	if r, err := s.subDimensionRepo.GetLatestPengelolaanLingkunganByVillage(villageID); err == nil {
+		scores["pengelolaan_lingkungan"] = scorePengelolaanLingkungan(r)
+		complete["pengelolaan_lingkungan"] = true
+		tryYear(r.Year)
+	} else {
+		scores["pengelolaan_lingkungan"] = 0
+		complete["pengelolaan_lingkungan"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestPenanggulanganBencanaByVillage(villageID); err == nil {
+		scores["penanggulangan_bencana"] = scorePenanggulanganBencana(r)
+		complete["penanggulangan_bencana"] = true
+		tryYear(r.Year)
+	} else {
+		scores["penanggulangan_bencana"] = 0
+		complete["penanggulangan_bencana"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestKondisiAksesJalanByVillage(villageID); err == nil {
+		scores["kondisi_akses_jalan"] = scoreKondisiAksesJalan(r)
+		complete["kondisi_akses_jalan"] = true
+		tryYear(r.Year)
+	} else {
+		scores["kondisi_akses_jalan"] = 0
+		complete["kondisi_akses_jalan"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestKemudahanAksesByVillage(villageID); err == nil {
+		scores["kemudahan_akses"] = scoreKemudahanAkses(r)
+		complete["kemudahan_akses"] = true
+		tryYear(r.Year)
+	} else {
+		scores["kemudahan_akses"] = 0
+		complete["kemudahan_akses"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestKelembagaanPelayananDesaByVillage(villageID); err == nil {
+		scores["kelembagaan_pelayanan_desa"] = scoreKelembagaanPelayananDesa(r)
+		complete["kelembagaan_pelayanan_desa"] = true
+		tryYear(r.Year)
+	} else {
+		scores["kelembagaan_pelayanan_desa"] = 0
+		complete["kelembagaan_pelayanan_desa"] = false
+	}
+
+	if r, err := s.subDimensionRepo.GetLatestTataKelolaKeuanganDesaByVillage(villageID); err == nil {
+		scores["tata_kelola_keuangan_desa"] = scoreTataKelolaKeuanganDesa(r)
+		complete["tata_kelola_keuangan_desa"] = true
+		tryYear(r.Year)
+	} else {
+		scores["tata_kelola_keuangan_desa"] = 0
+		complete["tata_kelola_keuangan_desa"] = false
+	}
+
+	iks := avg(
+		scores["pendidikan"],
+		scores["kesehatan"],
+		scores["utilitas_dasar"],
+		scores["aktivitas"],
+		scores["fasilitas_masyarakat"],
+	)
+	ike := avg(
+		scores["produksi_desa"],
+		scores["fasilitas_pendukung_ekonomi"],
+	)
+	ikl := avg(
+		scores["pengelolaan_lingkungan"],
+		scores["penanggulangan_bencana"],
+		scores["kondisi_akses_jalan"],
+		scores["kemudahan_akses"],
+		scores["kelembagaan_pelayanan_desa"],
+		scores["tata_kelola_keuangan_desa"],
+	)
+	idm := avg(iks, ike, ikl)
+
+	round3 := func(v float64) float64 {
+		return float64(int(v*1000+0.5)) / 1000
+	}
+
+	return &dtos.IDMScoreResponse{
+		Year:               latestYear,
+		IDMScore:           round3(idm),
+		IKSScore:           round3(iks),
+		IKEScore:           round3(ike),
+		IKLScore:           round3(ikl),
+		Status:             idmStatus(idm),
+		SubDimensionScores: scores,
+		DataCompleteness:   complete,
+	}, nil
+}

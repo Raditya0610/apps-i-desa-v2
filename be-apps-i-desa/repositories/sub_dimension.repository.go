@@ -112,6 +112,86 @@ func (r *SubDimensionRepository) CreateSubDimensionTataKelolaKeuanganDesaWithTx(
 	return tx.Create(keuangan).Error
 }
 
+// ── GET latest by village (for IDM scoring) ───────────────────────────────────
+
+func (r *SubDimensionRepository) GetLatestPendidikanByVillage(villageID uuid.UUID) (*models.SubDimensiPendidikan, error) {
+	var rec models.SubDimensiPendidikan
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestKesehatanByVillage(villageID uuid.UUID) (*models.SubDimensiKesehatan, error) {
+	var rec models.SubDimensiKesehatan
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestUtilitasDasarByVillage(villageID uuid.UUID) (*models.SubDimensiUtilitasDasar, error) {
+	var rec models.SubDimensiUtilitasDasar
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestAktivitasByVillage(villageID uuid.UUID) (*models.SubDimensiAktivitas, error) {
+	var rec models.SubDimensiAktivitas
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestFasilitasMasyarakatByVillage(villageID uuid.UUID) (*models.SubDimensiFasilitasMasyarakat, error) {
+	var rec models.SubDimensiFasilitasMasyarakat
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestProduksiDesaByVillage(villageID uuid.UUID) (*models.SubDimensiProduksiDesa, error) {
+	var rec models.SubDimensiProduksiDesa
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestFasilitasPendukungEkonomiByVillage(villageID uuid.UUID) (*models.SubDimensiFasilitasPendukungEkonomi, error) {
+	var rec models.SubDimensiFasilitasPendukungEkonomi
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestPengelolaanLingkunganByVillage(villageID uuid.UUID) (*models.SubDimensiPengelolaanLingkungan, error) {
+	var rec models.SubDimensiPengelolaanLingkungan
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestPenanggulanganBencanaByVillage(villageID uuid.UUID) (*models.SubDimensiPenanggulanganBencana, error) {
+	var rec models.SubDimensiPenanggulanganBencana
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestKondisiAksesJalanByVillage(villageID uuid.UUID) (*models.SubDimensiKondisiAksesJalan, error) {
+	var rec models.SubDimensiKondisiAksesJalan
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestKemudahanAksesByVillage(villageID uuid.UUID) (*models.SubDimensiKemudahanAkses, error) {
+	var rec models.SubDimensiKemudahanAkses
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestKelembagaanPelayananDesaByVillage(villageID uuid.UUID) (*models.SubDimensiKelembagaanPelayananDesa, error) {
+	var rec models.SubDimensiKelembagaanPelayananDesa
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
+func (r *SubDimensionRepository) GetLatestTataKelolaKeuanganDesaByVillage(villageID uuid.UUID) (*models.SubDimensiTataKelolaKeuanganDesa, error) {
+	var rec models.SubDimensiTataKelolaKeuanganDesa
+	err := r.DB.Where("village_id = ?", villageID).Order("year desc").First(&rec).Error
+	return &rec, err
+}
+
 // ── GET by village ────────────────────────────────────────────────────────────
 
 func (r *SubDimensionRepository) GetAllPendidikanByVillage(villageID uuid.UUID) ([]*models.SubDimensiPendidikan, error) {

@@ -3,7 +3,7 @@ class ApiConstants {
   //   flutter run --dart-define=BASE_URL=http://localhost:3000
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'https://be-apps-i-desa.vercel.app',
+    defaultValue: 'https://apps-i-desa-v2-production.up.railway.app',
   );
   static const String apiPrefix = '/api';
 
@@ -40,6 +40,9 @@ class ApiConstants {
   static const String subDimensionKemudahanAkses = '$apiPrefix/sub-dimensions/kemudahan-akses';
   static const String subDimensionKelembagaanPelayananDesa = '$apiPrefix/sub-dimensions/kelembagaan-pelayanan-desa';
   static const String subDimensionTataKelolaKeuanganDesa = '$apiPrefix/sub-dimensions/tata-kelola-keuangan-desa';
+
+  // IDM Scores
+  static const String idmScores = '$apiPrefix/sub-dimensions/idm-scores';
 
   // User
   static const String changePassword = '$apiPrefix/users/change-password';

@@ -18,6 +18,9 @@ func SetupSubDimensionRoutes(app *fiber.App) {
 	// Apply JWT middleware to all sub-dimension routes
 	api.Use(middleware.JWTAuth())
 
+	// IDM composite score
+	api.Get("/idm-scores", subDimensionController.GetIDMScores)
+
 	// Pendidikan routes
 	api.Get("/pendidikan", subDimensionController.GetPendidikan)
 	api.Post("/pendidikan", subDimensionController.CreateSubDimensionPendidikan)

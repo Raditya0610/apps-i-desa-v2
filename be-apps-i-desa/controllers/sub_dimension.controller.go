@@ -953,3 +953,14 @@ func (c *SubDimensionController) UpdateTataKelolaKeuanganDesa(ctx *fiber.Ctx) er
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
 }
 
+func (c *SubDimensionController) GetIDMScores(ctx *fiber.Ctx) error {
+	response, err := c.subDimensionService.GetIDMScores(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to calculate IDM scores",
+			"error":   err.Error(),
+		})
+	}
+	return ctx.JSON(response)
+}
+
