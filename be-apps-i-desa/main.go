@@ -50,6 +50,12 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	// Health / keep-alive endpoint — ping this every 4 min from an external
+	// cron (e.g. UptimeRobot free tier) to prevent Railway cold starts.
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"status": "ok"})
+	})
+
 	setupRoutes(app)
 
 	port := os.Getenv("PORT")

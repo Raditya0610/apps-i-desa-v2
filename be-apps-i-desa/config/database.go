@@ -74,12 +74,13 @@ func ConnectDB() *gorm.DB {
 		log.Fatal("Failed to get database connection pool: ", err)
 	}
 
-	// Configure connection pool for serverless/limited connections
-	// In serverless environments, each instance should use minimal connections
-	sqlDB.SetMaxOpenConns(2)                   // Maximum 2 connections per instance
-	sqlDB.SetMaxIdleConns(1)                   // Keep 1 idle connection for reuse
-	sqlDB.SetConnMaxLifetime(10 * time.Minute) // Shorter lifetime for serverless
-	sqlDB.SetConnMaxIdleTime(3 * time.Minute)  // Shorter idle time to free resources
+	// Dashboard fires 9 concurrent queries; pool must be >= 9 so goroutines
+	// run in parallel rather than queuing 2-at-a-time.
+	// Aiven free tier allows 25 connections total, so 15 is safe for 1 instance.
+	sqlDB.SetMaxOpenConns(15)
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(10 * time.Minute)
 
 	// Run migrations
 	if err := migrateDB(DB); err != nil {
