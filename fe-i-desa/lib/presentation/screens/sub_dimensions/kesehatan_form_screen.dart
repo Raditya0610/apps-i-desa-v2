@@ -68,26 +68,26 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
     final data = Kesehatan(
       villageId: '',
       year: _year,
-      kemudahanAksesSaranaKesehatan: _kemudahanAksesSaranaKesehatan,
-      ketersediaanFasilitasKesehatan: _ketersediaanFasilitasKesehatan,
-      kemudahanAksesFasilitasKesehatan: _kemudahanAksesFasilitasKesehatan,
-      ketersediaanPosyandu: _ketersediaanPosyandu,
+      kemudahanAksesSaranaKesehatan: _kemudahanAksesSaranaKesehatan ?? '',
+      ketersediaanFasilitasKesehatan: _ketersediaanFasilitasKesehatan ?? '',
+      kemudahanAksesFasilitasKesehatan: _kemudahanAksesFasilitasKesehatan ?? '',
+      ketersediaanPosyandu: _ketersediaanPosyandu ?? '',
       jumlahAktivitasPosyandu: _jumlahAktivitasPosyanduController.text,
-      kemudahanAksesPosyandu: _kemudahanAksesPosyandu,
-      ketersediaanLayananDokter: _ketersediaanLayananDokter,
-      hariOperasionalLayananDokter: _hariOperasionalLayananDokter,
+      kemudahanAksesPosyandu: _kemudahanAksesPosyandu ?? '',
+      ketersediaanLayananDokter: _ketersediaanLayananDokter ?? '',
+      hariOperasionalLayananDokter: _hariOperasionalLayananDokter ?? '',
       penyediaLayananDokter: _penyediaLayananDokterController.text,
-      penyediaTransportasiLayananDokter: _penyediaTransportasiLayananDokter,
-      ketersediaanLayananBidan: _ketersediaanLayananBidan,
-      hariOperasionalLayananBidan: _hariOperasionalLayananBidan,
+      penyediaTransportasiLayananDokter: _penyediaTransportasiLayananDokter ?? '',
+      ketersediaanLayananBidan: _ketersediaanLayananBidan ?? '',
+      hariOperasionalLayananBidan: _hariOperasionalLayananBidan ?? '',
       penyediaLayananBidan: _penyediaLayananBidanController.text,
-      penyediaTransportasiLayananBidan: _penyediaTransportasiLayananBidan,
-      ketersediaanLayananTenagaKesehatan: _ketersediaanLayananTenagaKesehatan,
-      hariOperasionalLayananTenagaKesehatan: _hariOperasionalLayananTenagaKesehatan,
+      penyediaTransportasiLayananBidan: _penyediaTransportasiLayananBidan ?? '',
+      ketersediaanLayananTenagaKesehatan: _ketersediaanLayananTenagaKesehatan ?? '',
+      hariOperasionalLayananTenagaKesehatan: _hariOperasionalLayananTenagaKesehatan ?? '',
       penyediaLayananTenagaKesehatan: _penyediaLayananTenagaKesehatanController.text,
-      penyediaTransportasiLayananTenagaKesehatan: _penyediaTransportasiLayananTenagaKesehatan,
+      penyediaTransportasiLayananTenagaKesehatan: _penyediaTransportasiLayananTenagaKesehatan ?? '',
       persentasePesertaJaminanKesehatan: _persentasePesertaJaminanKesehatanController.text,
-      kegiatanSosialisasiJaminanKesehatan: _kegiatanSosialisasiJaminanKesehatan,
+      kegiatanSosialisasiJaminanKesehatan: _kegiatanSosialisasiJaminanKesehatan ?? '',
     );
 
     final Map<String, dynamic> result;
@@ -140,7 +140,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
             child: Padding(
               padding: const EdgeInsets.all(ForuiThemeConfig.spacingXLarge),
               child: Form(
-                key: _formKey,
+                key: _formKey ?? '',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -251,7 +251,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
                     const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
                     TextFormField(
-                      controller: _jumlahAktivitasPosyanduController,
+                      controller: _jumlahAktivitasPosyanduController ?? '',
                       decoration: const InputDecoration(
                         labelText: 'Jumlah Aktivitas Posyandu *',
                         hintText: 'Jumlah aktivitas per bulan',
@@ -294,7 +294,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
                     const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
                     TextFormField(
-                      controller: _penyediaLayananDokterController,
+                      controller: _penyediaLayananDokterController ?? '',
                       decoration: const InputDecoration(
                         labelText: 'Penyedia Layanan Dokter *',
                         hintText: 'Contoh: Puskesmas, Rumah Sakit',
@@ -336,7 +336,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
                     const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
                     TextFormField(
-                      controller: _penyediaLayananBidanController,
+                      controller: _penyediaLayananBidanController ?? '',
                       decoration: const InputDecoration(
                         labelText: 'Penyedia Layanan Bidan *',
                         hintText: 'Contoh: Puskesmas, Klinik',
@@ -378,7 +378,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
                     const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
                     TextFormField(
-                      controller: _penyediaLayananTenagaKesehatanController,
+                      controller: _penyediaLayananTenagaKesehatanController ?? '',
                       decoration: const InputDecoration(
                         labelText: 'Penyedia Layanan Tenaga Kesehatan *',
                         hintText: 'Contoh: Puskesmas, Klinik',
@@ -403,7 +403,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
 
                     PercentageInput(
                       label: 'Persentase Peserta Jaminan Kesehatan',
-                      controller: _persentasePesertaJaminanKesehatanController,
+                      controller: _persentasePesertaJaminanKesehatanController ?? '',
                       hintText: 'Masukkan persentase (0-100)',
                     ),
                     const SizedBox(height: ForuiThemeConfig.spacingMedium),
@@ -436,7 +436,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
                         Expanded(
                           flex: 2,
                           child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _handleSubmit,
+                            onPressed: _isLoading ? null : _handleSubmit ?? '',
                             icon: _isLoading
                                 ? const SizedBox(
                                     height: 20,
@@ -534,7 +534,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
         const Spacer(),
         if (_editingId != null)
           TextButton.icon(
-            onPressed: _clearForm,
+            onPressed: _clearForm ?? '',
             icon: const Icon(Icons.add_circle_outline, size: 16),
             label: const Text('Batal Edit'),
             style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary),
@@ -576,7 +576,7 @@ class _KesehatanFormScreenState extends ConsumerState<KesehatanFormScreen> {
           const Spacer(),
           if (isEditing)
             TextButton.icon(
-              onPressed: _clearForm,
+              onPressed: _clearForm ?? '',
               icon: const Icon(Icons.close, size: 14),
               label: const Text('Batal'),
               style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary, padding: EdgeInsets.zero),

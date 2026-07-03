@@ -48,10 +48,10 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
     final data = UtilitasDasar(
       villageId: '',
       year: _year,
-      operasionalAirMinum: _operasionalAirMinum,
-      ketersediaanAirMinum: _ketersediaanAirMinum,
-      kemudahanAksesAirMinum: _kemudahanAksesAirMinum,
-      kualitasAirMinum: _kualitasAirMinum,
+      operasionalAirMinum: _operasionalAirMinum ?? '',
+      ketersediaanAirMinum: _ketersediaanAirMinum ?? '',
+      kemudahanAksesAirMinum: _kemudahanAksesAirMinum ?? '',
+      kualitasAirMinum: _kualitasAirMinum ?? '',
       persentaseRumahTidakLayakHuni: _persentaseRumahTidakLayakHuniController.text,
     );
 
@@ -105,7 +105,7 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
             child: Padding(
               padding: const EdgeInsets.all(ForuiThemeConfig.spacingXLarge),
               child: Form(
-                key: _formKey,
+                key: _formKey ?? '',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -213,7 +213,7 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
 
                     PercentageInput(
                       label: 'Persentase Rumah Tidak Layak Huni',
-                      controller: _persentaseRumahTidakLayakHuniController,
+                      controller: _persentaseRumahTidakLayakHuniController ?? '',
                       prefixIcon: Icons.home,
                     ),
                     const SizedBox(height: ForuiThemeConfig.spacingXLarge),
@@ -237,7 +237,7 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
                         Expanded(
                           flex: 2,
                           child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _handleSubmit,
+                            onPressed: _isLoading ? null : _handleSubmit ?? '',
                             icon: _isLoading
                                 ? const SizedBox(
                                     height: 20,
@@ -305,7 +305,7 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
         const Spacer(),
         if (_editingId != null)
           TextButton.icon(
-            onPressed: _clearForm,
+            onPressed: _clearForm ?? '',
             icon: const Icon(Icons.add_circle_outline, size: 16),
             label: const Text('Batal Edit'),
             style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary),
@@ -347,7 +347,7 @@ class _UtilitasDasarFormScreenState extends ConsumerState<UtilitasDasarFormScree
           const Spacer(),
           if (isEditing)
             TextButton.icon(
-              onPressed: _clearForm,
+              onPressed: _clearForm ?? '',
               icon: const Icon(Icons.close, size: 14),
               label: const Text('Batal'),
               style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary, padding: EdgeInsets.zero),

@@ -47,19 +47,19 @@ class _AktivitasFormScreenState extends ConsumerState<AktivitasFormScreen> {
     final data = Aktivitas(
       villageId: '',
       year: _year,
-      kearibanBudayaSosial: _kearifanBudayaSosial,
-      kearibanBudayaSosialDipertahankan: _kearifanBudayaSosialDipertahankan,
-      kegiatanGotongRoyong: _kegiatanGotongRoyong,
-      frekuensiGotongRoyong: _frekuensiGotongRoyong,
-      keterlibatanWargaGotongRoyong: _keterlibatanWargaGotongRoyong,
-      frekuensiKegiatanOlahraga: _frekuensiKegiatanOlahraga,
-      penyelesaianKonflikSecaraDamai: _penyelesaianKonflikSecaraDamai,
-      peranAparatKeamananMediator: _peranAparatKeamananMediator,
-      peranAparatPemerintah: _peranAparatPemerintah,
-      peranTokohMasyarakat: _peranTokohMasyarakat,
-      peranTokohAgama: _peranTokohAgama,
-      satuanKeamananLingkungan: _satuanKeamananLingkungan,
-      aktivitasSatuanKeamananLingkungan: _aktivitasSatuanKeamananLingkungan,
+      kearibanBudayaSosial: _kearifanBudayaSosial ?? '',
+      kearibanBudayaSosialDipertahankan: _kearifanBudayaSosialDipertahankan ?? '',
+      kegiatanGotongRoyong: _kegiatanGotongRoyong ?? '',
+      frekuensiGotongRoyong: _frekuensiGotongRoyong ?? '',
+      keterlibatanWargaGotongRoyong: _keterlibatanWargaGotongRoyong ?? '',
+      frekuensiKegiatanOlahraga: _frekuensiKegiatanOlahraga ?? '',
+      penyelesaianKonflikSecaraDamai: _penyelesaianKonflikSecaraDamai ?? '',
+      peranAparatKeamananMediator: _peranAparatKeamananMediator ?? '',
+      peranAparatPemerintah: _peranAparatPemerintah ?? '',
+      peranTokohMasyarakat: _peranTokohMasyarakat ?? '',
+      peranTokohAgama: _peranTokohAgama ?? '',
+      satuanKeamananLingkungan: _satuanKeamananLingkungan ?? '',
+      aktivitasSatuanKeamananLingkungan: _aktivitasSatuanKeamananLingkungan ?? '',
     );
 
     final Map<String, dynamic> result;
@@ -112,7 +112,7 @@ class _AktivitasFormScreenState extends ConsumerState<AktivitasFormScreen> {
             child: Padding(
               padding: const EdgeInsets.all(ForuiThemeConfig.spacingXLarge),
               child: Form(
-                key: _formKey,
+                key: _formKey ?? '',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -330,7 +330,7 @@ class _AktivitasFormScreenState extends ConsumerState<AktivitasFormScreen> {
                         Expanded(
                           flex: 2,
                           child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _handleSubmit,
+                            onPressed: _isLoading ? null : _handleSubmit ?? '',
                             icon: _isLoading
                                 ? const SizedBox(
                                     height: 20,
@@ -414,7 +414,7 @@ class _AktivitasFormScreenState extends ConsumerState<AktivitasFormScreen> {
         const Spacer(),
         if (_editingId != null)
           TextButton.icon(
-            onPressed: _clearForm,
+            onPressed: _clearForm ?? '',
             icon: const Icon(Icons.add_circle_outline, size: 16),
             label: const Text('Batal Edit'),
             style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary),
@@ -456,7 +456,7 @@ class _AktivitasFormScreenState extends ConsumerState<AktivitasFormScreen> {
           const Spacer(),
           if (isEditing)
             TextButton.icon(
-              onPressed: _clearForm,
+              onPressed: _clearForm ?? '',
               icon: const Icon(Icons.close, size: 14),
               label: const Text('Batal'),
               style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary, padding: EdgeInsets.zero),

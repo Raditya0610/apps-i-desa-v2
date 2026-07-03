@@ -58,30 +58,30 @@ class _FasilitasPendukungEkonomiFormScreenState extends ConsumerState<FasilitasP
     final data = FasilitasPendukungEkonomi(
       villageId: '',
       year: _year,
-      ketersediaanPendidikanNonFormal: _ketersediaanPendidikanNonFormal,
-      keterlibatanPendidikanNonFormal: _keterlibatanPendidikanNonFormal,
-      ketersediaanPasarRakyat: _ketersediaanPasarRakyat,
-      kemudahanAksesPasarRakyat: _kemudahanAksesPasarRakyat,
-      ketersediaanToko: _ketersediaanToko,
-      kemudahanAksesToko: _kemudahanAksesToko,
-      ketersediaanRumahMakan: _ketersediaanRumahMakan,
-      kemudahanAksesRumahMakan: _kemudahanAksesRumahMakan,
-      ketersediaanPenginapan: _ketersediaanPenginapan,
-      kemudahanAksesPenginapan: _kemudahanAksesPenginapan,
-      ketersediaanLogistik: _ketersediaanLogistik,
-      kemudahanAksesLogistik: _kemudahanAksesLogistik,
-      terdapatBumd: _terdapatBumd,
-      bumdBerbadanHukum: _bumdBerbadanHukum,
-      hariOperasionalLembagaEkonomi: _hariOperasionalLembagaEkonomi,
-      ketersediaanLembagaEkonomiLainnya: _ketersediaanLembagaEkonomiLainnya,
-      ketersediaanKud: _ketersediaanKud,
-      ketersediaanUmkm: _ketersediaanUmkm,
-      layananPerbankan: _layananPerbankan,
-      hariOperasionalKeuangan: _hariOperasionalKeuangan,
-      layananFasilitasKreditKur: _layananFasilitasKreditKur,
-      layananFasilitasKreditKkpE: _layananFasilitasKreditKkpE,
-      layananFasilitasKreditKuk: _layananFasilitasKreditKuk,
-      statusLayananFasilitasKredit: _statusLayananFasilitasKredit,
+      ketersediaanPendidikanNonFormal: _ketersediaanPendidikanNonFormal ?? '',
+      keterlibatanPendidikanNonFormal: _keterlibatanPendidikanNonFormal ?? '',
+      ketersediaanPasarRakyat: _ketersediaanPasarRakyat ?? '',
+      kemudahanAksesPasarRakyat: _kemudahanAksesPasarRakyat ?? '',
+      ketersediaanToko: _ketersediaanToko ?? '',
+      kemudahanAksesToko: _kemudahanAksesToko ?? '',
+      ketersediaanRumahMakan: _ketersediaanRumahMakan ?? '',
+      kemudahanAksesRumahMakan: _kemudahanAksesRumahMakan ?? '',
+      ketersediaanPenginapan: _ketersediaanPenginapan ?? '',
+      kemudahanAksesPenginapan: _kemudahanAksesPenginapan ?? '',
+      ketersediaanLogistik: _ketersediaanLogistik ?? '',
+      kemudahanAksesLogistik: _kemudahanAksesLogistik ?? '',
+      terdapatBumd: _terdapatBumd ?? '',
+      bumdBerbadanHukum: _bumdBerbadanHukum ?? '',
+      hariOperasionalLembagaEkonomi: _hariOperasionalLembagaEkonomi ?? '',
+      ketersediaanLembagaEkonomiLainnya: _ketersediaanLembagaEkonomiLainnya ?? '',
+      ketersediaanKud: _ketersediaanKud ?? '',
+      ketersediaanUmkm: _ketersediaanUmkm ?? '',
+      layananPerbankan: _layananPerbankan ?? '',
+      hariOperasionalKeuangan: _hariOperasionalKeuangan ?? '',
+      layananFasilitasKreditKur: _layananFasilitasKreditKur ?? '',
+      layananFasilitasKreditKkpE: _layananFasilitasKreditKkpE ?? '',
+      layananFasilitasKreditKuk: _layananFasilitasKreditKuk ?? '',
+      statusLayananFasilitasKredit: _statusLayananFasilitasKredit ?? '',
     );
 
     final Map<String, dynamic> result;
@@ -134,7 +134,7 @@ class _FasilitasPendukungEkonomiFormScreenState extends ConsumerState<FasilitasP
             child: Padding(
               padding: const EdgeInsets.all(ForuiThemeConfig.spacingXLarge),
               child: Form(
-                key: _formKey,
+                key: _formKey ?? '',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -467,7 +467,7 @@ class _FasilitasPendukungEkonomiFormScreenState extends ConsumerState<FasilitasP
                         Expanded(
                           flex: 2,
                           child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _handleSubmit,
+                            onPressed: _isLoading ? null : _handleSubmit ?? '',
                             icon: _isLoading
                                 ? const SizedBox(
                                     height: 20,
@@ -573,7 +573,7 @@ class _FasilitasPendukungEkonomiFormScreenState extends ConsumerState<FasilitasP
         const Spacer(),
         if (_editingId != null)
           TextButton.icon(
-            onPressed: _clearForm,
+            onPressed: _clearForm ?? '',
             icon: const Icon(Icons.add_circle_outline, size: 16),
             label: const Text('Batal Edit'),
             style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary),
@@ -615,7 +615,7 @@ class _FasilitasPendukungEkonomiFormScreenState extends ConsumerState<FasilitasP
           const Spacer(),
           if (isEditing)
             TextButton.icon(
-              onPressed: _clearForm,
+              onPressed: _clearForm ?? '',
               icon: const Icon(Icons.close, size: 14),
               label: const Text('Batal'),
               style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary, padding: EdgeInsets.zero),

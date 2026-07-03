@@ -38,10 +38,10 @@ class _KondisiAksesJalanFormScreenState extends ConsumerState<KondisiAksesJalanF
     final data = KondisiAksesJalan(
       villageId: '',
       year: _year,
-      jenisPermukaanJalan: _jenisPermukaanJalan,
-      kualitasJalan: _kualitasJalan,
-      peneranganJalanUtama: _peneranganJalanUtama,
-      operasionalPju: _operasionalPju,
+      jenisPermukaanJalan: _jenisPermukaanJalan ?? '',
+      kualitasJalan: _kualitasJalan ?? '',
+      peneranganJalanUtama: _peneranganJalanUtama ?? '',
+      operasionalPju: _operasionalPju ?? '',
     );
 
     final Map<String, dynamic> result;
@@ -94,7 +94,7 @@ class _KondisiAksesJalanFormScreenState extends ConsumerState<KondisiAksesJalanF
             child: Padding(
               padding: const EdgeInsets.all(ForuiThemeConfig.spacingXLarge),
               child: Form(
-                key: _formKey,
+                key: _formKey ?? '',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -219,7 +219,7 @@ class _KondisiAksesJalanFormScreenState extends ConsumerState<KondisiAksesJalanF
                         Expanded(
                           flex: 2,
                           child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _handleSubmit,
+                            onPressed: _isLoading ? null : _handleSubmit ?? '',
                             icon: _isLoading
                                 ? const SizedBox(
                                     height: 20,
@@ -285,7 +285,7 @@ class _KondisiAksesJalanFormScreenState extends ConsumerState<KondisiAksesJalanF
         const Spacer(),
         if (_editingId != null)
           TextButton.icon(
-            onPressed: _clearForm,
+            onPressed: _clearForm ?? '',
             icon: const Icon(Icons.add_circle_outline, size: 16),
             label: const Text('Batal Edit'),
             style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary),
@@ -327,7 +327,7 @@ class _KondisiAksesJalanFormScreenState extends ConsumerState<KondisiAksesJalanF
           const Spacer(),
           if (isEditing)
             TextButton.icon(
-              onPressed: _clearForm,
+              onPressed: _clearForm ?? '',
               icon: const Icon(Icons.close, size: 14),
               label: const Text('Batal'),
               style: TextButton.styleFrom(foregroundColor: ForuiThemeConfig.textSecondary, padding: EdgeInsets.zero),
