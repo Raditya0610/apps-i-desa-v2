@@ -25,7 +25,12 @@ func setupRoutes(app *fiber.App) {
 }
 
 func main() {
-	config.ConnectDB()
+	// Must complete before setupRoutes: the repositories capture config.DB by
+	// value at construction, so they would hold a nil handle forever if the
+	// connection were established afterwards.
+	if _, err := config.ConnectDB(); err != nil {
+		log.Fatal("Database unavailable, refusing to start: ", err)
+	}
 	defer config.CloseDB()
 
 	app := fiber.New(fiber.Config{
@@ -52,10 +57,25 @@ func main() {
 
 	// Health / keep-alive endpoint — ping this every 4 min from an external
 	// cron (e.g. UptimeRobot free tier) to prevent Railway cold starts.
+	// Reports the database separately so a DB outage is distinguishable from a
+	// dead process without reading the logs.
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok"})
+		if err := config.Ping(); err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"status":   "degraded",
+				"database": "unreachable",
+				"error":    err.Error(),
+			})
+		}
+		return c.JSON(fiber.Map{"status": "ok", "database": "ok"})
 	})
 
+	app.Get("/", func(ctx *fiber.Ctx) error {
+		return ctx.SendString("Apps-I Desa API!")
+	})
+
+	// Registered before Listen: adding routes to a Fiber app that is already
+	// serving is a race against its route tree.
 	setupRoutes(app)
 
 	port := os.Getenv("PORT")
@@ -70,9 +90,6 @@ func main() {
 	}()
 
 	log.Printf("Server started on port %s", port)
-	app.Get("/", func(ctx *fiber.Ctx) error {
-		return ctx.SendString("Apps-I Desa API!")
-	})
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)

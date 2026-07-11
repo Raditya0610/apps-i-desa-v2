@@ -72,7 +72,13 @@ func initializeApp() (*fiber.App, error) {
 	once.Do(func() {
 		// Initialize database connection
 		//  pooling is already configured in config.ConnectDB()
-		config.ConnectDB()
+		// Bail out before setupRoutes: the repositories capture config.DB by value
+		// at construction, so routes built on a failed connection would hold a nil
+		// handle for the lifetime of this warm instance.
+		if _, err := config.ConnectDB(); err != nil {
+			initErr = err
+			return
+		}
 
 		// Create Fiber app with configuration optimized for serverless
 		app = fiber.New(fiber.Config{
