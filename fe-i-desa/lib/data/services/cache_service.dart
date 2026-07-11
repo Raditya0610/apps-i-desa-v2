@@ -94,20 +94,21 @@ class CacheService {
   static bool isOffline(Object error) {
     if (error is! DioException) return false;
 
-    switch (error.type) {
-      case DioExceptionType.connectionError:
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.badResponse: // only 5xx reaches here; see ApiService.validateStatus
-        return true;
-      case DioExceptionType.unknown:
-        // Dio reports a dead DNS/socket as `unknown` wrapping a SocketException.
-        return error.error is Exception;
-      case DioExceptionType.cancel:
-      case DioExceptionType.badCertificate:
-        return false;
-    }
+    // Listed rather than switched on: an exhaustive switch breaks the build
+    // whenever Dio adds an enum value, and the safe default for an unrecognised
+    // failure is "not offline" (surface the error) rather than "serve stale data".
+    const unreachable = {
+      DioExceptionType.connectionError,
+      DioExceptionType.connectionTimeout,
+      DioExceptionType.receiveTimeout,
+      DioExceptionType.sendTimeout,
+      // Only 5xx lands here — ApiService.validateStatus lets 4xx return normally.
+      DioExceptionType.badResponse,
+    };
+    if (unreachable.contains(error.type)) return true;
+
+    // Dio reports a dead DNS/socket as `unknown` wrapping a SocketException.
+    return error.type == DioExceptionType.unknown && error.error is Exception;
   }
 }
 
