@@ -6,6 +6,7 @@ import '../../../core/theme/forui_theme.dart';
 import '../../../providers/dashboard_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../widgets/common/app_shell.dart';
+import '../../widgets/common/offline_banner.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -19,6 +20,11 @@ class DashboardScreen extends ConsumerWidget {
       child: Column(
         children: [
           _TopBar(authState: authState),
+          if (dashboardState.isFromCache)
+            OfflineBanner(
+              cachedAt: dashboardState.cachedAt,
+              onRetry: () => ref.read(dashboardProvider.notifier).refresh(),
+            ),
           Expanded(
             child: _DashboardBody(dashboardState: dashboardState),
           ),

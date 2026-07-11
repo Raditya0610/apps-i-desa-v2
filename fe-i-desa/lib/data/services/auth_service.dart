@@ -2,6 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/config/app_config.dart';
 import 'api_service.dart';
+import 'cache_service.dart';
 import 'mock_api_service.dart';
 
 class AuthService {
@@ -63,6 +64,10 @@ class AuthService {
         _mockStorage.clear();
       }
     }
+
+    // The offline cache holds one village's data; the next user on this shared
+    // desa computer may belong to a different village.
+    await CacheService().clear();
   }
 
   // Login

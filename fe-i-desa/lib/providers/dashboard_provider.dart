@@ -18,21 +18,31 @@ class DashboardState {
   final bool isLoading;
   final String? error;
 
+  /// Set when the server was unreachable and [dashboard] is a cached copy.
+  final bool isFromCache;
+  final DateTime? cachedAt;
+
   DashboardState({
     this.dashboard,
     this.isLoading = false,
     this.error,
+    this.isFromCache = false,
+    this.cachedAt,
   });
 
   DashboardState copyWith({
     Dashboard? dashboard,
     bool? isLoading,
     String? error,
+    bool? isFromCache,
+    DateTime? cachedAt,
   }) {
     return DashboardState(
       dashboard: dashboard ?? this.dashboard,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      isFromCache: isFromCache ?? this.isFromCache,
+      cachedAt: cachedAt ?? this.cachedAt,
     );
   }
 }
@@ -49,10 +59,17 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final dashboard = await _repository.getDashboard();
+      final result = await _repository.getDashboard();
 
-      if (dashboard != null) {
-        state = state.copyWith(dashboard: dashboard, isLoading: false);
+      if (result.data != null) {
+        // Built directly rather than via copyWith so a fresh load clears the
+        // stale-cache flags left by a previous offline load.
+        state = DashboardState(
+          dashboard: result.data,
+          isLoading: false,
+          isFromCache: result.isFromCache,
+          cachedAt: result.cachedAt,
+        );
       } else {
         state = state.copyWith(
           isLoading: false,

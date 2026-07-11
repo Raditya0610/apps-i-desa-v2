@@ -1,0 +1,3 @@
+# SIMPOI — surat-generator app, lives in its own repo (github.com/shinnwlfrd/simpoi).
+# Cloned in-tree so it can be bundled at install time; must never enter this history.
+simpoi/

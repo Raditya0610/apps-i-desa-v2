@@ -5,6 +5,7 @@ import '../../../core/theme/forui_theme.dart';
 import '../../../providers/family_card_provider.dart';
 import '../../../data/services/export_service.dart';
 import '../../widgets/common/app_shell.dart';
+import '../../widgets/common/offline_banner.dart';
 import '../../widgets/villagers/avatar_circle.dart';
 
 class FamilyCardsScreen extends ConsumerStatefulWidget {
@@ -193,6 +194,11 @@ class _FamilyCardsScreenState extends ConsumerState<FamilyCardsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context, isDesktop),
+          if (state.isFromCache)
+            OfflineBanner(
+              cachedAt: state.cachedAt,
+              onRetry: () => ref.read(familyCardsProvider.notifier).refresh(),
+            ),
           _buildToolbar(context, isDesktop),
           Expanded(
             child: state.isLoading
