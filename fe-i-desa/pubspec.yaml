@@ -51,6 +51,16 @@ dependencies:
   path_provider: ^2.1.5
   csv: ^6.0.0
 
+dependency_overrides:
+  # path_provider_foundation 2.5.0 and 2.6.0 depend on objective_c, whose native
+  # build hook crashes the web build under Flutter 3.44 ("Null check operator used
+  # on a null value" in CodeConfig._fromJson — there is no code config for web).
+  # 2.5.1 is the newest release without that dependency.
+  #
+  # Safe to pin: this is the iOS/macOS implementation of path_provider, and we ship
+  # Windows and web. Revisit if we ever target Apple platforms.
+  path_provider_foundation: 2.5.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
