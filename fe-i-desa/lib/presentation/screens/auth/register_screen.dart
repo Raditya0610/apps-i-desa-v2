@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/forui_theme.dart';
+import '../../../data/models/village.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/village_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -16,6 +18,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _registrationCodeController = TextEditingController();
 
   String? _selectedVillageId;
   bool _obscurePassword = true;
@@ -23,17 +26,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  final List<Map<String, String>> _villages = [
-    {'id': 'c8f4d46e-8461-44ac-bfb9-a1b45e09de4a', 'name': 'Ohoi Elaar Let'},
-    {'id': '4b0bfbfd-738f-439e-ad00-4ce70f1b4c7d', 'name': 'Ohoi Elaar Ngursoin'},
-    {'id': '7e4f816a-d9c0-4ffc-9999-c6edd2e657d1', 'name': 'Ohoi Elaar Lamagorang'},
-  ];
-
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _registrationCodeController.dispose();
     super.dispose();
   }
 
@@ -47,6 +45,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           _usernameController.text.trim(),
           _passwordController.text,
           _selectedVillageId!,
+          _registrationCodeController.text.trim(),
         );
 
     if (!mounted) return;
@@ -66,6 +65,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.sizeOf(context).width >= 700;
+    final villagesAsync = ref.watch(villagesProvider);
 
     return Scaffold(
       body: Stack(
@@ -114,10 +114,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             usernameController: _usernameController,
                             passwordController: _passwordController,
                             confirmPasswordController: _confirmPasswordController,
+                            registrationCodeController: _registrationCodeController,
                             obscurePassword: _obscurePassword,
                             obscureConfirmPassword: _obscureConfirmPassword,
                             selectedVillageId: _selectedVillageId,
-                            villages: _villages,
+                            villagesAsync: villagesAsync,
+                            onRetryVillages: () => ref.invalidate(villagesProvider),
                             isLoading: _isLoading,
                             errorMessage: _errorMessage,
                             onTogglePassword: () => setState(
@@ -140,10 +142,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     usernameController: _usernameController,
                     passwordController: _passwordController,
                     confirmPasswordController: _confirmPasswordController,
+                    registrationCodeController: _registrationCodeController,
                     obscurePassword: _obscurePassword,
                     obscureConfirmPassword: _obscureConfirmPassword,
                     selectedVillageId: _selectedVillageId,
-                    villages: _villages,
+                    villagesAsync: villagesAsync,
+                    onRetryVillages: () => ref.invalidate(villagesProvider),
                     isLoading: _isLoading,
                     errorMessage: _errorMessage,
                     onTogglePassword: () =>
@@ -172,10 +176,12 @@ class _RegisterFormPanel extends StatelessWidget {
   final TextEditingController usernameController;
   final TextEditingController passwordController;
   final TextEditingController confirmPasswordController;
+  final TextEditingController registrationCodeController;
   final bool obscurePassword;
   final bool obscureConfirmPassword;
   final String? selectedVillageId;
-  final List<Map<String, String>> villages;
+  final AsyncValue<List<Village>> villagesAsync;
+  final VoidCallback onRetryVillages;
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback onTogglePassword;
@@ -189,10 +195,12 @@ class _RegisterFormPanel extends StatelessWidget {
     required this.usernameController,
     required this.passwordController,
     required this.confirmPasswordController,
+    required this.registrationCodeController,
     required this.obscurePassword,
     required this.obscureConfirmPassword,
     required this.selectedVillageId,
-    required this.villages,
+    required this.villagesAsync,
+    required this.onRetryVillages,
     required this.isLoading,
     required this.errorMessage,
     required this.onTogglePassword,
@@ -354,40 +362,73 @@ class _RegisterFormPanel extends StatelessWidget {
             const SizedBox(height: 12),
 
             // ── Village dropdown ──────────────────────
-            DropdownButtonFormField<String>(
-              initialValue: selectedVillageId,
-              style: const TextStyle(
-                  fontSize: 14, color: ForuiThemeConfig.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Pilih desa',
-                hintStyle: const TextStyle(
-                    fontSize: 14, color: ForuiThemeConfig.textHint),
-                prefixIcon: const Icon(Icons.location_on_outlined,
-                    size: 18, color: ForuiThemeConfig.textHint),
-                filled: true,
-                fillColor: const Color(0xFFF6F8F6),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 16),
-                border: _fieldBorder,
-                enabledBorder: _fieldBorder,
-                focusedBorder: _focusedBorder,
-                errorBorder: _errorBorder,
-                focusedErrorBorder: OutlineInputBorder(
+            // Villages come from the backend, not a hardcoded list: they are
+            // inserted into the database by hand, and hardcoding them meant a
+            // frontend rebuild every time one was added.
+            villagesAsync.when(
+              data: (villages) {
+                if (villages.isEmpty) {
+                  return _VillageNotice(
+                    icon: Icons.info_outline_rounded,
+                    message: 'Belum ada desa terdaftar. Hubungi pengembang.',
+                    onRetry: onRetryVillages,
+                  );
+                }
+                return DropdownButtonFormField<String>(
+                  initialValue: selectedVillageId,
+                  style: const TextStyle(
+                      fontSize: 14, color: ForuiThemeConfig.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Pilih desa',
+                    hintStyle: const TextStyle(
+                        fontSize: 14, color: ForuiThemeConfig.textHint),
+                    prefixIcon: const Icon(Icons.location_on_outlined,
+                        size: 18, color: ForuiThemeConfig.textHint),
+                    filled: true,
+                    fillColor: const Color(0xFFF6F8F6),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
+                    border: _fieldBorder,
+                    enabledBorder: _fieldBorder,
+                    focusedBorder: _focusedBorder,
+                    errorBorder: _errorBorder,
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                          color: ForuiThemeConfig.errorColor, width: 1.5),
+                    ),
+                    errorStyle: const TextStyle(fontSize: 12),
+                  ),
+                  items: villages
+                      .map((v) => DropdownMenuItem<String>(
+                            value: v.id,
+                            child: Text(v.name),
+                          ))
+                      .toList(),
+                  onChanged: onVillageChanged,
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Desa harus dipilih' : null,
+                );
+              },
+              loading: () => Container(
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6F8F6),
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                      color: ForuiThemeConfig.errorColor, width: 1.5),
+                  border: Border.all(color: const Color(0xFFE8EDE9)),
                 ),
-                errorStyle: const TextStyle(fontSize: 12),
+                alignment: Alignment.center,
+                child: const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               ),
-              items: villages
-                  .map((v) => DropdownMenuItem<String>(
-                        value: v['id'],
-                        child: Text(v['name']!),
-                      ))
-                  .toList(),
-              onChanged: onVillageChanged,
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Desa harus dipilih' : null,
+              error: (_, __) => _VillageNotice(
+                icon: Icons.cloud_off_rounded,
+                message: 'Gagal memuat daftar desa. Periksa koneksi.',
+                onRetry: onRetryVillages,
+              ),
             ),
 
             const SizedBox(height: 12),
@@ -486,6 +527,46 @@ class _RegisterFormPanel extends StatelessWidget {
               },
             ),
 
+            const SizedBox(height: 12),
+
+            // ── Registration code ─────────────────────
+            // Shared secret from the developer. Registration cannot require a
+            // login (it is how a village's first account is made), so without
+            // this the endpoint is open to anyone who loads the public site.
+            TextFormField(
+              controller: registrationCodeController,
+              obscureText: true,
+              style: const TextStyle(
+                  fontSize: 14, color: ForuiThemeConfig.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Kode pendaftaran',
+                helperText: 'Diberikan oleh pengembang sistem',
+                helperStyle: const TextStyle(
+                    fontSize: 11, color: ForuiThemeConfig.textHint),
+                hintStyle: const TextStyle(
+                    fontSize: 14, color: ForuiThemeConfig.textHint),
+                prefixIcon: const Icon(Icons.vpn_key_outlined,
+                    size: 18, color: ForuiThemeConfig.textHint),
+                filled: true,
+                fillColor: const Color(0xFFF6F8F6),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                border: _fieldBorder,
+                enabledBorder: _fieldBorder,
+                focusedBorder: _focusedBorder,
+                errorBorder: _errorBorder,
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                      color: ForuiThemeConfig.errorColor, width: 1.5),
+                ),
+                errorStyle: const TextStyle(fontSize: 12),
+              ),
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Kode pendaftaran harus diisi'
+                  : null,
+            ),
+
             const SizedBox(height: 22),
 
             // ── Register button ───────────────────────
@@ -552,6 +633,64 @@ class _RegisterFormPanel extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Village dropdown fallback ────────────────────────────────────────────────
+
+/// Stands in for the dropdown when the village list could not be loaded, or when
+/// no villages exist yet. Villages are inserted into the database by hand, so an
+/// empty list is a real state, not an error.
+class _VillageNotice extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final VoidCallback onRetry;
+
+  const _VillageNotice({
+    required this.icon,
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4E5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE0B2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFFB25E02)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: Color(0xFF8A4B00),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFB25E02),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+              textStyle: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            child: const Text('Coba lagi'),
+          ),
+        ],
       ),
     );
   }

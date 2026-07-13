@@ -122,9 +122,9 @@ class MockApiService {
       return DummyDashboardData.getDashboardJsonByVillageId(_currentVillageId!);
     }
 
-    // Villages
+    // Villages — shape must match the backend's ListVillagesResponse.
     if (path == ApiConstants.villages) {
-      return DummyVillageData.getVillagesJson();
+      return {'villages': DummyVillageData.getVillagesJson()};
     }
 
     // Family Cards

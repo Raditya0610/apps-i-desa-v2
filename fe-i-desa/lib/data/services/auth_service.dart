@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/config/app_config.dart';
@@ -155,10 +156,16 @@ class AuthService {
   }
 
   // Register User
+  //
+  // [registrationCode] is the shared secret the developer hands to the desa
+  // operator. Registration cannot require a session — it is how a village's first
+  // account is created — so this code is what keeps the endpoint from being open
+  // to anyone who loads the public site.
   Future<Map<String, dynamic>> register(
     String username,
     String password,
     String villageId,
+    String registrationCode,
   ) async {
     try {
       final response = await _api.post(
@@ -168,6 +175,9 @@ class AuthService {
           'password': password,
           'village_id': villageId,
         },
+        options: Options(
+          headers: {ApiConstants.adminTokenHeader: registrationCode},
+        ),
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {

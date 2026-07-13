@@ -65,6 +65,10 @@ class ApiConstants {
   // Cookie
   static const String cookieName = 'AppsIDesaCookie';
 
+  // Header carrying the shared registration code on POST /users/register.
+  // Must match middleware.AdminTokenHeader on the backend.
+  static const String adminTokenHeader = 'X-Admin-Token';
+
   // Headers
   static const Map<String, String> defaultHeaders = {
     'Content-Type': 'application/json',

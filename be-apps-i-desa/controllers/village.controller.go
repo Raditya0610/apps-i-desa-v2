@@ -19,6 +19,20 @@ func NewVillageController(villageService *services.VillageService) *VillageContr
 	}
 }
 
+// GetAllVillages serves the registration dropdown. Unauthenticated by necessity:
+// it is read before anyone has an account. It returns only id and name.
+func (c *VillageController) GetAllVillages(ctx *fiber.Ctx) error {
+	response, err := c.villageService.GetAllVillages()
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to list villages",
+			"error":   err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(response)
+}
+
 func (c *VillageController) CreateVillage(ctx *fiber.Ctx) error {
 	var request dtos.AddVillageRequest
 

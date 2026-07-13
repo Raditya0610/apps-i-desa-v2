@@ -84,10 +84,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String username,
     String password,
     String villageId,
+    String registrationCode,
   ) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final result = await _authService.register(username, password, villageId);
+    final result = await _authService.register(
+      username,
+      password,
+      villageId,
+      registrationCode,
+    );
 
     state = state.copyWith(isLoading: false);
 

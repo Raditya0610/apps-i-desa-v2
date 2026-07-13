@@ -33,6 +33,21 @@ func (r *VillageRepository) FindVillageByID(uuid *uuid.UUID) error {
 	return nil
 }
 
+// FindAllVillages lists every village, for the registration dropdown.
+// Villages are inserted into the database by hand; the app never creates them.
+func (r *VillageRepository) FindAllVillages() ([]models.Village, error) {
+	var villages []models.Village
+	// Select only id and name: this feeds an unauthenticated endpoint, so it must
+	// not pull the association-heavy Village row.
+	if err := r.DB.Model(&models.Village{}).
+		Select("id", "name").
+		Order("name ASC").
+		Find(&villages).Error; err != nil {
+		return nil, err
+	}
+	return villages, nil
+}
+
 func (r *VillageRepository) FindVillageByName(name string) *models.Village {
 	var village models.Village
 	if err := r.DB.First(&village, "name = ?", name).Error; err != nil {

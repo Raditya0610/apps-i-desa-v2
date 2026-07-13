@@ -26,15 +26,14 @@ class AppConfig {
   /// Where SIMPOI (the surat-generator app) is served from.
   ///
   /// SIMPOI is a separate app in its own repo (github.com/shinnwlfrd/simpoi) that
-  /// i-Desa links out to; it is not built into this bundle. It is a static site
-  /// but still needs an HTTP origin — browsers refuse to load its ES modules over
-  /// `file://` — so it must be served, even offline, on the desa machine.
+  /// i-Desa links out to; it is not built into this bundle.
   ///
-  /// Override per install:
+  /// Points at its GitHub Pages deploy, so it needs internet. To make it work
+  /// during the desa office's outages, serve a local copy and override this:
   ///   flutter build windows --dart-define=SIMPOI_URL=http://localhost:4173
   static const String simpoiUrl = String.fromEnvironment(
     'SIMPOI_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'https://shinnwlfrd.github.io/simpoi/',
   );
 
   /// Get current mode as string
