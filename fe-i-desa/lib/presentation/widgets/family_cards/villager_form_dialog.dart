@@ -48,7 +48,10 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
   String? _kewarganegaraan;
 
   // Dropdown options
-  static const List<String> _jenisKelaminOptions = ['L', 'P'];
+  // Full words, matching what the database already holds. Submitting "L"/"P"
+  // wrote a second representation of the same field, which no backend query
+  // matched — the dashboard counted zero men and reported every resident female.
+  static const List<String> _jenisKelaminOptions = ['Laki-laki', 'Perempuan'];
   static const List<String> _agamaOptions = [
     'Islam',
     'Kristen',
@@ -132,14 +135,14 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
 
     // Initialize dropdown values
     if (member != null) {
-      final jk = member['jenis_kelamin'];
-      if (jk == 'Laki-laki') {
-        _jenisKelamin = 'L';
-      } else if (jk == 'Perempuan') {
-        _jenisKelamin = 'P';
-      } else {
-        _jenisKelamin = jk;
-      }
+      // Rows written while the form submitted "L"/"P" still exist; map them onto
+      // the dropdown's values so editing such a member does not open with an
+      // empty gender field (and silently blank it on save).
+      _jenisKelamin = switch (member['jenis_kelamin']) {
+        'L' || 'Laki-laki' => 'Laki-laki',
+        'P' || 'Perempuan' => 'Perempuan',
+        _ => null,
+      };
 
       if (member['tanggal_lahir'] != null) {
         try {
@@ -409,7 +412,11 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
                               label: 'Jenis Kelamin',
                               value: _jenisKelamin,
                               items: _jenisKelaminOptions,
-                              displayText: (v) => v == 'L' ? 'Laki-laki' : 'Perempuan',
+                              // The option values are already the display text.
+                              // The previous mapping (v == 'L' ? ... : 'Perempuan')
+                              // fell through to "Perempuan" for anything that was
+                              // not exactly "L", so both entries rendered the same.
+                              displayText: (v) => v,
                               onChanged: (v) => setState(() => _jenisKelamin = v),
                             ),
                           ),
