@@ -124,7 +124,13 @@ class Villager {
     return age;
   }
 
-  // Helper method for gender display
-  String get jenisKelaminDisplay =>
-      jenisKelamin == 'L' ? 'Laki-laki' : 'Perempuan';
+  // Rows exist in two shapes: "Laki-laki"/"Perempuan" (what the form submits now)
+  // and "L"/"P" (what it submitted before). Matched explicitly rather than by
+  // negation — `== 'L' ? 'Laki-laki' : 'Perempuan'` labelled every man as a woman
+  // the moment the form started sending full words.
+  String get jenisKelaminDisplay => switch (jenisKelamin.trim().toLowerCase()) {
+        'l' || 'laki-laki' => 'Laki-laki',
+        'p' || 'perempuan' => 'Perempuan',
+        _ => '-',
+      };
 }

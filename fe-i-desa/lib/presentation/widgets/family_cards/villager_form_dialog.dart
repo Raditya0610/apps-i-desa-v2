@@ -412,7 +412,11 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
                               label: 'Jenis Kelamin',
                               value: _jenisKelamin,
                               items: _jenisKelaminOptions,
-                              displayText: (v) => v == 'L' ? 'Laki-laki' : 'Perempuan',
+                              // The option values are already the display text.
+                              // The previous mapping (v == 'L' ? ... : 'Perempuan')
+                              // fell through to "Perempuan" for anything that was
+                              // not exactly "L", so both entries rendered the same.
+                              displayText: (v) => v,
                               onChanged: (v) => setState(() => _jenisKelamin = v),
                             ),
                           ),
