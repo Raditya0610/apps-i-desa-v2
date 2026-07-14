@@ -51,6 +51,11 @@ func JWTAuth() fiber.Handler {
 			if villageID, exists := claims["village"]; exists {
 				c.Locals("village", villageID)
 			}
+			// Absent on tokens issued before "username" was added to the claims;
+			// those sessions log an empty actor rather than being rejected.
+			if username, exists := claims["username"]; exists {
+				c.Locals("username", username)
+			}
 		}
 
 		return c.Next()

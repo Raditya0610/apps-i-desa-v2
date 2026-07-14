@@ -66,6 +66,7 @@ func setupRoutes(app *fiber.App) {
 	routes.SetupVillageRoutes(app)
 	routes.SetupFamilyCardRoutes(app)
 	routes.SetupDashboardRoutes(app)
+	routes.SetupActivityLogRoutes(app)
 }
 
 // initializeApp initializes the Fiber app and database connection once

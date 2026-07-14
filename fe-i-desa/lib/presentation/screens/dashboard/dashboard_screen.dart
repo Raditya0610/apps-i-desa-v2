@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/forui_theme.dart';
+import '../../../providers/activity_log_provider.dart';
 import '../../../providers/dashboard_provider.dart';
+import '../../../providers/idm_score_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../widgets/common/app_shell.dart';
 import '../../widgets/common/offline_banner.dart';
@@ -646,8 +649,10 @@ class _StatisticsGrid extends StatelessWidget {
         icon: Icons.group_outlined,
         iconColor: const Color(0xFF10B981),
         iconBg: const Color(0xFFD1FAE5),
-        subtitle: '+2.4% bln ini',
-        subtitleColor: const Color(0xFF10B981),
+        // Was a hardcoded "+2.4% bln ini" that showed even when the village had
+        // zero residents. Nothing tracks month-over-month change, so this shows
+        // the gender split the API actually returns.
+        subtitle: 'L: ${dashboard.lakiLaki} · P: ${dashboard.perempuan}',
       ),
       _StatCard(
         title: 'Total Keluarga',
@@ -1069,13 +1074,27 @@ class _AdminStats extends StatelessWidget {
 
 // ─── Insight Card ─────────────────────────────────────────────────────────────
 
-class _InsightCard extends StatelessWidget {
+class _InsightCard extends ConsumerWidget {
   final dynamic dashboard;
   const _InsightCard({required this.dashboard});
 
   @override
-  Widget build(BuildContext context) {
-    final kkProgress = (dashboard.kepalaKeluarga / dashboard.totalKeluarga).clamp(0.0, 1.0);
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Guard the zero case: 0/0 is NaN in Dart, clamp() passes NaN through
+    // (comparisons with NaN are always false), and LinearProgressIndicator
+    // renders a NaN value as a *full* bar — so an empty village looked 100%
+    // complete.
+    final kkProgress = dashboard.totalKeluarga > 0
+        ? (dashboard.kepalaKeluarga / dashboard.totalKeluarga).clamp(0.0, 1.0)
+        : 0.0;
+
+    // Replaces a hardcoded "Target Pendataan 85%". This is the real thing: how
+    // many of the sub-dimension indicator forms have been filled in, which the
+    // IDM endpoint already reports.
+    final idm = ref.watch(idmScoreProvider).scores;
+    final formsDone = idm?.completedCount ?? 0;
+    final formsTotal = idm?.totalCount ?? 0;
+    final formsProgress = formsTotal > 0 ? formsDone / formsTotal : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1119,10 +1138,10 @@ class _InsightCard extends StatelessWidget {
             barColor: const Color(0xFFF59E0B),
           ),
           const SizedBox(height: 20),
-          const _InsightProgress(
-            label: 'Target Pendataan',
-            detail: '85%',
-            value: 0.85,
+          _InsightProgress(
+            label: 'Kelengkapan Indikator',
+            detail: '$formsDone / $formsTotal',
+            value: formsProgress,
             barColor: Colors.white,
           ),
           const SizedBox(height: 20),
@@ -1202,11 +1221,22 @@ class _InsightProgress extends StatelessWidget {
 
 // ─── Recent Activity ──────────────────────────────────────────────────────────
 
-class _RecentActivity extends StatelessWidget {
+/// Real activity feed, backed by the audit log the backend writes on every
+/// create/update/delete. Previously three hardcoded entries — including a
+/// "Sistem Backup … berhasil" line for a backup that never ran.
+class _RecentActivity extends ConsumerWidget {
   const _RecentActivity();
 
+  static const _actionColors = {
+    'create': Color(0xFF10B981),
+    'update': Color(0xFF3B82F6),
+    'delete': Color(0xFFEF4444),
+  };
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activitiesAsync = ref.watch(recentActivitiesProvider);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: _cardDecoration(),
@@ -1225,13 +1255,13 @@ class _RecentActivity extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () => ref.invalidate(recentActivitiesProvider),
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: Size.zero,
                 ),
                 child: const Text(
-                  'Lihat Semua',
+                  'Muat Ulang',
                   style: TextStyle(
                     fontSize: 12,
                     color: ForuiThemeConfig.primaryGreen,
@@ -1242,27 +1272,72 @@ class _RecentActivity extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          const _ActivityItem(
-            title: 'Penduduk Baru',
-            subtitle: 'Keluarga Bpk. Hartono ditambahkan.',
-            time: '2 jam lalu',
-            color: Color(0xFF10B981),
-          ),
-          const _ActivityDivider(),
-          const _ActivityItem(
-            title: 'Update Kartu Keluarga',
-            subtitle: 'Perubahan data No. KK 09123...',
-            time: '5 jam lalu',
-            color: Color(0xFF3B82F6),
-          ),
-          const _ActivityDivider(),
-          const _ActivityItem(
-            title: 'Sistem Backup',
-            subtitle: 'Pencadangan data otomatis berhasil.',
-            time: '1 hari lalu',
-            color: Color(0xFF9CA3AF),
+          activitiesAsync.when(
+            data: (result) {
+              final activities = result.data;
+              if (activities.isEmpty) {
+                return const _ActivityEmpty();
+              }
+              return Column(
+                children: [
+                  for (var i = 0; i < activities.length; i++) ...[
+                    if (i > 0) const _ActivityDivider(),
+                    _ActivityItem(
+                      title: activities[i].title,
+                      subtitle: activities[i].description,
+                      time: _relativeTime(activities[i].createdAt),
+                      color: _actionColors[activities[i].action] ??
+                          const Color(0xFF9CA3AF),
+                    ),
+                  ],
+                ],
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+            error: (_, __) => const _ActivityEmpty(
+              message: 'Gagal memuat aktivitas.',
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  static String _relativeTime(DateTime time) {
+    final diff = DateTime.now().difference(time.toLocal());
+    if (diff.inMinutes < 1) return 'Baru saja';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} menit lalu';
+    if (diff.inHours < 24) return '${diff.inHours} jam lalu';
+    if (diff.inDays < 30) return '${diff.inDays} hari lalu';
+    return DateFormat('dd/MM/yyyy').format(time.toLocal());
+  }
+}
+
+class _ActivityEmpty extends StatelessWidget {
+  final String message;
+  const _ActivityEmpty({this.message = 'Belum ada aktivitas tercatat.'});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 13,
+            color: ForuiThemeConfig.textSecondary,
+          ),
+        ),
       ),
     );
   }

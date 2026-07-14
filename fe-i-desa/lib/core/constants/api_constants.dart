@@ -26,6 +26,9 @@ class ApiConstants {
   // Dashboard
   static const String dashboard = '$apiPrefix/dashboard';
 
+  // Activity log (dashboard feed)
+  static const String activities = '$apiPrefix/activities';
+
   // Sub-Dimension Endpoints
   static const String subDimensionPendidikan = '$apiPrefix/sub-dimensions/pendidikan';
   static const String subDimensionKesehatan = '$apiPrefix/sub-dimensions/kesehatan';

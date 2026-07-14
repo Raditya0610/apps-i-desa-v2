@@ -117,6 +117,7 @@ class CacheService {
 class CacheKeys {
   static const String dashboard = 'dashboard';
   static const String familyCards = 'family_cards';
+  static const String activities = 'activities';
 
   static String familyCardDetail(String nik) => 'family_card_detail.$nik';
 }

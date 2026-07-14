@@ -80,6 +80,9 @@ func (c *VillagerController) CreateVillager(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// After the write is committed, so a failed audit cannot roll back real data.
+	services.RecordActivity(ctx, services.ActionCreate, services.EntityVillager, request.NamaLengkap)
+
 	return ctx.Status(fiber.StatusCreated).JSON(response)
 }
 
@@ -193,6 +196,13 @@ func (c *VillagerController) UpdateVillager(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Prefer the new name; fall back to the NIK when the update did not touch it.
+	label := nik
+	if request.NamaLengkap != nil && *request.NamaLengkap != "" {
+		label = *request.NamaLengkap
+	}
+	services.RecordActivity(ctx, services.ActionUpdate, services.EntityVillager, label)
+
 	return ctx.Status(fiber.StatusOK).JSON(response)
 }
 
@@ -246,5 +256,8 @@ func (c *VillagerController) DeleteVillager(ctx *fiber.Ctx) error {
 			"Error":   err.Error(),
 		})
 	}
+
+	services.RecordActivity(ctx, services.ActionDelete, services.EntityVillager, nik)
+
 	return ctx.Status(fiber.StatusOK).JSON(response)
 }

@@ -158,6 +158,7 @@ func migrateDB(db *gorm.DB) error {
 		&models2.Village{},
 		&models2.Villager{},
 		&models2.FamilyCard{},
+		&models2.ActivityLog{},
 		&models2.SubDimensiAktivitas{},
 		&models2.SubDimensiFasilitasMasyarakat{},
 		&models2.SubDimensiFasilitasPendukungEkonomi{},

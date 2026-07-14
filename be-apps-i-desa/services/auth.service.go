@@ -64,9 +64,11 @@ func generateJWTToken(user *models.User) (string, error) {
 	expTime := time.Now().Add(1 * time.Hour)
 
 	// Create claims
+	// "username" is carried so mutations can be attributed in the activity log.
 	claims := jwt.MapClaims{
-		"village": user.VillageID,
-		"exp":     expTime.Unix(),
+		"village":  user.VillageID,
+		"username": user.Username,
+		"exp":      expTime.Unix(),
 	}
 
 	// Create token with claims
