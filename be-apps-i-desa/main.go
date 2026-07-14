@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"Apps-I_Desa_Backend/config"
+	"Apps-I_Desa_Backend/middleware"
 	"Apps-I_Desa_Backend/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -49,9 +50,13 @@ func main() {
 		allowedOrigins = "http://localhost:3000,http://localhost:8080,http://localhost:5000"
 	}
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
-		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders:     "Content-Type,Accept,Authorization",
+		AllowOrigins: allowedOrigins,
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		// X-Admin-Token must be listed: the browser refuses to send a custom
+		// header the preflight did not explicitly allow, so registration would
+		// fail silently — the preflight returns 204 and the POST never leaves
+		// the browser.
+		AllowHeaders:     "Content-Type,Accept,Authorization," + middleware.AdminTokenHeader,
 		AllowCredentials: true,
 	}))
 
