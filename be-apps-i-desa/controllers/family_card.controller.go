@@ -78,6 +78,9 @@ func (c *FamilyCardController) AddFamilyCard(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// After the write is committed, so a failed audit cannot roll back real data.
+	services.RecordActivity(ctx, services.ActionCreate, services.EntityFamilyCard, request.NIK)
+
 	return ctx.Status(fiber.StatusCreated).JSON(response)
 }
 
@@ -136,6 +139,8 @@ func (c *FamilyCardController) DeleteFamilyCard(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
+	services.RecordActivity(ctx, services.ActionDelete, services.EntityFamilyCard, nik)
+
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Family card deleted successfully",
 	})

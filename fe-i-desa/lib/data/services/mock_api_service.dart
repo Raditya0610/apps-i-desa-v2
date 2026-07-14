@@ -122,9 +122,15 @@ class MockApiService {
       return DummyDashboardData.getDashboardJsonByVillageId(_currentVillageId!);
     }
 
-    // Villages
+    // Villages — shape must match the backend's ListVillagesResponse.
     if (path == ApiConstants.villages) {
-      return DummyVillageData.getVillagesJson();
+      return {'villages': DummyVillageData.getVillagesJson()};
+    }
+
+    // Activity log — empty rather than invented, so mock mode does not
+    // reintroduce the fabricated feed this endpoint was built to replace.
+    if (path == ApiConstants.activities) {
+      return {'activities': []};
     }
 
     // Family Cards

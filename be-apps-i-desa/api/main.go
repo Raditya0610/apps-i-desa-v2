@@ -42,6 +42,7 @@ import (
 	"sync"
 
 	"Apps-I_Desa_Backend/config"
+	"Apps-I_Desa_Backend/middleware"
 	"Apps-I_Desa_Backend/routes"
 	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/fiber/v2"
@@ -65,6 +66,7 @@ func setupRoutes(app *fiber.App) {
 	routes.SetupVillageRoutes(app)
 	routes.SetupFamilyCardRoutes(app)
 	routes.SetupDashboardRoutes(app)
+	routes.SetupActivityLogRoutes(app)
 }
 
 // initializeApp initializes the Fiber app and database connection once
@@ -72,7 +74,13 @@ func initializeApp() (*fiber.App, error) {
 	once.Do(func() {
 		// Initialize database connection
 		//  pooling is already configured in config.ConnectDB()
-		config.ConnectDB()
+		// Bail out before setupRoutes: the repositories capture config.DB by value
+		// at construction, so routes built on a failed connection would hold a nil
+		// handle for the lifetime of this warm instance.
+		if _, err := config.ConnectDB(); err != nil {
+			initErr = err
+			return
+		}
 
 		// Create Fiber app with configuration optimized for serverless
 		app = fiber.New(fiber.Config{
@@ -108,9 +116,12 @@ func initializeApp() (*fiber.App, error) {
 			allowedOrigins = "http://localhost:3000,http://localhost:8080,http://localhost:5000"
 		}
 		app.Use(cors.New(cors.Config{
-			AllowOrigins:     allowedOrigins,
-			AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
-			AllowHeaders:     "Content-Type,Accept,Authorization",
+			AllowOrigins: allowedOrigins,
+			AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+			// X-Admin-Token must be listed: the browser refuses to send a custom
+			// header the preflight did not explicitly allow, so registration would
+			// fail silently.
+			AllowHeaders:     "Content-Type,Accept,Authorization," + middleware.AdminTokenHeader,
 			AllowCredentials: true,
 		}))
 

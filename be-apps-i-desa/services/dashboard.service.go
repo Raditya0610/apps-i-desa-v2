@@ -52,6 +52,7 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 	kecamatanCh := make(chan result, 1)
 	villagersCh := make(chan result, 1)
 	maleVillagersCh := make(chan result, 1)
+	femaleVillagersCh := make(chan result, 1)
 	averageAgeCh := make(chan result, 1)
 	kepalaKeluargaCh := make(chan result, 1)
 
@@ -90,7 +91,7 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 	}()
 
 	// Launch goroutines for villager operations
-	wg.Add(4)
+	wg.Add(5)
 	go func() {
 		defer wg.Done()
 		count, err := s.villagerRepo.CountAllVillagerByVillageID(&villageID)
@@ -101,6 +102,15 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 		defer wg.Done()
 		count, err := s.villagerRepo.CountAllLakiLakiVillager(&villageID)
 		maleVillagersCh <- result{count, err}
+	}()
+
+	// Counted, not derived as total-minus-male: that treated every row failing an
+	// exact "Laki-laki" match — including blanks and unrecognised values — as
+	// female.
+	go func() {
+		defer wg.Done()
+		count, err := s.villagerRepo.CountAllPerempuanVillager(&villageID)
+		femaleVillagersCh <- result{count, err}
 	}()
 
 	go func() {
@@ -168,6 +178,13 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 	}
 	countMaleVillagers := maleVillagersRes.value.(int64)
 
+	femaleVillagersRes := <-femaleVillagersCh
+	if femaleVillagersRes.err != nil {
+		log.Error("Error counting female villagers:", femaleVillagersRes.err)
+		return nil, errors.New("error counting female villagers")
+	}
+	countFemaleVillagers := femaleVillagersRes.value.(int64)
+
 	averageAgeRes := <-averageAgeCh
 	if averageAgeRes.err != nil {
 		log.Error("Error getting average age:", averageAgeRes.err)
@@ -182,12 +199,20 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 	}
 	countKepalaKeluarga := kepalaKeluargaRes.value.(int64)
 
+	// Guarded: dividing by zero residents yields +Inf, and encoding/json refuses
+	// to marshal Inf — an empty village would fail the whole dashboard request
+	// rather than return zeros.
+	var rerataKeluarga float32
+	if countVillagers > 0 {
+		rerataKeluarga = float32(countFamilyCards) / float32(countVillagers)
+	}
+
 	return &dtos.GetDashboardResponse{
 		TotalKeluarga:       int32(countFamilyCards),
 		TotalPenduduk:       int32(countVillagers),
-		RerataKeluarga:      float32(countFamilyCards) / float32(countVillagers),
+		RerataKeluarga:      rerataKeluarga,
 		TotalLakiLaki:       int32(countMaleVillagers),
-		TotalPerempuan:      int32(countVillagers) - int32(countMaleVillagers),
+		TotalPerempuan:      int32(countFemaleVillagers),
 		TotalKepalaKeluarga: int32(countKepalaKeluarga),
 		RerataUmur:          countAverageAge,
 		TotalRT:             int32(countDistinctRT),

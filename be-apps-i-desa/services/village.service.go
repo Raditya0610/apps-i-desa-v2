@@ -19,6 +19,22 @@ func NewVillageService(villageRepo *repositories.VillageRepository) *VillageServ
 	}
 }
 
+// GetAllVillages backs the registration dropdown.
+func (s *VillageService) GetAllVillages() (*dtos.ListVillagesResponse, error) {
+	villages, err := s.villageRepo.FindAllVillages()
+	if err != nil {
+		log.Println("Error listing villages:", err)
+		return nil, errors.New("failed to list villages")
+	}
+
+	options := make([]dtos.VillageOption, 0, len(villages))
+	for _, v := range villages {
+		options = append(options, dtos.VillageOption{ID: v.ID, Name: v.Name})
+	}
+
+	return &dtos.ListVillagesResponse{Villages: options}, nil
+}
+
 func (s *VillageService) CreateVillage(
 	request *dtos.AddVillageRequest,
 ) (*dtos.CreateVillageResponse, error) {

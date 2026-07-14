@@ -1,12 +1,12 @@
 {
-    "name": "fe_apps_i_desa",
-    "short_name": "fe_apps_i_desa",
+    "name": "i-Desa — Sistem Informasi Desa",
+    "short_name": "i-Desa",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#1A2E1F",
+    "theme_color": "#1A2E1F",
+    "description": "Sistem informasi desa: data kependudukan, kartu keluarga, dan indikator desa.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

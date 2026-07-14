@@ -26,6 +26,9 @@ class ApiConstants {
   // Dashboard
   static const String dashboard = '$apiPrefix/dashboard';
 
+  // Activity log (dashboard feed)
+  static const String activities = '$apiPrefix/activities';
+
   // Sub-Dimension Endpoints
   static const String subDimensionPendidikan = '$apiPrefix/sub-dimensions/pendidikan';
   static const String subDimensionKesehatan = '$apiPrefix/sub-dimensions/kesehatan';
@@ -64,6 +67,10 @@ class ApiConstants {
 
   // Cookie
   static const String cookieName = 'AppsIDesaCookie';
+
+  // Header carrying the shared registration code on POST /users/register.
+  // Must match middleware.AdminTokenHeader on the backend.
+  static const String adminTokenHeader = 'X-Admin-Token';
 
   // Headers
   static const Map<String, String> defaultHeaders = {

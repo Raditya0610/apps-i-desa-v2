@@ -5,6 +5,7 @@ import '../../../core/theme/forui_theme.dart';
 import '../../../providers/family_card_detail_provider.dart';
 import '../../../data/repositories/villager_repository.dart';
 import '../../widgets/common/app_shell.dart';
+import '../../widgets/common/offline_banner.dart';
 import '../../widgets/villagers/avatar_circle.dart';
 import '../../widgets/family_cards/villager_form_dialog.dart';
 
@@ -22,7 +23,8 @@ class FamilyCardDetailScreen extends ConsumerWidget {
 
     return AppShell(
       child: detailState.when(
-              data: (familyCardDetail) {
+              data: (result) {
+                final familyCardDetail = result.data;
                 if (familyCardDetail == null) {
                   return _buildNotFoundState(context);
                 }
@@ -32,6 +34,12 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                   children: [
                     // Header
                     _buildHeader(context, ref, familyCardDetail.name),
+
+                    if (result.isFromCache)
+                      OfflineBanner(
+                        cachedAt: result.cachedAt,
+                        onRetry: () => ref.invalidate(familyCardDetailProvider(nik)),
+                      ),
 
                     // Scrollable Content
                     Expanded(

@@ -1,34 +1,40 @@
-name: Build and Deploy Flutter Web to Netlify
+name: Build and Deploy Flutter Web to GitHub Pages
 
 on:
   push:
     branches:
       - main
+  # Lets you re-deploy from the Actions tab without pushing a commit.
+  workflow_dispatch:
+
+# Required by actions/deploy-pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race. Queue rather than cancel, so a finished build
+# always ships.
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
+      # No `flutter create`: web/ is committed, and regenerating it overwrites
+      # our customised manifest.json and index.html with Flutter's defaults.
+      # No setup-java either — that is only needed for Android builds.
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-
-      - name: Enable Flutter Web
-        working-directory: fe-i-desa
-        run: |
-          flutter config --enable-web
-          flutter create --platforms web .
+          cache: true
 
       - name: Install Dependencies
         working-directory: fe-i-desa
@@ -36,14 +42,34 @@ jobs:
 
       - name: Build Web
         working-directory: fe-i-desa
-        run: |
-          flutter build web --release \
-            --dart-define=BASE_URL=https://apps-i-desa-v2-production.up.railway.app
-
-      - name: Deploy to Netlify
-        uses: netlify/actions/cli@master
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          # Override without editing this file: Settings → Secrets and variables
+          # → Actions → Variables.
+          BASE_URL: ${{ vars.BASE_URL || 'https://apps-i-desa-v2-production.up.railway.app' }}
+          SIMPOI_URL: ${{ vars.SIMPOI_URL || 'https://shinnwlfrd.github.io/simpoi/' }}
+        run: |
+          # --base-href: Pages serves from /<repo>/, not the domain root.
+          # --no-web-resources-cdn: keep CanvasKit on our own origin so the PWA
+          #   service worker can cache it and the app can boot offline.
+          flutter build web --release \
+            --base-href "/${{ github.event.repository.name }}/" \
+            --no-web-resources-cdn \
+            --dart-define=BASE_URL=$BASE_URL \
+            --dart-define=SIMPOI_URL=$SIMPOI_URL
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          args: deploy --dir=fe-i-desa/build/web --prod
+          path: fe-i-desa/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

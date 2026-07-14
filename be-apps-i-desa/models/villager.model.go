@@ -9,7 +9,10 @@ import (
 type Villager struct {
 	NIK              string    `gorm:"primaryKey;size:16"`
 	NamaLengkap      string    `gorm:"size:100;not null"`
-	JenisKelamin     string    `gorm:"size:10;not null"` // e.g., "Laki-laki", "Perempuan"
+	// "L" / "P" — what the villager form submits. Older rows may hold
+	// "Laki-laki" / "Perempuan"; always compare via the repository's gender
+	// helpers, which accept both, rather than matching a literal here.
+	JenisKelamin string `gorm:"size:10;not null"`
 	TempatLahir      string    `gorm:"size:100;not null"`
 	TanggalLahir     time.Time `gorm:"not null"`         // Use time.Time for date fields
 	Agama            string    `gorm:"size:20;not null"` // e.g., "Islam", "Kristen", etc.

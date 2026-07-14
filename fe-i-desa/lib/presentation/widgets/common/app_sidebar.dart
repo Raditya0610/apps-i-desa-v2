@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../providers/auth_provider.dart';
 
@@ -127,6 +129,18 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                     isActive: currentRoute.startsWith('/sub-dimensions'),
                     onTap: () => context.go('/sub-dimensions'),
                   ),
+                  const SizedBox(height: 8),
+                  const _SectionLabel('APLIKASI LAIN'),
+                  const SizedBox(height: 6),
+                  _SidebarItem(
+                    icon: Icons.description_rounded,
+                    label: 'Surat Desa (SIMPOI)',
+                    // Never active: SIMPOI is a separate app opened in the browser,
+                    // not a route inside i-Desa.
+                    isActive: false,
+                    isExternal: true,
+                    onTap: () => _openSimpoi(context),
+                  ),
                 ],
               ),
             ),
@@ -203,6 +217,29 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
         ],
       ),
     );
+  }
+
+  /// Opens SIMPOI in the system browser. It is a separate app, so this leaves
+  /// i-Desa rather than routing inside it.
+  Future<void> _openSimpoi(BuildContext context) async {
+    final uri = Uri.parse(AppConfig.simpoiUrl);
+
+    bool launched;
+    try {
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      launched = false;
+    }
+
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Tidak dapat membuka SIMPOI di ${AppConfig.simpoiUrl}. '
+              'Pastikan aplikasi SIMPOI sedang berjalan.'),
+          backgroundColor: const Color(0xFFD62828),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
@@ -321,11 +358,16 @@ class _SidebarItem extends StatefulWidget {
   final bool isActive;
   final VoidCallback onTap;
 
+  /// Marks an item that opens another app in the browser instead of navigating
+  /// within i-Desa.
+  final bool isExternal;
+
   const _SidebarItem({
     required this.icon,
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.isExternal = false,
   });
 
   @override
@@ -380,17 +422,25 @@ class _SidebarItemState extends State<_SidebarItem> {
                     : Colors.white.withValues(alpha: 0.55),
               ),
               const SizedBox(width: 12),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight:
-                      widget.isActive ? FontWeight.w600 : FontWeight.w400,
-                  color: widget.isActive
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.65),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight:
+                        widget.isActive ? FontWeight.w600 : FontWeight.w400,
+                    color: widget.isActive
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.65),
+                  ),
                 ),
               ),
+              if (widget.isExternal)
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 14,
+                  color: Colors.white.withValues(alpha: 0.4),
+                ),
             ],
           ),
         ),

@@ -94,10 +94,27 @@ func (r *VillagerRepository) CountAllVillagerByVillageID(villageID *uuid.UUID) (
 	return count, nil
 }
 
+// Gender is stored in two shapes: the villager form submits "L"/"P", while older
+// rows hold "Laki-laki"/"Perempuan". Both are matched, case-insensitively, so a
+// count never silently misses rows — the previous exact match on "Laki-laki"
+// matched nothing at all, which reported every resident as female.
+var (
+	lakiLakiValues  = []string{"l", "laki-laki"}
+	perempuanValues = []string{"p", "perempuan"}
+)
+
 func (r *VillagerRepository) CountAllLakiLakiVillager(villageID *uuid.UUID) (int64, error) {
+	return r.countByGender(villageID, lakiLakiValues)
+}
+
+func (r *VillagerRepository) CountAllPerempuanVillager(villageID *uuid.UUID) (int64, error) {
+	return r.countByGender(villageID, perempuanValues)
+}
+
+func (r *VillagerRepository) countByGender(villageID *uuid.UUID, values []string) (int64, error) {
 	var count int64
 	err := r.DB.Model(&models.Villager{}).
-		Where("village_id = ? AND jenis_kelamin = ?", villageID, "Laki-laki").
+		Where("village_id = ? AND LOWER(TRIM(jenis_kelamin)) IN ?", villageID, values).
 		Count(&count).
 		Error
 	if err != nil {

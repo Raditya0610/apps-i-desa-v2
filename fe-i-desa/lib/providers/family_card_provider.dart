@@ -18,21 +18,31 @@ class FamilyCardsState {
   final bool isLoading;
   final String? error;
 
+  /// Set when the server was unreachable and [familyCards] is a cached copy.
+  final bool isFromCache;
+  final DateTime? cachedAt;
+
   FamilyCardsState({
     this.familyCards = const [],
     this.isLoading = false,
     this.error,
+    this.isFromCache = false,
+    this.cachedAt,
   });
 
   FamilyCardsState copyWith({
     List<FamilyCard>? familyCards,
     bool? isLoading,
     String? error,
+    bool? isFromCache,
+    DateTime? cachedAt,
   }) {
     return FamilyCardsState(
       familyCards: familyCards ?? this.familyCards,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      isFromCache: isFromCache ?? this.isFromCache,
+      cachedAt: cachedAt ?? this.cachedAt,
     );
   }
 }
@@ -49,8 +59,15 @@ class FamilyCardsNotifier extends StateNotifier<FamilyCardsState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final familyCards = await _repository.getAllFamilyCards();
-      state = state.copyWith(familyCards: familyCards, isLoading: false);
+      final result = await _repository.getAllFamilyCards();
+      // Built directly rather than via copyWith so a fresh load clears the
+      // stale-cache flags left by a previous offline load.
+      state = FamilyCardsState(
+        familyCards: result.data,
+        isLoading: false,
+        isFromCache: result.isFromCache,
+        cachedAt: result.cachedAt,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
