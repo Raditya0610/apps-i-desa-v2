@@ -30,7 +30,7 @@ func (s *SubDimensionService) CreateSubDimensionPendidikan(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -75,7 +75,7 @@ func (s *SubDimensionService) CreateSubDimensionKesehatan(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -132,7 +132,7 @@ func (s *SubDimensionService) CreateSubDimensionUtilitasDasar(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -174,7 +174,7 @@ func (s *SubDimensionService) CreateSubDimensionAktivitas(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -225,7 +225,7 @@ func (s *SubDimensionService) CreateSubDimensionFasilitasMasyarakat(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -266,7 +266,7 @@ func (s *SubDimensionService) CreateSubDimensionProduksiDesa(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -312,7 +312,7 @@ func (s *SubDimensionService) CreateSubDimensionFasilitasPendukungEkonomi(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -375,7 +375,7 @@ func (s *SubDimensionService) CreateSubDimensionPengelolaanLingkungan(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -426,7 +426,7 @@ func (s *SubDimensionService) CreateSubDimensionPenanggulanganBencana(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -470,7 +470,7 @@ func (s *SubDimensionService) CreateSubDimensionKondisiAksesJalan(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -513,7 +513,7 @@ func (s *SubDimensionService) CreateSubDimensionKemudahanAkses(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -558,7 +558,7 @@ func (s *SubDimensionService) CreateSubDimensionKelembagaanPelayananDesa(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -604,7 +604,7 @@ func (s *SubDimensionService) CreateSubDimensionTataKelolaKeuanganDesa(
 	tx := s.subDimensionRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	// Parse the village ID from the context
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
@@ -648,7 +648,7 @@ func (s *SubDimensionService) CreateSubDimensionTataKelolaKeuanganDesa(
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 func (s *SubDimensionService) villageIDFromCtx(ctx *fiber.Ctx) (uuid.UUID, error) {
-	str := ctx.Locals("village").(string)
+	str, _ := ctx.Locals("village").(string)
 	if str == "" {
 		return uuid.Nil, errors.New("village ID not found")
 	}
@@ -1374,7 +1374,7 @@ func (s *SubDimensionService) UpdateTataKelolaKeuanganDesa(rawID string, req *dt
 // GetIDMScores fetches the latest record from each sub-dimension table and
 // calculates IKS, IKE, IKL, and the composite IDM score for the village.
 func (s *SubDimensionService) GetIDMScores(ctx *fiber.Ctx) (*dtos.IDMScoreResponse, error) {
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	if villageIDStr == "" {
 		return nil, errors.New("village ID not found")
 	}

@@ -31,7 +31,7 @@ func (s *VillagerService) CreateVillager(
 	defer tx.Rollback()
 
 	// Parse VillageID from string to UUID
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	if villageIDStr == "" {
 		log.Println("Village ID is empty")
 		return nil, errors.New("village ID is required")

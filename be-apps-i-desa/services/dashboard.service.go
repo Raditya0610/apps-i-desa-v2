@@ -27,7 +27,9 @@ func NewDashboardService(
 }
 
 func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardResponse, error) {
-	villageIDStr := ctx.Locals("village").(string)
+	// comma-ok: a token without a village claim yields "" here rather than
+	// panicking on the assertion; the empty check below turns it into a clean error.
+	villageIDStr, _ := ctx.Locals("village").(string)
 	if villageIDStr == "" {
 		log.Error("village ID is empty")
 		return nil, errors.New("village ID is empty")
