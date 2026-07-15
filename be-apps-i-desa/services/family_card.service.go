@@ -34,7 +34,7 @@ func (s *FamilyCardService) CreateFamilyCard(
 	tx := s.familyCardRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
 		return nil, errors.New("village ID is required")
@@ -146,7 +146,7 @@ func (s *FamilyCardService) DeleteFamilyCard(nik string) error {
 func (s *FamilyCardService) GetAllFamilyCardsByVillageID(
 	ctx *fiber.Ctx,
 ) (*dtos.GetAllFamilyCardsResponse, error) {
-	villageIDStr := ctx.Locals("village").(string)
+	villageIDStr, _ := ctx.Locals("village").(string)
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
 		return nil, errors.New("village ID is required")

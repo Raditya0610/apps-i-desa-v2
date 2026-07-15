@@ -300,7 +300,8 @@ class FamilyCardDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditVillagerDialog(BuildContext context, WidgetRef ref, Map<String, dynamic> member) {
+  Future<void> _showEditVillagerDialog(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> member) async {
     final memberNik = member['nik'] as String?;
     if (memberNik == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -312,35 +313,37 @@ class FamilyCardDetailScreen extends ConsumerWidget {
       return;
     }
 
-    // Build edit map directly from the member data already available in the
-    // family card detail response — no extra network call needed.
-    final editMap = <String, dynamic>{
-      'nik': member['nik'],
-      'name': member['name'] ?? member['nama_lengkap'] ?? '',
-      'nama_lengkap': member['name'] ?? member['nama_lengkap'] ?? '',
-      'jenis_kelamin': member['jenis_kelamin'] ?? '',
-      'status_hubungan': member['status_hubungan'],
-      'pendidikan': member['pendidikan'],
-      'pekerjaan': member['pekerjaan'],
-      // Fields not available from family card detail — passed empty so the
-      // user can optionally fill them in.
-      'tempat_lahir': member['tempat_lahir'] ?? '',
-      'tanggal_lahir': member['tanggal_lahir'],
-      'agama': member['agama'],
-      'status_perkawinan': member['status_perkawinan'],
-      'kewarganegaraan': member['kewarganegaraan'] ?? 'WNI',
-      'nomor_paspor': member['nomor_paspor'] ?? '',
-      'nomor_kitas': member['nomor_kitas'] ?? '',
-      'nama_ayah': member['nama_ayah'] ?? '',
-      'nama_ibu': member['nama_ibu'] ?? '',
-    };
+    // Fetch the full record first. The family-card detail response only carries a
+    // few fields per member, so building the edit form from it left birth date,
+    // religion and marital status blank — and saving that form wrote the blanks
+    // back, quietly erasing data the operator never touched.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final full = await VillagerRepository().getVillagerByNik(memberNik);
+
+    if (!context.mounted) return;
+    Navigator.of(context).pop(); // dismiss the loader
+
+    if (full == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal memuat data penduduk. Periksa koneksi.'),
+          backgroundColor: ForuiThemeConfig.errorColor,
+        ),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => VillagerFormDialog(
         familyCardId: nik,
-        existingMember: editMap,
+        existingMember: full,
         onSuccess: () {
           ref.invalidate(familyCardDetailProvider(nik));
         },

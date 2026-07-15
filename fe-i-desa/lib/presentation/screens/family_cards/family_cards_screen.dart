@@ -23,6 +23,23 @@ class _FamilyCardsScreenState extends ConsumerState<FamilyCardsScreen> {
   String searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    // The provider stays alive across navigation, and only fetches once in its
+    // constructor — so returning to this page showed whatever was loaded on the
+    // first visit, missing anything added or deleted since.
+    //
+    // Skipped on the very first mount: the notifier's constructor is already
+    // fetching then, and refreshing would fire the same request twice.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!ref.read(familyCardsProvider).isLoading) {
+        ref.read(familyCardsProvider.notifier).refresh();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -252,6 +269,15 @@ class _FamilyCardsScreenState extends ConsumerState<FamilyCardsScreen> {
               ],
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, size: 20),
+            tooltip: 'Muat ulang data',
+            color: ForuiThemeConfig.textSecondary,
+            onPressed: ref.watch(familyCardsProvider).isLoading
+                ? null
+                : () => ref.read(familyCardsProvider.notifier).refresh(),
+          ),
+          const SizedBox(width: 4),
           // Quick add button (always visible)
           ElevatedButton.icon(
             onPressed: () => context.push('/family-cards/add'),
