@@ -20,6 +20,11 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
   Widget build(BuildContext context) {
     final currentRoute = GoRouterState.of(context).uri.path;
 
+    // Same derivation as the dashboard top bar, so the two identity chips never
+    // disagree (this used to be hardcoded "Administrator" / "AD").
+    final username = ref.watch(authStateProvider).username ?? 'Pengguna';
+    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'U';
+
     if (currentRoute.startsWith('/family-cards') && !_isDataPendudukExpanded) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _isDataPendudukExpanded = true);
@@ -167,9 +172,9 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
-                  child: const Text(
-                    'AD',
-                    style: TextStyle(
+                  child: Text(
+                    initial,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -177,20 +182,21 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Administrator',
-                        style: TextStyle(
+                        username,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                       ),
-                      Row(
+                      const Row(
                         children: [
                           Icon(Icons.circle, size: 6, color: Color(0xFF52B788)),
                           SizedBox(width: 4),
