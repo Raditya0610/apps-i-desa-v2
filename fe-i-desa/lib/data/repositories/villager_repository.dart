@@ -32,6 +32,26 @@ class VillagerRepository {
     }
   }
 
+  /// Full record for one resident.
+  ///
+  /// The family-card detail response only carries a few fields per member, so
+  /// the edit form opened from there had blank birth date, religion, marital
+  /// status and so on — the operator had to retype data that already existed.
+  /// This endpoint returns everything.
+  Future<Map<String, dynamic>?> getVillagerByNik(String nik) async {
+    try {
+      final response = await _api.get(ApiConstants.villagerByNik(nik));
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching villager: ${ApiService.getErrorMessage(e)}');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>> createVillager(Villager villager) async {
     try {
       final response = await _api.post(
