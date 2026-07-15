@@ -29,6 +29,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   @override
   void initState() {
     super.initState();
+    // If we arrived here because the session expired, show the reason. Read once
+    // (not watched) so it appears on entry without re-triggering on rebuilds.
+    _errorMessage = ref.read(authStateProvider).error;
     _successController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),

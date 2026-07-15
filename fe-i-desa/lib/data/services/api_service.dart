@@ -16,6 +16,19 @@ class ApiService {
   static String? _authToken;
   static void setAuthToken(String? token) => _authToken = token;
 
+  /// Called when an authenticated request comes back 401 — i.e. the JWT expired
+  /// or is no longer valid. Wired by the app to clear the session and send the
+  /// user to the login screen. Left null in tests / before wiring.
+  static void Function()? onSessionExpired;
+
+  // Auth endpoints legitimately return 401 (wrong password) or 401/503 (bad
+  // registration code) without the session being expired, so they must not
+  // trigger auto-logout.
+  static bool _isAuthPath(String path) =>
+      path.contains('/auth/login') ||
+      path.contains('/auth/logout') ||
+      path.contains('/users/register');
+
   ApiService._internal() {
     _dio = Dio(BaseOptions(
       baseUrl: ApiConstants.baseUrl,
@@ -41,6 +54,20 @@ class ApiService {
           options.headers['Authorization'] = 'Bearer $_authToken';
         }
         return handler.next(options);
+      },
+    ));
+
+    // Session watchdog: a 401 on an authenticated endpoint means the JWT expired
+    // (1h TTL) or was revoked. Trigger auto-logout so the user is not stranded on
+    // an authenticated screen whose every request silently fails.
+    // validateStatus accepts <500, so a 401 arrives via onResponse, not onError.
+    _dio.interceptors.add(InterceptorsWrapper(
+      onResponse: (response, handler) {
+        if (response.statusCode == 401 &&
+            !_isAuthPath(response.requestOptions.path)) {
+          onSessionExpired?.call();
+        }
+        return handler.next(response);
       },
     ));
 
