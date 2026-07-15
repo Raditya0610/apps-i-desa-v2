@@ -86,6 +86,13 @@ class AuthService {
         final data = response.data as Map<String, dynamic>;
         final token = data['token'] as String;
 
+        // Drop any cached data from a previous session before this account's
+        // data is fetched. The cache keys are not scoped per village, so without
+        // this a login that later goes offline could serve the previous user's
+        // residents — a cross-village PII leak. Logout also clears it, but a
+        // login can happen without a preceding logout (expired token, app reuse).
+        await CacheService().clear();
+
         // Save token and username
         await _write(_tokenKey, token);
         await _write(_usernameKey, username);
