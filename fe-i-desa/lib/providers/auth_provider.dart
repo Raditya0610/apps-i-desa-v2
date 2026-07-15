@@ -105,4 +105,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _authService.logout();
     state = AuthState(isAuthenticated: false, isLoading: false);
   }
+
+  /// Invoked when the JWT has expired (a 401 on an authenticated request).
+  /// Clears the session locally — no /logout call, since the token is already
+  /// dead — and drops the user to the login screen with an explanation.
+  Future<void> sessionExpired() async {
+    // Idempotent: a screen fires many requests at once, so several can 401
+    // together. Flip the state synchronously before the await so concurrent
+    // calls hit this guard and only the first does the clearing.
+    if (!state.isAuthenticated) return;
+    state = AuthState(
+      isAuthenticated: false,
+      isLoading: false,
+      error: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
+    );
+    await _authService.clearLocalSession();
+  }
 }

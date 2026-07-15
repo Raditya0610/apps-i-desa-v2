@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 import 'core/theme/forui_theme.dart';
 import 'core/router/app_router.dart';
+import 'data/services/api_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/session.dart';
 
@@ -26,6 +27,13 @@ class MyApp extends ConsumerWidget {
         invalidateSessionData(ref);
       }
     });
+
+    // Auto-logout when the JWT expires: the API layer fires this on a 401 from an
+    // authenticated endpoint, and we clear the session so the router redirects to
+    // login. Set once (MyApp is the permanent root, so this ref stays valid).
+    ApiService.onSessionExpired ??= () {
+      ref.read(authStateProvider.notifier).sessionExpired();
+    };
 
     return MaterialApp.router(
       title: 'Apps I-Desa',

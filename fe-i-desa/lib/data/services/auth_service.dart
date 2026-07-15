@@ -71,6 +71,20 @@ class AuthService {
     await CacheService().clear();
   }
 
+  /// Clears the local session without calling the server's /logout.
+  ///
+  /// Used when the token has already expired: the server would just answer 401
+  /// again, and routing the expiry handler back through the API could loop.
+  Future<void> clearLocalSession() async {
+    await _deleteAll();
+    ApiService.setAuthToken(null);
+    if (AppConfig.useMockApi) {
+      await _mockApiService.clearAuth();
+    } else {
+      await _apiService.clearCookies();
+    }
+  }
+
   // Login
   Future<Map<String, dynamic>> login(String username, String password) async {
     try {
