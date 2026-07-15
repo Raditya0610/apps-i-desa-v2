@@ -80,8 +80,13 @@ func (s *UserService) Register(request *dtos.RegisterRequest) (*dtos.MessageResp
 	}, nil
 }
 
-func (s *UserService) ChangePassword(villageID string, req *dtos.ChangePasswordRequest) (*dtos.MessageResponse, error) {
-	user, err := s.userRepo.FindByVillageID(villageID)
+func (s *UserService) ChangePassword(username string, req *dtos.ChangePasswordRequest) (*dtos.MessageResponse, error) {
+	// Look up the acting user by username, not by village. A village can have more
+	// than one account, and FindByVillageID().First() returned an arbitrary one —
+	// so a user changing their own password was checked against, and could have
+	// overwritten, someone else's credentials. The old-password check then failed
+	// with a 401 even when the password was correct.
+	user, err := s.userRepo.FindByUsername(username)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")

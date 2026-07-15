@@ -90,12 +90,17 @@ func (c *UserController) ChangePassword(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Validation failed", "error": err.Error()})
 	}
 
-	villageID, ok := ctx.Locals("village").(string)
-	if !ok || villageID == "" {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+	// Identify the acting user by username, set from the JWT claims. Tokens issued
+	// before username was added to the claims won't have it — those users must log
+	// in again to get a token that carries it.
+	username, ok := ctx.Locals("username").(string)
+	if !ok || username == "" {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Sesi tidak lengkap, silakan masuk kembali",
+		})
 	}
 
-	resp, err := c.userService.ChangePassword(villageID, &req)
+	resp, err := c.userService.ChangePassword(username, &req)
 	if err != nil {
 		status := fiber.StatusInternalServerError
 		if err.Error() == "user not found" {
