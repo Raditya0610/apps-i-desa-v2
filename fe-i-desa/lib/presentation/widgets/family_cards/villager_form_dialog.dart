@@ -297,12 +297,21 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 620;
+    // Fill (almost) the whole width on phones; cap at 700 on larger screens.
+    final dialogWidth = screenWidth < 740 ? screenWidth - 24 : 700.0;
+
     return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isNarrow ? 12 : 40,
+        vertical: 24,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
       ),
       child: Container(
-        width: 700,
+        width: dialogWidth,
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
@@ -405,26 +414,19 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
                       const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
                       // Row: Jenis Kelamin & Tanggal Lahir
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDropdown(
-                              label: 'Jenis Kelamin',
-                              value: _jenisKelamin,
-                              items: _jenisKelaminOptions,
-                              // The option values are already the display text.
-                              // The previous mapping (v == 'L' ? ... : 'Perempuan')
-                              // fell through to "Perempuan" for anything that was
-                              // not exactly "L", so both entries rendered the same.
-                              displayText: (v) => v,
-                              onChanged: (v) => setState(() => _jenisKelamin = v),
-                            ),
-                          ),
-                          const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                          Expanded(
-                            child: _buildDateField(),
-                          ),
-                        ],
+                      _twoCol(
+                        _buildDropdown(
+                          label: 'Jenis Kelamin',
+                          value: _jenisKelamin,
+                          items: _jenisKelaminOptions,
+                          // The option values are already the display text.
+                          // The previous mapping (v == 'L' ? ... : 'Perempuan')
+                          // fell through to "Perempuan" for anything that was
+                          // not exactly "L", so both entries rendered the same.
+                          displayText: (v) => v,
+                          onChanged: (v) => setState(() => _jenisKelamin = v),
+                        ),
+                        _buildDateField(),
                       ),
                       const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
@@ -444,28 +446,21 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
                       const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
                       // Row: Agama & Status Perkawinan
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDropdown(
-                              label: 'Agama',
-                              value: _agama,
-                              items: _agamaOptions,
-                              onChanged: (v) => setState(() => _agama = v),
-                              required: !widget.isEditMode,
-                            ),
-                          ),
-                          const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                          Expanded(
-                            child: _buildDropdown(
-                              label: 'Status Perkawinan',
-                              value: _statusPerkawinan,
-                              items: _statusPerkawinanOptions,
-                              onChanged: (v) => setState(() => _statusPerkawinan = v),
-                              required: !widget.isEditMode,
-                            ),
-                          ),
-                        ],
+                      _twoCol(
+                        _buildDropdown(
+                          label: 'Agama',
+                          value: _agama,
+                          items: _agamaOptions,
+                          onChanged: (v) => setState(() => _agama = v),
+                          required: !widget.isEditMode,
+                        ),
+                        _buildDropdown(
+                          label: 'Status Perkawinan',
+                          value: _statusPerkawinan,
+                          items: _statusPerkawinanOptions,
+                          onChanged: (v) => setState(() => _statusPerkawinan = v),
+                          required: !widget.isEditMode,
+                        ),
                       ),
                       const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
@@ -483,27 +478,20 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
                       const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
                       // Row: Pendidikan & Pekerjaan
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDropdown(
-                              label: 'Pendidikan',
-                              value: _pendidikan,
-                              items: _pendidikanOptions,
-                              onChanged: (v) => setState(() => _pendidikan = v),
-                            ),
-                          ),
-                          const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _pekerjaanController,
-                              label: 'Pekerjaan',
-                              hint: 'Masukkan pekerjaan',
-                              icon: Icons.work,
-                              validator: (v) => Validators.required(v, 'Pekerjaan'),
-                            ),
-                          ),
-                        ],
+                      _twoCol(
+                        _buildDropdown(
+                          label: 'Pendidikan',
+                          value: _pendidikan,
+                          items: _pendidikanOptions,
+                          onChanged: (v) => setState(() => _pendidikan = v),
+                        ),
+                        _buildTextField(
+                          controller: _pekerjaanController,
+                          label: 'Pekerjaan',
+                          hint: 'Masukkan pekerjaan',
+                          icon: Icons.work,
+                          validator: (v) => Validators.required(v, 'Pekerjaan'),
+                        ),
                       ),
                       const SizedBox(height: ForuiThemeConfig.spacingLarge),
 
@@ -521,28 +509,21 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
 
                       // Conditional fields for WNA
                       if (_kewarganegaraan == 'WNA') ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _nomorPasporController,
-                                label: 'Nomor Paspor',
-                                hint: 'Masukkan nomor paspor',
-                                icon: Icons.article,
-                                required: false,
-                              ),
-                            ),
-                            const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _nomorKitasController,
-                                label: 'Nomor KITAS',
-                                hint: 'Masukkan nomor KITAS',
-                                icon: Icons.badge,
-                                required: false,
-                              ),
-                            ),
-                          ],
+                        _twoCol(
+                          _buildTextField(
+                            controller: _nomorPasporController,
+                            label: 'Nomor Paspor',
+                            hint: 'Masukkan nomor paspor',
+                            icon: Icons.article,
+                            required: false,
+                          ),
+                          _buildTextField(
+                            controller: _nomorKitasController,
+                            label: 'Nomor KITAS',
+                            hint: 'Masukkan nomor KITAS',
+                            icon: Icons.badge,
+                            required: false,
+                          ),
                         ),
                         const SizedBox(height: ForuiThemeConfig.spacingMedium),
                       ],
@@ -552,30 +533,23 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
                       _buildSectionHeader('Data Orang Tua'),
                       const SizedBox(height: ForuiThemeConfig.spacingMedium),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _namaAyahController,
-                              label: 'Nama Ayah',
-                              hint: 'Masukkan nama ayah',
-                              icon: Icons.person_outline,
-                              validator: widget.isEditMode ? null : (v) => Validators.required(v, 'Nama ayah'),
-                              required: !widget.isEditMode,
-                            ),
-                          ),
-                          const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _namaIbuController,
-                              label: 'Nama Ibu',
-                              hint: 'Masukkan nama ibu',
-                              icon: Icons.person_outline,
-                              validator: widget.isEditMode ? null : (v) => Validators.required(v, 'Nama ibu'),
-                              required: !widget.isEditMode,
-                            ),
-                          ),
-                        ],
+                      _twoCol(
+                        _buildTextField(
+                          controller: _namaAyahController,
+                          label: 'Nama Ayah',
+                          hint: 'Masukkan nama ayah',
+                          icon: Icons.person_outline,
+                          validator: widget.isEditMode ? null : (v) => Validators.required(v, 'Nama ayah'),
+                          required: !widget.isEditMode,
+                        ),
+                        _buildTextField(
+                          controller: _namaIbuController,
+                          label: 'Nama Ibu',
+                          hint: 'Masukkan nama ibu',
+                          icon: Icons.person_outline,
+                          validator: widget.isEditMode ? null : (v) => Validators.required(v, 'Nama ibu'),
+                          required: !widget.isEditMode,
+                        ),
                       ),
                     ],
                   ),
@@ -642,6 +616,31 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
     );
   }
 
+  /// Lays two fields side by side on wide screens and stacks them vertically on
+  /// phones, where two half-width fields are too narrow (dropdown text used to
+  /// overflow and overlap the neighbouring field).
+  Widget _twoCol(Widget left, Widget right) {
+    final isNarrow = MediaQuery.of(context).size.width < 620;
+    if (isNarrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          left,
+          const SizedBox(height: ForuiThemeConfig.spacingMedium),
+          right,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: left),
+        const SizedBox(width: ForuiThemeConfig.spacingMedium),
+        Expanded(child: right),
+      ],
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Row(
       children: [
@@ -654,12 +653,16 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
           ),
         ),
         const SizedBox(width: ForuiThemeConfig.spacingSmall),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: ForuiThemeConfig.textPrimary,
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: ForuiThemeConfig.textPrimary,
+            ),
           ),
         ),
       ],
@@ -748,6 +751,7 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
         const SizedBox(height: ForuiThemeConfig.spacingSmall),
         DropdownButtonFormField<String>(
           initialValue: safeValue,
+          isExpanded: true,
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
@@ -765,7 +769,11 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
           items: items.map((item) {
             return DropdownMenuItem(
               value: item,
-              child: Text(displayText?.call(item) ?? item),
+              child: Text(
+                displayText?.call(item) ?? item,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             );
           }).toList(),
           onChanged: onChanged,
@@ -801,14 +809,18 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
               children: [
                 const Icon(Icons.calendar_today, color: ForuiThemeConfig.primaryGreen),
                 const SizedBox(width: 12),
-                Text(
-                  _tanggalLahir != null
-                      ? dateFormat.format(_tanggalLahir!)
-                      : 'Pilih tanggal lahir',
-                  style: TextStyle(
-                    color: _tanggalLahir != null
-                        ? ForuiThemeConfig.textPrimary
-                        : ForuiThemeConfig.textHint,
+                Flexible(
+                  child: Text(
+                    _tanggalLahir != null
+                        ? dateFormat.format(_tanggalLahir!)
+                        : 'Pilih tanggal lahir',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _tanggalLahir != null
+                          ? ForuiThemeConfig.textPrimary
+                          : ForuiThemeConfig.textHint,
+                    ),
                   ),
                 ),
               ],

@@ -9,10 +9,22 @@ class AppShell extends StatelessWidget {
 
   const AppShell({super.key, required this.child});
 
+  /// Sidebar becomes permanent at/above this width.
   static const double kBreakpoint = 900.0;
+
+  /// Below this width a phone-style single-column layout is used (stacked form
+  /// fields, card lists instead of wide tables).
+  static const double kMobileBreakpoint = 600.0;
+
+  /// Wide data tables only fit comfortably at/above this width; below it we
+  /// render card lists instead so text never wraps character-by-character.
+  static const double kTableBreakpoint = 760.0;
 
   static bool isDesktop(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= kBreakpoint;
+
+  static bool isMobile(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < kMobileBreakpoint;
 
   @override
   Widget build(BuildContext context) {

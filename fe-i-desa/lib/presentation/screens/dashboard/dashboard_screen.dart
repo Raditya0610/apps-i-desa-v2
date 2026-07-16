@@ -48,9 +48,9 @@ class _TopBar extends ConsumerWidget {
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 120, vertical: 24),
-        child: SizedBox(
-          width: 280,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
           child: Padding(
             padding: const EdgeInsets.all(28),
             child: Column(
@@ -863,82 +863,99 @@ class _GenderChart extends StatelessWidget {
           const SizedBox(height: 24),
           LayoutBuilder(
             builder: (context, constraints) {
-              final chartSize = constraints.maxWidth < 400 ? 160.0 : 200.0;
-              return Row(
-                children: [
-                  // Donut chart with RepaintBoundary for performance
-                  RepaintBoundary(
-                    child: SizedBox(
-                      width: chartSize,
-                      height: chartSize,
-                      child: Stack(
-                        alignment: Alignment.center,
+              // Below this width the donut + legends do not fit side by side
+              // without crowding the text, so we stack the legends underneath.
+              final isNarrow = constraints.maxWidth < 420;
+              final chartSize = isNarrow ? 170.0 : 200.0;
+
+              final donut = RepaintBoundary(
+                child: SizedBox(
+                  width: chartSize,
+                  height: chartSize,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PieChart(
+                        PieChartData(
+                          sections: [
+                            PieChartSectionData(
+                              value: dashboard.lakiLaki.toDouble(),
+                              color: const Color(0xFF3B82F6),
+                              radius: 50,
+                              showTitle: false,
+                            ),
+                            PieChartSectionData(
+                              value: dashboard.perempuan.toDouble(),
+                              color: const Color(0xFFEC4899),
+                              radius: 50,
+                              showTitle: false,
+                            ),
+                          ],
+                          centerSpaceRadius: 60,
+                          sectionsSpace: 3,
+                        ),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          PieChart(
-                            PieChartData(
-                              sections: [
-                                PieChartSectionData(
-                                  value: dashboard.lakiLaki.toDouble(),
-                                  color: const Color(0xFF3B82F6),
-                                  radius: 50,
-                                  showTitle: false,
-                                ),
-                                PieChartSectionData(
-                                  value: dashboard.perempuan.toDouble(),
-                                  color: const Color(0xFFEC4899),
-                                  radius: 50,
-                                  showTitle: false,
-                                ),
-                              ],
-                              centerSpaceRadius: 60,
-                              sectionsSpace: 3,
+                          const Text(
+                            'Total',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: ForuiThemeConfig.textSecondary,
                             ),
                           ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Total',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: ForuiThemeConfig.textSecondary,
-                                ),
-                              ),
-                              Text(
-                                dashboard.totalPenduduk.toString(),
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: ForuiThemeConfig.textPrimary,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            dashboard.totalPenduduk.toString(),
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: ForuiThemeConfig.textPrimary,
+                            ),
                           ),
                         ],
                       ),
-                    ),
+                    ],
                   ),
+                ),
+              );
+
+              final legends = Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _GenderLegend(
+                    label: 'Laki-Laki',
+                    value: dashboard.lakiLaki,
+                    color: const Color(0xFF3B82F6),
+                    ratio: dashboard.genderRatioMale / 100,
+                  ),
+                  const SizedBox(height: 20),
+                  _GenderLegend(
+                    label: 'Perempuan',
+                    value: dashboard.perempuan,
+                    color: const Color(0xFFEC4899),
+                    ratio: dashboard.genderRatioFemale / 100,
+                  ),
+                ],
+              );
+
+              // Phones: donut on top, legends full-width below (roomy, no
+              // crowding). Wider screens: donut and legends side by side.
+              if (isNarrow) {
+                return Column(
+                  children: [
+                    donut,
+                    const SizedBox(height: 24),
+                    legends,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  donut,
                   const SizedBox(width: 32),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _GenderLegend(
-                          label: 'Laki-Laki',
-                          value: dashboard.lakiLaki,
-                          color: const Color(0xFF3B82F6),
-                          ratio: dashboard.genderRatioMale / 100,
-                        ),
-                        const SizedBox(height: 28),
-                        _GenderLegend(
-                          label: 'Perempuan',
-                          value: dashboard.perempuan,
-                          color: const Color(0xFFEC4899),
-                          ratio: dashboard.genderRatioFemale / 100,
-                        ),
-                      ],
-                    ),
-                  ),
+                  Expanded(child: legends),
                 ],
               );
             },
@@ -968,26 +985,29 @@ class _GenderLegend extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: ForuiThemeConfig.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
+            const SizedBox(width: 8),
+            // Expanded so the label fills the row (keeping the value right-
+            // aligned) and ellipsizes instead of overflowing the legend column,
+            // which is narrow next to the donut on phones.
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: ForuiThemeConfig.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             Text(
               value.toString(),
               style: const TextStyle(

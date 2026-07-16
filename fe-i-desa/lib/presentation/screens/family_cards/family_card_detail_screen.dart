@@ -107,20 +107,25 @@ class FamilyCardDetailScreen extends ConsumerWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Detail Kartu Keluarga',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: isDesktop ? 26 : 18,
                     fontWeight: FontWeight.bold,
                     color: ForuiThemeConfig.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   familyHeadName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: isDesktop ? 14 : 12,
                     color: Colors.grey[600],
                   ),
                 ),
@@ -139,6 +144,113 @@ class FamilyCardDetailScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildFamilyInfoHeader(BuildContext context, dynamic familyCardDetail) {
+    final isMobile = AppShell.isMobile(context);
+
+    final avatar = Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: ForuiThemeConfig.surfaceGreen,
+        borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
+      ),
+      child: const Icon(
+        Icons.family_restroom,
+        size: 32,
+        color: ForuiThemeConfig.primaryGreen,
+      ),
+    );
+
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          familyCardDetail.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: ForuiThemeConfig.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        // No. KK on its own line so the long number stays on one row.
+        Row(
+          children: [
+            Icon(Icons.badge_outlined, size: 15, color: Colors.grey[500]),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'No. KK: ${familyCardDetail.nik}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final memberBadge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: ForuiThemeConfig.surfaceGreen,
+        borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.people, size: 18, color: ForuiThemeConfig.primaryGreen),
+          const SizedBox(width: 8),
+          Text(
+            '${familyCardDetail.totalMembers} Anggota',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: ForuiThemeConfig.primaryGreen,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // On phones the badge would squeeze the name/No. KK into a tiny column;
+    // drop it onto its own line below instead.
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              avatar,
+              const SizedBox(width: ForuiThemeConfig.spacingMedium),
+              Expanded(child: titleBlock),
+            ],
+          ),
+          const SizedBox(height: ForuiThemeConfig.spacingMedium),
+          memberBadge,
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        avatar,
+        const SizedBox(width: ForuiThemeConfig.spacingMedium),
+        Expanded(child: titleBlock),
+        const SizedBox(width: ForuiThemeConfig.spacingMedium),
+        memberBadge,
+      ],
+    );
+  }
+
   Widget _buildFamilyInfoCard(BuildContext context, dynamic familyCardDetail) {
     return Container(
       padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
@@ -150,73 +262,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: ForuiThemeConfig.surfaceGreen,
-                  borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
-                ),
-                child: const Icon(
-                  Icons.family_restroom,
-                  size: 32,
-                  color: ForuiThemeConfig.primaryGreen,
-                ),
-              ),
-              const SizedBox(width: ForuiThemeConfig.spacingMedium),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      familyCardDetail.name,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: ForuiThemeConfig.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'No. KK: ${familyCardDetail.nik}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: ForuiThemeConfig.surfaceGreen,
-                  borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.people,
-                      size: 20,
-                      color: ForuiThemeConfig.primaryGreen,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${familyCardDetail.totalMembers} Anggota',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: ForuiThemeConfig.primaryGreen,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          _buildFamilyInfoHeader(context, familyCardDetail),
           const SizedBox(height: ForuiThemeConfig.spacingMedium),
           Divider(color: Colors.grey.shade200),
           const SizedBox(height: ForuiThemeConfig.spacingMedium),
@@ -259,30 +305,48 @@ class FamilyCardDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildMembersSectionHeader(BuildContext context, WidgetRef ref) {
+    final addButton = ElevatedButton.icon(
+      onPressed: () => _showAddVillagerDialog(context, ref),
+      icon: const Icon(Icons.person_add, size: 18),
+      label: const Text('Tambah Anggota'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: ForuiThemeConfig.primaryGreen,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
+        ),
+      ),
+    );
+
+    const title = Text(
+      'Anggota Keluarga',
+      style: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: ForuiThemeConfig.textPrimary,
+      ),
+    );
+
+    // On phones the title + button do not fit side by side; stack them and let
+    // the button span the full width so its label never clips.
+    if (AppShell.isMobile(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          title,
+          const SizedBox(height: ForuiThemeConfig.spacingMedium),
+          addButton,
+        ],
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          'Anggota Keluarga',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: ForuiThemeConfig.textPrimary,
-          ),
-        ),
-        ElevatedButton.icon(
-          onPressed: () => _showAddVillagerDialog(context, ref),
-          icon: const Icon(Icons.person_add, size: 18),
-          label: const Text('Tambah Anggota'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: ForuiThemeConfig.primaryGreen,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusSmall),
-            ),
-          ),
-        ),
+        const Flexible(child: title),
+        const SizedBox(width: ForuiThemeConfig.spacingMedium),
+        addButton,
       ],
     );
   }
@@ -489,6 +553,196 @@ class FamilyCardDetailScreen extends ConsumerWidget {
       return _buildEmptyMembersState(context, ref);
     }
 
+    // The 8-column table only fits on wide screens; below the table breakpoint
+    // each column would collapse and wrap text letter-by-letter. Render a card
+    // list there instead.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < AppShell.kTableBreakpoint) {
+          return _buildMembersCards(context, ref, members);
+        }
+        return _buildMembersDataTable(context, ref, members);
+      },
+    );
+  }
+
+  // === Mobile / narrow layout: one card per member ===
+  Widget _buildMembersCards(BuildContext context, WidgetRef ref, List<Map<String, dynamic>> members) {
+    return Column(
+      children: List.generate(members.length, (index) {
+        final member = members[index];
+        final isHead = member['status_hubungan'] == 'Kepala Keluarga';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: ForuiThemeConfig.spacingMedium),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
+            border: Border.all(
+              color: isHead
+                  ? ForuiThemeConfig.primaryGreen.withValues(alpha: 0.35)
+                  : Colors.grey.shade200,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header strip: avatar, name, status badge, actions
+              Container(
+                color: isHead ? ForuiThemeConfig.surfaceGreen : Colors.white,
+                padding: const EdgeInsets.all(ForuiThemeConfig.spacingMedium),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AvatarCircle(name: member['name'] ?? 'Unknown', size: 44),
+                    const SizedBox(width: ForuiThemeConfig.spacingMedium),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            member['name'] ?? '-',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isHead ? FontWeight.bold : FontWeight.w600,
+                              color: ForuiThemeConfig.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          _statusBadge(isHead, member['status_hubungan']),
+                        ],
+                      ),
+                    ),
+                    _memberActions(context, ref, member),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: Colors.grey.shade200),
+              // Detail grid
+              Padding(
+                padding: const EdgeInsets.all(ForuiThemeConfig.spacingMedium),
+                child: Column(
+                  children: [
+                    _memberInfoRow('NIK', member['nik'] ?? '-', mono: true),
+                    _memberInfoRow(
+                      'Jenis Kelamin',
+                      member['jenis_kelamin'] ?? '-',
+                    ),
+                    _memberInfoRow(
+                      'Usia',
+                      member['age'] != null ? '${member['age']} tahun' : '-',
+                    ),
+                    _memberInfoRow('Pendidikan', member['pendidikan'] ?? '-'),
+                    _memberInfoRow('Pekerjaan', member['pekerjaan'] ?? '-',
+                        isLast: true),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _statusBadge(bool isHead, String? status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isHead
+            ? ForuiThemeConfig.primaryGreen.withValues(alpha: 0.12)
+            : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isHead) ...[
+            const Icon(Icons.star_rounded,
+                size: 14, color: ForuiThemeConfig.primaryGreen),
+            const SizedBox(width: 4),
+          ],
+          Flexible(
+            child: Text(
+              status ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isHead ? FontWeight.bold : FontWeight.w500,
+                color: isHead
+                    ? ForuiThemeConfig.primaryGreen
+                    : ForuiThemeConfig.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _memberInfoRow(String label, String value,
+      {bool mono = false, bool isLast = false}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 104,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
+          ),
+          const SizedBox(width: ForuiThemeConfig.spacingSmall),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: ForuiThemeConfig.textPrimary,
+                fontFamily: mono ? 'monospace' : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _memberActions(BuildContext context, WidgetRef ref, Map<String, dynamic> member) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.edit_outlined,
+              size: 20, color: ForuiThemeConfig.primaryGreen),
+          onPressed: () => _showEditVillagerDialog(context, ref, member),
+          tooltip: 'Edit',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_outline,
+              size: 20, color: ForuiThemeConfig.errorColor),
+          onPressed: () => _showDeleteConfirmation(context, ref, member),
+          tooltip: 'Hapus',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        ),
+      ],
+    );
+  }
+
+  // === Wide layout: the classic data table ===
+  Widget _buildMembersDataTable(BuildContext context, WidgetRef ref, List<Map<String, dynamic>> members) {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -635,6 +889,8 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                       flex: 2,
                       child: Text(
                         member['pendidikan'] ?? '-',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -642,6 +898,8 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                       flex: 2,
                       child: Text(
                         member['pekerjaan'] ?? '-',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),

@@ -598,8 +598,8 @@ class _ImagePanel extends StatelessWidget {
             right: 28,
             child: _FloatingCard(
               icon: Icons.people_alt_rounded,
-              title: '1.247 Penduduk',
-              subtitle: 'Data per Januari 2025',
+              title: '5.780 Penduduk',
+              subtitle: 'Sumber: BPS Maluku Tenggara',
               alignRight: true,
             ),
           ),
@@ -612,7 +612,7 @@ class _ImagePanel extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Ohoi Elaar Ngursoin,\nLamagorang, dan Let',
+                  'Kei Kecil Timur Selatan',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,

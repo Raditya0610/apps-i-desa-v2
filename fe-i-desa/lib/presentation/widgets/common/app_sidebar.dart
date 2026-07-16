@@ -253,9 +253,9 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 120, vertical: 24),
-        child: SizedBox(
-          width: 280,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
           child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(
