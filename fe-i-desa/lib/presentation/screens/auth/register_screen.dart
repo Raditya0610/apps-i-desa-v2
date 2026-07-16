@@ -757,7 +757,7 @@ class _ImagePanel extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Ohoi Elaar Ngursoin,\nLamagorang, dan Let',
+                  'Kei Kecil Timur Selatan',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
