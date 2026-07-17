@@ -9,6 +9,9 @@ class ExportService {
     try {
       final excel = Excel.createExcel();
       final sheet = excel['Data Penduduk'];
+      // Remove the default 'Sheet1' created by the excel package so that
+      // 'Data Penduduk' is the first (and only) visible sheet.
+      excel.delete('Sheet1');
 
       // Add headers
       final headers = [
@@ -121,11 +124,15 @@ class ExportService {
     try {
       final excel = Excel.createExcel();
       final sheet = excel['Data Kartu Keluarga'];
+      // Remove the default 'Sheet1' created by the excel package so that
+      // 'Data Kartu Keluarga' is the first (and only) visible sheet.
+      excel.delete('Sheet1');
 
       // Add headers
       final headers = [
         'No KK',
         'Kepala Keluarga',
+        'Alamat',
         'Jumlah Anggota',
       ];
 
@@ -164,7 +171,8 @@ class ExportService {
 
       sheet.setColumnWidth(0, 25);
       sheet.setColumnWidth(1, 25);
-      sheet.setColumnWidth(2, 18);
+      sheet.setColumnWidth(2, 30);
+      sheet.setColumnWidth(3, 18);
 
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final fileBytes = excel.save();
