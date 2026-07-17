@@ -472,7 +472,7 @@ class _DashboardBody extends ConsumerWidget {
       onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 700;
+          final isWide = constraints.maxWidth >= 960;
           final h = EdgeInsets.symmetric(
             horizontal: isWide ? 40 : 16,
             vertical: 28,
@@ -546,7 +546,7 @@ class _WelcomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttons = [
+    final buttonItems = [
       OutlinedButton.icon(
         onPressed: () {},
         icon: const Icon(Icons.file_download_outlined, size: 16),
@@ -557,7 +557,6 @@ class _WelcomeCard extends StatelessWidget {
           foregroundColor: ForuiThemeConfig.textPrimary,
         ),
       ),
-      const SizedBox(width: 10, height: 10),
       FilledButton.icon(
         onPressed: () => context.push('/family-cards/add'),
         icon: const Icon(Icons.add, size: 16),
@@ -587,7 +586,12 @@ class _WelcomeCard extends StatelessWidget {
               children: [
                 const Expanded(child: _WelcomeText()),
                 const SizedBox(width: 20),
-                Row(children: buttons),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.end,
+                  children: buttonItems,
+                ),
               ],
             )
           : Column(
@@ -595,7 +599,11 @@ class _WelcomeCard extends StatelessWidget {
               children: [
                 const _WelcomeText(),
                 const SizedBox(height: 16),
-                Wrap(spacing: 10, runSpacing: 10, children: buttons),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: buttonItems,
+                ),
               ],
             ),
     );
@@ -610,23 +618,22 @@ class _WelcomeText extends StatelessWidget {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              'Halo, Admin! ',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: ForuiThemeConfig.textPrimary,
-              ),
-            ),
-            Text('👋', style: TextStyle(fontSize: 20)),
-          ],
+        Text(
+          'Halo, Admin! 👋',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: ForuiThemeConfig.textPrimary,
+          ),
         ),
         SizedBox(height: 6),
         Text(
           'Berikut laporan terkini kondisi demografi desa.',
-          style: TextStyle(fontSize: 14, color: ForuiThemeConfig.textSecondary, height: 1.5),
+          style: TextStyle(
+            fontSize: 14,
+            color: ForuiThemeConfig.textSecondary,
+            height: 1.4,
+          ),
         ),
       ],
     );
@@ -1264,21 +1271,26 @@ class _RecentActivity extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Aktivitas Terbaru',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: ForuiThemeConfig.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Aktivitas Terbaru',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: ForuiThemeConfig.textPrimary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               TextButton(
                 onPressed: () => ref.invalidate(recentActivitiesProvider),
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Text(
                   'Muat Ulang',
@@ -1409,16 +1421,20 @@ class _ActivityItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: ForuiThemeConfig.textPrimary,
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: ForuiThemeConfig.textPrimary,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     time,
                     style: const TextStyle(
