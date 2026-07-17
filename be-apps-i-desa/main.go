@@ -36,6 +36,11 @@ func main() {
 	defer config.CloseDB()
 
 	app := fiber.New(fiber.Config{
+		// Behind Railway's proxy every request arrives from the proxy's IP. Read
+		// the forwarded client IP so the rate limiter buckets per real client
+		// rather than throttling everyone as one. (Spoofable by a determined
+		// attacker, but enough to stop naive credential brute-force.)
+		ProxyHeader: fiber.HeaderXForwardedFor,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": err.Error(),

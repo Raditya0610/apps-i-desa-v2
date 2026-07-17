@@ -18,6 +18,7 @@ func SetupUserRoutes(app *fiber.App) {
 	// Registration stays self-service, but behind a shared code (X-Admin-Token).
 	// It cannot require a session — it is how a village's first account is made —
 	// and it was previously open to the whole internet.
-	userRoutes.Post("/register", middleware.AdminToken(), userController.Register)
+	// Rate-limited first, so the shared code itself cannot be brute-forced.
+	userRoutes.Post("/register", middleware.AuthRateLimiter(), middleware.AdminToken(), userController.Register)
 	userRoutes.Put("/change-password", middleware.JWTAuth(), userController.ChangePassword)
 }
