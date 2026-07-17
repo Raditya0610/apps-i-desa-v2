@@ -484,8 +484,6 @@ class _DashboardBody extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _PageHeader(isWide: isWide),
-                const SizedBox(height: 24),
                 if (dashboardState.dashboard != null)
                   _WelcomeCard(isWide: isWide),
                 const SizedBox(height: 24),
@@ -509,35 +507,6 @@ class _DashboardBody extends ConsumerWidget {
   }
 }
 
-// ─── Page Header ─────────────────────────────────────────────────────────────
-
-class _PageHeader extends StatelessWidget {
-  final bool isWide;
-  const _PageHeader({required this.isWide});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Ringkasan Demografi',
-          style: TextStyle(
-            fontSize: isWide ? 26 : 20,
-            fontWeight: FontWeight.bold,
-            color: ForuiThemeConfig.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Data Kependudukan Desa',
-          style: TextStyle(fontSize: 14, color: ForuiThemeConfig.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
 // ─── Welcome Card ─────────────────────────────────────────────────────────────
 
 class _WelcomeCard extends StatelessWidget {
@@ -546,29 +515,8 @@ class _WelcomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonItems = [
-      OutlinedButton.icon(
-        onPressed: () {},
-        icon: const Icon(Icons.file_download_outlined, size: 16),
-        label: const Text('Export'),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          side: BorderSide(color: Colors.grey.shade300),
-          foregroundColor: ForuiThemeConfig.textPrimary,
-        ),
-      ),
-      FilledButton.icon(
-        onPressed: () => context.push('/family-cards/add'),
-        icon: const Icon(Icons.add, size: 16),
-        label: const Text('Tambah Penduduk'),
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          backgroundColor: ForuiThemeConfig.primaryGreen,
-        ),
-      ),
-    ];
-
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -581,31 +529,71 @@ class _WelcomeCard extends StatelessWidget {
           ),
         ],
       ),
-      child: isWide
-          ? Row(
-              children: [
-                const Expanded(child: _WelcomeText()),
-                const SizedBox(width: 20),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  alignment: WrapAlignment.end,
-                  children: buttonItems,
-                ),
-              ],
-            )
-          : Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 600;
+
+          final exportBtn = OutlinedButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.file_download_outlined, size: 16),
+            label: const Text('Export'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              side: BorderSide(color: Colors.grey.shade300),
+              foregroundColor: ForuiThemeConfig.textPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+
+          final addBtn = FilledButton.icon(
+            onPressed: () => context.push('/family-cards/add'),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('Tambah Penduduk'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              backgroundColor: ForuiThemeConfig.primaryGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+
+          if (isNarrow) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _WelcomeText(),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: buttonItems,
+                Row(
+                  children: [
+                    Expanded(child: exportBtn),
+                    const SizedBox(width: 12),
+                    Expanded(child: addBtn),
+                  ],
                 ),
               ],
-            ),
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Expanded(child: _WelcomeText()),
+              const SizedBox(width: 24),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  exportBtn,
+                  const SizedBox(width: 12),
+                  addBtn,
+                ],
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
