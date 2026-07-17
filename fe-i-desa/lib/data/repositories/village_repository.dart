@@ -11,6 +11,15 @@ class VillageRepository {
   // Get the appropriate API service based on config
   dynamic get _api => AppConfig.useMockApi ? _mockApiService : _apiService;
 
+  /// Villages hidden from the registration dropdown but kept in the database
+  /// (they may still own accounts/data). Matched by id so a name edit can't
+  /// accidentally unhide them. Remove an id here to show that village again.
+  static const Set<String> _hiddenVillageIds = {
+    '83eb95cc-e9ac-425f-8cef-2c3db0e0c24a', // Ohoi Iso
+    'ce964e83-4a13-45eb-a2e5-9b903b0c9033', // Ohoi Wain Baru
+    '9caa4ba3-3d4a-4fad-a5a0-6ca8ebc41ef7', // Ohoi Disuk
+  };
+
   /// Villages for the registration dropdown.
   ///
   /// Read from the backend rather than hardcoded: villages are inserted into the
@@ -25,6 +34,7 @@ class VillageRepository {
       final villages = data['villages'] as List? ?? [];
       return villages
           .map((json) => Village.fromJson(json as Map<String, dynamic>))
+          .where((v) => !_hiddenVillageIds.contains(v.id))
           .toList();
     }
 
