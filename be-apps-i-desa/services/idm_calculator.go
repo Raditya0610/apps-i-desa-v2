@@ -141,13 +141,13 @@ func avg(scores ...float64) float64 {
 // idmStatus maps an IDM score to the official village status label.
 func idmStatus(idm float64) string {
 	switch {
-	case idm >= 0.8155:
+	case idm > 0.8155:
 		return "Desa Mandiri"
-	case idm >= 0.7072:
+	case idm > 0.7072:
 		return "Desa Maju"
-	case idm >= 0.5989:
+	case idm > 0.5989:
 		return "Desa Berkembang"
-	case idm >= 0.4907:
+	case idm > 0.4907:
 		return "Desa Tertinggal"
 	default:
 		return "Desa Sangat Tertinggal"

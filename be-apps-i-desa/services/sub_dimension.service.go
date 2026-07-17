@@ -1513,26 +1513,53 @@ func (s *SubDimensionService) GetIDMScores(ctx *fiber.Ctx) (*dtos.IDMScoreRespon
 		complete["tata_kelola_keuangan_desa"] = false
 	}
 
-	iks := avg(
+	// ── Official IDM 2024 Index Calculations (Permendesa / IDM 2024 Standard) ──
+	// 1. IKS (Indeks Ketahanan Sosial): Pendidikan, Kesehatan, Utilitas Dasar, Aktivitas, Fasilitas Masyarakat
+	iksRaw := avg(
 		scores["pendidikan"],
 		scores["kesehatan"],
 		scores["utilitas_dasar"],
 		scores["aktivitas"],
 		scores["fasilitas_masyarakat"],
 	)
-	ike := avg(
+
+	// 2. IKE (Indeks Ketahanan Ekonomi): Produksi Desa, Fasilitas Pendukung Ekonomi, Akses Jalan, Kemudahan Akses
+	ikeRaw := avg(
 		scores["produksi_desa"],
 		scores["fasilitas_pendukung_ekonomi"],
-	)
-	ikl := avg(
-		scores["pengelolaan_lingkungan"],
-		scores["penanggulangan_bencana"],
 		scores["kondisi_akses_jalan"],
 		scores["kemudahan_akses"],
-		scores["kelembagaan_pelayanan_desa"],
-		scores["tata_kelola_keuangan_desa"],
 	)
-	idm := avg(iks, ike, ikl)
+
+	// 3. IKL (Indeks Ketahanan Lingkungan): Pengelolaan Lingkungan, Penanggulangan Bencana
+	iklRaw := avg(
+		scores["pengelolaan_lingkungan"],
+		scores["penanggulangan_bencana"],
+	)
+
+	// 4. Governance (kelembagaan_pelayanan_desa, tata_kelola_keuangan_desa) are excluded from composite IDM score.
+
+	var iks, ike, ikl, idm float64
+	var status string
+
+	completedCount := 0
+	for _, isDone := range complete {
+		if isDone {
+			completedCount++
+		}
+	}
+
+	if completedCount == 0 {
+		iks, ike, ikl, idm = 0.0, 0.0, 0.0, 0.0
+		status = "Belum Ada Data"
+	} else {
+		// Scale 0.0-1.0 normalized scores to official IDM 1-5 scale [0.200, 1.000]
+		iks = 0.2 + (0.8 * iksRaw)
+		ike = 0.2 + (0.8 * ikeRaw)
+		ikl = 0.2 + (0.8 * iklRaw)
+		idm = (iks + ike + ikl) / 3.0
+		status = idmStatus(idm)
+	}
 
 	round3 := func(v float64) float64 {
 		return float64(int(v*1000+0.5)) / 1000
@@ -1544,7 +1571,7 @@ func (s *SubDimensionService) GetIDMScores(ctx *fiber.Ctx) (*dtos.IDMScoreRespon
 		IKSScore:           round3(iks),
 		IKEScore:           round3(ike),
 		IKLScore:           round3(ikl),
-		Status:             idmStatus(idm),
+		Status:             status,
 		SubDimensionScores: scores,
 		DataCompleteness:   complete,
 	}, nil

@@ -25,6 +25,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.menu_book_outlined,
       route: '/sub-dimensions/pendidikan',
       scoreKey: 'pendidikan',
+      indexBadge: 'IKS',
     ),
     const _CategoryItem(
       id: 'kesehatan',
@@ -33,6 +34,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.favorite_border,
       route: '/sub-dimensions/kesehatan',
       scoreKey: 'kesehatan',
+      indexBadge: 'IKS',
     ),
     const _CategoryItem(
       id: 'utilitas-dasar',
@@ -41,6 +43,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.lightbulb_outline,
       route: '/sub-dimensions/utilitas-dasar',
       scoreKey: 'utilitas_dasar',
+      indexBadge: 'IKS',
     ),
     const _CategoryItem(
       id: 'aktivitas',
@@ -49,6 +52,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.auto_awesome_outlined,
       route: '/sub-dimensions/aktivitas',
       scoreKey: 'aktivitas',
+      indexBadge: 'IKS',
     ),
     const _CategoryItem(
       id: 'fasilitas-masyarakat',
@@ -57,6 +61,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.people_outline,
       route: '/sub-dimensions/fasilitas-masyarakat',
       scoreKey: 'fasilitas_masyarakat',
+      indexBadge: 'IKS',
     ),
     const _CategoryItem(
       id: 'produksi-desa',
@@ -65,6 +70,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.agriculture_outlined,
       route: '/sub-dimensions/produksi-desa',
       scoreKey: 'produksi_desa',
+      indexBadge: 'IKE',
     ),
     const _CategoryItem(
       id: 'fasilitas-ekonomi',
@@ -73,6 +79,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.store_outlined,
       route: '/sub-dimensions/fasilitas-ekonomi',
       scoreKey: 'fasilitas_pendukung_ekonomi',
+      indexBadge: 'IKE',
     ),
     const _CategoryItem(
       id: 'pengelolaan-lingkungan',
@@ -81,6 +88,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.eco_outlined,
       route: '/sub-dimensions/pengelolaan-lingkungan',
       scoreKey: 'pengelolaan_lingkungan',
+      indexBadge: 'IKL',
     ),
     const _CategoryItem(
       id: 'penanggulangan-bencana',
@@ -89,6 +97,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.warning_amber_outlined,
       route: '/sub-dimensions/penanggulangan-bencana',
       scoreKey: 'penanggulangan_bencana',
+      indexBadge: 'IKL',
     ),
     const _CategoryItem(
       id: 'kondisi-akses-jalan',
@@ -97,6 +106,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.route_outlined,
       route: '/sub-dimensions/kondisi-akses-jalan',
       scoreKey: 'kondisi_akses_jalan',
+      indexBadge: 'IKE',
     ),
     const _CategoryItem(
       id: 'kemudahan-akses',
@@ -105,6 +115,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.directions_car_outlined,
       route: '/sub-dimensions/kemudahan-akses',
       scoreKey: 'kemudahan_akses',
+      indexBadge: 'IKE',
     ),
     const _CategoryItem(
       id: 'kelembagaan-pelayanan',
@@ -113,6 +124,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.business_outlined,
       route: '/sub-dimensions/kelembagaan-pelayanan',
       scoreKey: 'kelembagaan_pelayanan_desa',
+      indexBadge: 'Laporan Tambahan',
     ),
     const _CategoryItem(
       id: 'tata-kelola-keuangan',
@@ -121,6 +133,7 @@ class _SubDimensionsHubScreenState
       icon: Icons.account_balance_outlined,
       route: '/sub-dimensions/tata-kelola-keuangan',
       scoreKey: 'tata_kelola_keuangan_desa',
+      indexBadge: 'Laporan Tambahan',
     ),
   ];
 
@@ -511,6 +524,35 @@ class _SubDimensionsHubScreenState
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: ForuiThemeConfig.textPrimary)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: selectedCategoryData.indexBadge == 'IKS'
+                                  ? const Color(0xFFE0F2F1)
+                                  : selectedCategoryData.indexBadge == 'IKE'
+                                      ? const Color(0xFFFEF3C7)
+                                      : selectedCategoryData.indexBadge == 'IKL'
+                                          ? const Color(0xFFDCFCE7)
+                                          : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              selectedCategoryData.indexBadge,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: selectedCategoryData.indexBadge == 'IKS'
+                                    ? const Color(0xFF00695C)
+                                    : selectedCategoryData.indexBadge == 'IKE'
+                                        ? const Color(0xFFD97706)
+                                        : selectedCategoryData.indexBadge == 'IKL'
+                                            ? const Color(0xFF15803D)
+                                            : const Color(0xFF475569),
+                              ),
+                            ),
+                          ),
                           if (isDone && categoryScore != null) ...[
                             const SizedBox(width: 8),
                             Container(
@@ -537,6 +579,33 @@ class _SubDimensionsHubScreenState
                       Text(selectedCategoryData.description,
                           style: TextStyle(
                               fontSize: 13, color: Colors.grey[600])),
+                      if (selectedCategoryData.indexBadge == 'Laporan Tambahan') ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.info_outline,
+                                  size: 14, color: Colors.blue.shade700),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Laporan Tambahan: Tidak mempengaruhi skor IDM komposit final (Metodologi Kemendes 2024).',
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.blue.shade900),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   );
                   final openBtn = OutlinedButton.icon(
@@ -843,6 +912,7 @@ class _CategoryItem {
   final IconData icon;
   final String route;
   final String scoreKey;
+  final String indexBadge;
 
   const _CategoryItem({
     required this.id,
@@ -851,5 +921,6 @@ class _CategoryItem {
     required this.icon,
     required this.route,
     required this.scoreKey,
+    required this.indexBadge,
   });
 }
