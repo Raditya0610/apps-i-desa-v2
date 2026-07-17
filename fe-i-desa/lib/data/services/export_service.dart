@@ -80,7 +80,7 @@ class ExportService {
       }
 
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final fileBytes = excel.save();
+      final fileBytes = excel.encode();
       if (fileBytes != null) {
         return saveBytesFile(fileBytes, 'data_penduduk_$timestamp.xlsx');
       }
@@ -175,7 +175,7 @@ class ExportService {
       sheet.setColumnWidth(3, 18);
 
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final fileBytes = excel.save();
+      final fileBytes = excel.encode();
       if (fileBytes != null) {
         return saveBytesFile(fileBytes, 'data_kartu_keluarga_$timestamp.xlsx');
       }
