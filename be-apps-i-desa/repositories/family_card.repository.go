@@ -123,3 +123,19 @@ func (r *FamilyCardRepository) CountDistinctKecamatan(villageID *uuid.UUID) (int
 func (r *FamilyCardRepository) DeleteFamilyCardByNIK(tx *gorm.DB, nik string) error {
 	return tx.Delete(&models.FamilyCard{}, "nik = ?", nik).Error
 }
+
+// GetExistingNIKs returns which of the given NIKs already exist, so bulk
+// import can detect duplicates with one query instead of one per row.
+func (r *FamilyCardRepository) GetExistingNIKs(niks []string) ([]string, error) {
+	if len(niks) == 0 {
+		return nil, nil
+	}
+	var existing []string
+	err := r.DB.Model(&models.FamilyCard{}).
+		Where("nik IN ?", niks).
+		Pluck("nik", &existing).Error
+	if err != nil {
+		return nil, err
+	}
+	return existing, nil
+}

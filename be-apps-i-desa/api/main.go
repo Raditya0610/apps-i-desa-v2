@@ -67,6 +67,7 @@ func setupRoutes(app *fiber.App) {
 	routes.SetupFamilyCardRoutes(app)
 	routes.SetupDashboardRoutes(app)
 	routes.SetupActivityLogRoutes(app)
+	routes.SetupImportRoutes(app)
 }
 
 // initializeApp initializes the Fiber app and database connection once
@@ -86,6 +87,12 @@ func initializeApp() (*fiber.App, error) {
 		app = fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 			ReduceMemoryUsage:     true,
+			// Default 4MB is too small for a village's full population
+			// workbook (several hundred rows across two sheets, plus the
+			// embedded DataValidation rules from the template). Must match
+			// main.go's limit — if only one is raised, uploads work on one
+			// platform and 413 on the other.
+			BodyLimit: 15 * 1024 * 1024,
 			ErrorHandler: func(c *fiber.Ctx, err error) error {
 				code := fiber.StatusInternalServerError
 				var e *fiber.Error

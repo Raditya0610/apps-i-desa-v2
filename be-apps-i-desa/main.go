@@ -24,6 +24,7 @@ func setupRoutes(app *fiber.App) {
 	routes.SetupFamilyCardRoutes(app)
 	routes.SetupDashboardRoutes(app)
 	routes.SetupActivityLogRoutes(app)
+	routes.SetupImportRoutes(app)
 }
 
 func main() {
@@ -41,6 +42,10 @@ func main() {
 		// rather than throttling everyone as one. (Spoofable by a determined
 		// attacker, but enough to stop naive credential brute-force.)
 		ProxyHeader: fiber.HeaderXForwardedFor,
+		// Default 4MB is too small for a village's full population workbook
+		// (several hundred rows across two sheets, plus the embedded
+		// DataValidation rules from the template).
+		BodyLimit: 15 * 1024 * 1024,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": err.Error(),

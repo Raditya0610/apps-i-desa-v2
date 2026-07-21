@@ -20,6 +20,7 @@ const (
 
 	EntityFamilyCard = "family_card"
 	EntityVillager   = "villager"
+	EntityImport     = "import"
 )
 
 // activityFeedLimit is how many entries the dashboard shows.

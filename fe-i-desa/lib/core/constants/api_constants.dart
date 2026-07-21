@@ -29,6 +29,10 @@ class ApiConstants {
   // Activity log (dashboard feed)
   static const String activities = '$apiPrefix/activities';
 
+  // Bulk import (Excel template download + upload)
+  static const String importTemplate = '$apiPrefix/import/template';
+  static const String importUpload = '$apiPrefix/import';
+
   // Sub-Dimension Endpoints
   static const String subDimensionPendidikan = '$apiPrefix/sub-dimensions/pendidikan';
   static const String subDimensionKesehatan = '$apiPrefix/sub-dimensions/kesehatan';

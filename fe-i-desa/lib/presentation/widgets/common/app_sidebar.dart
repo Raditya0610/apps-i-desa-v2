@@ -25,7 +25,9 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     final username = ref.watch(authStateProvider).username ?? 'Pengguna';
     final initial = username.isNotEmpty ? username[0].toUpperCase() : 'U';
 
-    if (currentRoute.startsWith('/family-cards') && !_isDataPendudukExpanded) {
+    final isDataPendudukRoute = currentRoute.startsWith('/family-cards') ||
+        currentRoute.startsWith('/import-data');
+    if (isDataPendudukRoute && !_isDataPendudukExpanded) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _isDataPendudukExpanded = true);
       });
@@ -112,7 +114,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                   _ExpandableItem(
                     icon: Icons.people_rounded,
                     label: 'Data Penduduk',
-                    isActive: currentRoute.startsWith('/family-cards'),
+                    isActive: isDataPendudukRoute,
                     isExpanded: _isDataPendudukExpanded,
                     onToggle: () => setState(
                         () => _isDataPendudukExpanded = !_isDataPendudukExpanded),
@@ -122,6 +124,12 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                         label: 'Kartu Keluarga',
                         isActive: currentRoute.startsWith('/family-cards'),
                         onTap: () => context.go('/family-cards'),
+                      ),
+                      _SidebarSubItem(
+                        icon: Icons.upload_file_rounded,
+                        label: 'Import Data',
+                        isActive: currentRoute.startsWith('/import-data'),
+                        onTap: () => context.go('/import-data'),
                       ),
                     ],
                   ),

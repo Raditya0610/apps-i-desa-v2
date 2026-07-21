@@ -51,6 +51,9 @@ dependencies:
   path_provider: ^2.1.5
   csv: ^6.0.0
 
+  # Import (pick a file for bulk data import)
+  file_picker: ^8.1.7
+
 dependency_overrides:
   # path_provider_foundation 2.5.0 and 2.6.0 depend on objective_c, whose native
   # build hook crashes the web build under Flutter 3.44 ("Null check operator used
