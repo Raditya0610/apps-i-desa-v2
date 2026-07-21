@@ -26,27 +26,37 @@ var importFamilyCardColumns = []string{
 	"Kabupaten/Kota", "Kode Pos", "Provinsi",
 }
 
-// "Alamat Lengkap" from the source Buku Induk Penduduk ledger is deliberately
-// not repeated here: models.Villager has no address field of its own, and the
-// family's address is already captured once in the Kartu Keluarga sheet via
-// the Nomor KK link — a per-member copy would be a column with nowhere to go.
+// importVillagerColumns mirrors the Buku Induk Penduduk ledger's own column
+// order exactly (Nomor Urut, ..., Ket), not just the fields the system
+// stores. Four of these columns — Nomor Urut, Dapat Membaca Huruf, Alamat
+// Lengkap, Ket — have no matching Villager field and are ignored on import
+// (see importVillagerIgnoredColumns). They're kept in the template anyway so
+// a village can select an entire row straight out of their ledger and paste
+// it in one motion instead of pasting around gaps. Nama Ayah/Nama Ibu/Nomor
+// Paspor/Nomor KITAS are appended at the end since the ledger doesn't carry
+// them at all.
 var importVillagerColumns = []string{
-	"Nama Lengkap", "Jenis Kelamin", "Status Perkawinan", "Tempat Lahir",
-	"Tanggal Lahir", "Agama", "Pendidikan Terakhir", "Pekerjaan",
-	"Kewarganegaraan", "Kedudukan Dalam Keluarga", "NIK", "Nomor KK",
+	"Nomor Urut (diabaikan)", "Nama Lengkap", "Jenis Kelamin", "Status Perkawinan",
+	"Tempat Lahir", "Tanggal Lahir", "Agama", "Pendidikan Terakhir", "Pekerjaan",
+	"Dapat Membaca Huruf (diabaikan)", "Kewarganegaraan", "Alamat Lengkap (diabaikan)",
+	"Kedudukan Dalam Keluarga", "NIK", "Nomor KK", "Ket (diabaikan)",
 	"Nama Ayah", "Nama Ibu", "Nomor Paspor", "Nomor KITAS",
 }
 
+// 1-based positions (within importVillagerColumns) that the parser never
+// reads — kept only so a full ledger row pastes without gaps.
+var importVillagerIgnoredColumns = map[int]bool{1: true, 10: true, 12: true, 16: true}
+
 // 1-based positions (within importVillagerColumns) of dropdown-backed columns.
 const (
-	colVillagerJenisKelamin      = 2
-	colVillagerStatusPerkawinan  = 3
-	colVillagerTanggalLahir      = 5
-	colVillagerAgama             = 6
-	colVillagerPendidikan        = 7
-	colVillagerKewarganegaraan   = 9
-	colVillagerKedudukanKeluarga = 10
-	colVillagerNIK               = 11
+	colVillagerJenisKelamin      = 3
+	colVillagerStatusPerkawinan  = 4
+	colVillagerTanggalLahir      = 6
+	colVillagerAgama             = 7
+	colVillagerPendidikan        = 8
+	colVillagerKewarganegaraan   = 11
+	colVillagerKedudukanKeluarga = 13
+	colVillagerNIK               = 14
 )
 
 type ImportTemplateService struct{}
@@ -99,6 +109,9 @@ func (s *ImportTemplateService) GenerateTemplate() (*bytes.Buffer, error) {
 		return nil, err
 	}
 	if err := addNikLengthHint(f); err != nil {
+		return nil, err
+	}
+	if err := markIgnoredVillagerColumns(f); err != nil {
 		return nil, err
 	}
 
@@ -240,6 +253,37 @@ func addNikLengthHint(f *excelize.File) error {
 	return f.AddDataValidation(importSheetVillagers, dv)
 }
 
+// markIgnoredVillagerColumns greys out the columns kept purely for
+// paste-compatibility with the Buku Induk Penduduk ledger (see
+// importVillagerIgnoredColumns) so it's visually obvious — not just stated in
+// the header text — that nothing typed there gets saved.
+func markIgnoredVillagerColumns(f *excelize.File) error {
+	ignoredStyle, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"F0F0F0"}, Pattern: 1},
+		Font: &excelize.Font{Italic: true, Color: "999999"},
+	})
+	if err != nil {
+		return err
+	}
+
+	for col := range importVillagerIgnoredColumns {
+		colName, err := excelize.ColumnNumberToName(col)
+		if err != nil {
+			return err
+		}
+		if err := f.SetCellStyle(
+			importSheetVillagers,
+			colName+"2",
+			fmt.Sprintf("%s%d", colName, importDataRowEnd),
+			ignoredStyle,
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func writeGuideSheet(f *excelize.File) error {
 	lines := []string{
 		"PETUNJUK PENGISIAN TEMPLATE IMPORT DATA",
@@ -252,6 +296,7 @@ func writeGuideSheet(f *excelize.File) error {
 		"6. RT, RW, dan Kode Pos boleh dikosongkan jika belum ada datanya.",
 		"7. Baris dengan Nomor KK yang sudah terdaftar di sistem akan dilewati (tidak dianggap error) dan dilaporkan terpisah setelah unggah — anggota keluarganya tetap akan diproses.",
 		"8. Setelah unggah, sistem akan menampilkan laporan: baris mana yang berhasil, dilewati, atau gagal, beserta alasannya.",
+		"9. Kolom \"Nomor Urut\", \"Dapat Membaca Huruf\", \"Alamat Lengkap\", dan \"Ket\" pada sheet \"Anggota Keluarga\" (ditandai abu-abu) sengaja disediakan supaya satu baris dari Buku Induk Penduduk bisa langsung disalin utuh tanpa lompat kolom. Sistem TIDAK menyimpan isi kolom-kolom ini — boleh dikosongkan atau dibiarkan apa adanya.",
 	}
 
 	for i, line := range lines {

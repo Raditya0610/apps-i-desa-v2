@@ -544,6 +544,11 @@ func parseFamilyCardRows(rows [][]string) []familyCardRow {
 	return out
 }
 
+// Column indices (0-based) into importVillagerColumns. Four positions —
+// Nomor Urut (0), Dapat Membaca Huruf (9), Alamat Lengkap (11), Ket (15) —
+// are deliberately skipped: they exist in the template only so a row from
+// the Buku Induk Penduduk ledger can be pasted in one motion (see
+// importVillagerIgnoredColumns in import_template.service.go).
 func parseVillagerRows(rows [][]string) []villagerRow {
 	var out []villagerRow
 	for i, row := range rows {
@@ -553,22 +558,22 @@ func parseVillagerRows(rows [][]string) []villagerRow {
 		}
 		out = append(out, villagerRow{
 			RowNum:           rowNum,
-			NamaLengkap:      strings.TrimSpace(cell(row, 0)),
-			JenisKelamin:     strings.TrimSpace(cell(row, 1)),
-			StatusPerkawinan: strings.TrimSpace(cell(row, 2)),
-			TempatLahir:      strings.TrimSpace(cell(row, 3)),
-			TanggalLahirRaw:  strings.TrimSpace(cell(row, 4)),
-			Agama:            strings.TrimSpace(cell(row, 5)),
-			Pendidikan:       strings.TrimSpace(cell(row, 6)),
-			Pekerjaan:        strings.TrimSpace(cell(row, 7)),
-			Kewarganegaraan:  strings.TrimSpace(cell(row, 8)),
-			StatusHubungan:   strings.TrimSpace(cell(row, 9)),
-			NIK:              strings.TrimSpace(cell(row, 10)),
-			FamilyCardNIK:    strings.TrimSpace(cell(row, 11)),
-			NamaAyah:         strings.TrimSpace(cell(row, 12)),
-			NamaIbu:          strings.TrimSpace(cell(row, 13)),
-			NomorPaspor:      strings.TrimSpace(cell(row, 14)),
-			NomorKitas:       strings.TrimSpace(cell(row, 15)),
+			NamaLengkap:      strings.TrimSpace(cell(row, 1)),
+			JenisKelamin:     strings.TrimSpace(cell(row, 2)),
+			StatusPerkawinan: strings.TrimSpace(cell(row, 3)),
+			TempatLahir:      strings.TrimSpace(cell(row, 4)),
+			TanggalLahirRaw:  strings.TrimSpace(cell(row, 5)),
+			Agama:            strings.TrimSpace(cell(row, 6)),
+			Pendidikan:       strings.TrimSpace(cell(row, 7)),
+			Pekerjaan:        strings.TrimSpace(cell(row, 8)),
+			Kewarganegaraan:  strings.TrimSpace(cell(row, 10)),
+			StatusHubungan:   strings.TrimSpace(cell(row, 12)),
+			NIK:              strings.TrimSpace(cell(row, 13)),
+			FamilyCardNIK:    strings.TrimSpace(cell(row, 14)),
+			NamaAyah:         strings.TrimSpace(cell(row, 16)),
+			NamaIbu:          strings.TrimSpace(cell(row, 17)),
+			NomorPaspor:      strings.TrimSpace(cell(row, 18)),
+			NomorKitas:       strings.TrimSpace(cell(row, 19)),
 		})
 	}
 	return out
