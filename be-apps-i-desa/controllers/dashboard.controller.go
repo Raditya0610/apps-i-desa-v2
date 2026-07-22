@@ -73,6 +73,16 @@ func (c *DashboardController) GetDashboardData(ctx *fiber.Ctx) error {
 				"message": "Failed to count kepala keluarga",
 				"error":   err.Error(),
 			})
+		} else if err.Error() == "error counting pendidikan breakdown" {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Failed to count pendidikan breakdown",
+				"error":   err.Error(),
+			})
+		} else if err.Error() == "error counting pekerjaan breakdown" {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Failed to count pekerjaan breakdown",
+				"error":   err.Error(),
+			})
 		}
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "Failed to get dashboard data",

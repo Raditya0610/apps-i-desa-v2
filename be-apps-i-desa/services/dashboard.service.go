@@ -2,6 +2,8 @@ package services
 
 import (
 	"errors"
+	"sort"
+	"strings"
 	"sync"
 
 	"Apps-I_Desa_Backend/dtos"
@@ -10,6 +12,12 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
 )
+
+// pekerjaanBreakdownTopN caps the freeform Pekerjaan breakdown to the
+// largest groups, with the remainder folded into "Lainnya" — without a
+// dropdown, a village can easily have 30+ distinct spellings/job titles,
+// which would make the chart unreadable.
+const pekerjaanBreakdownTopN = 8
 
 type DashboardService struct {
 	villagerRepo   *repositories.VillagerRepository
@@ -57,6 +65,8 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 	femaleVillagersCh := make(chan result, 1)
 	averageAgeCh := make(chan result, 1)
 	kepalaKeluargaCh := make(chan result, 1)
+	pendidikanCh := make(chan result, 1)
+	pekerjaanCh := make(chan result, 1)
 
 	var wg sync.WaitGroup
 
@@ -125,6 +135,19 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 		defer wg.Done()
 		count, err := s.villagerRepo.CountAllKepalaKeluarga(&villageID)
 		kepalaKeluargaCh <- result{count, err}
+	}()
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		items, err := s.villagerRepo.CountByPendidikan(&villageID)
+		pendidikanCh <- result{items, err}
+	}()
+
+	go func() {
+		defer wg.Done()
+		items, err := s.villagerRepo.CountByPekerjaan(&villageID)
+		pekerjaanCh <- result{items, err}
 	}()
 
 	// Wait for all goroutines to complete
@@ -201,6 +224,20 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 	}
 	countKepalaKeluarga := kepalaKeluargaRes.value.(int64)
 
+	pendidikanRes := <-pendidikanCh
+	if pendidikanRes.err != nil {
+		log.Error("Error counting pendidikan breakdown:", pendidikanRes.err)
+		return nil, errors.New("error counting pendidikan breakdown")
+	}
+	pendidikanBreakdown := buildPendidikanBreakdown(pendidikanRes.value.([]dtos.LabeledCount))
+
+	pekerjaanRes := <-pekerjaanCh
+	if pekerjaanRes.err != nil {
+		log.Error("Error counting pekerjaan breakdown:", pekerjaanRes.err)
+		return nil, errors.New("error counting pekerjaan breakdown")
+	}
+	pekerjaanBreakdown := buildPekerjaanBreakdown(pekerjaanRes.value.([]dtos.LabeledCount))
+
 	// Guarded: dividing by zero residents yields +Inf, and encoding/json refuses
 	// to marshal Inf — an empty village would fail the whole dashboard request
 	// rather than return zeros.
@@ -221,5 +258,95 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 		TotalRW:             int32(countDistinctRW),
 		TotalKelurahan:      int32(countDistinctKelurahan),
 		TotalKecamatan:      int32(countDistinctKecamatan),
+		PendidikanBreakdown: pendidikanBreakdown,
+		PekerjaanBreakdown:  pekerjaanBreakdown,
 	}, nil
+}
+
+// normalizeLabel maps blank/placeholder values (raw SQL imports have used
+// both "" and "-" for missing data) to one consistent bucket, so they don't
+// silently fragment into multiple near-identical rows in the breakdown.
+func normalizeLabel(label string) string {
+	label = strings.TrimSpace(label)
+	if label == "" || label == "-" {
+		return "Tidak Diketahui"
+	}
+	return label
+}
+
+// mergeLabeledCounts normalizes labels and folds duplicates that collapse
+// onto the same normalized label (e.g. "" and "-" both becoming "Tidak
+// Diketahui") into a single summed entry, preserving first-seen order.
+func mergeLabeledCounts(items []dtos.LabeledCount) []dtos.LabeledCount {
+	totals := make(map[string]int64, len(items))
+	var order []string
+	for _, it := range items {
+		label := normalizeLabel(it.Label)
+		if _, seen := totals[label]; !seen {
+			order = append(order, label)
+		}
+		totals[label] += it.Total
+	}
+	merged := make([]dtos.LabeledCount, len(order))
+	for i, label := range order {
+		merged[i] = dtos.LabeledCount{Label: label, Total: totals[label]}
+	}
+	return merged
+}
+
+// buildPendidikanBreakdown orders by education level (matching
+// ImportPendidikanOptions' low-to-high progression) rather than by count, so
+// the chart reads as a progression instead of a jumbled ranking. Legacy
+// values that don't match any known category (older manual entries predate
+// the dropdown) sort after all known ones, largest first.
+func buildPendidikanBreakdown(raw []dtos.LabeledCount) []dtos.LabeledCount {
+	items := mergeLabeledCounts(raw)
+
+	rank := make(map[string]int, len(dtos.ImportPendidikanOptions))
+	for i, v := range dtos.ImportPendidikanOptions {
+		rank[v] = i
+	}
+
+	sort.SliceStable(items, func(i, j int) bool {
+		ri, iKnown := rank[items[i].Label]
+		rj, jKnown := rank[items[j].Label]
+		if iKnown && jKnown {
+			return ri < rj
+		}
+		if iKnown != jKnown {
+			return iKnown
+		}
+		return items[i].Total > items[j].Total
+	})
+
+	return items
+}
+
+// buildPekerjaanBreakdown orders by count descending — Pekerjaan is free
+// text with no fixed category list — and caps the result at
+// pekerjaanBreakdownTopN, folding the remainder into a "Lainnya" bucket so a
+// village with many distinct job titles still gets a readable chart.
+func buildPekerjaanBreakdown(raw []dtos.LabeledCount) []dtos.LabeledCount {
+	items := mergeLabeledCounts(raw)
+
+	sort.SliceStable(items, func(i, j int) bool {
+		return items[i].Total > items[j].Total
+	})
+
+	if len(items) <= pekerjaanBreakdownTopN {
+		return items
+	}
+
+	top := make([]dtos.LabeledCount, pekerjaanBreakdownTopN)
+	copy(top, items[:pekerjaanBreakdownTopN])
+
+	var othersTotal int64
+	for _, it := range items[pekerjaanBreakdownTopN:] {
+		othersTotal += it.Total
+	}
+	if othersTotal > 0 {
+		top = append(top, dtos.LabeledCount{Label: "Lainnya", Total: othersTotal})
+	}
+
+	return top
 }

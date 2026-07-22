@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/forui_theme.dart';
+import '../../../data/models/dashboard.dart';
 import '../../../providers/activity_log_provider.dart';
 import '../../../providers/dashboard_provider.dart';
 import '../../../providers/idm_score_provider.dart';
@@ -498,6 +499,12 @@ class _DashboardBody extends ConsumerWidget {
                     dashboard: dashboardState.dashboard!,
                     isWide: isWide,
                   ),
+                const SizedBox(height: 24),
+                if (dashboardState.dashboard != null)
+                  _EducationOccupationSection(
+                    dashboard: dashboardState.dashboard!,
+                    isWide: isWide,
+                  ),
               ],
             ),
           );
@@ -824,6 +831,194 @@ class _MainContentLayout extends StatelessWidget {
 
     return Column(
       children: [left, const SizedBox(height: 20), right],
+    );
+  }
+}
+
+// ─── Education & Occupation Breakdown ─────────────────────────────────────────
+
+class _EducationOccupationSection extends StatelessWidget {
+  final Dashboard dashboard;
+  final bool isWide;
+  const _EducationOccupationSection({required this.dashboard, required this.isWide});
+
+  @override
+  Widget build(BuildContext context) {
+    final pendidikanCard = _BreakdownCard(
+      title: 'Tingkat Pendidikan Terakhir',
+      subtitle: 'Ringkasan pendidikan terakhir penduduk',
+      icon: Icons.school_outlined,
+      iconColor: const Color(0xFF3B82F6),
+      iconBg: const Color(0xFFDBEAFE),
+      items: dashboard.pendidikanBreakdown,
+    );
+
+    final pekerjaanCard = _BreakdownCard(
+      title: 'Pekerjaan',
+      subtitle: 'Ringkasan pekerjaan penduduk',
+      icon: Icons.work_outline_rounded,
+      iconColor: const Color(0xFFF59E0B),
+      iconBg: const Color(0xFFFEF3C7),
+      items: dashboard.pekerjaanBreakdown,
+    );
+
+    if (isWide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: pendidikanCard),
+          const SizedBox(width: 24),
+          Expanded(child: pekerjaanCard),
+        ],
+      );
+    }
+
+    return Column(
+      children: [pendidikanCard, const SizedBox(height: 20), pekerjaanCard],
+    );
+  }
+}
+
+class _BreakdownCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBg;
+  final List<LabeledCount> items;
+
+  const _BreakdownCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.iconColor,
+    required this.iconBg,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final maxTotal = items.isEmpty
+        ? 0
+        : items.map((e) => e.total).reduce((a, b) => a > b ? a : b);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: ForuiThemeConfig.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: 12, color: ForuiThemeConfig.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  'Belum ada data.',
+                  style: TextStyle(fontSize: 13, color: ForuiThemeConfig.textSecondary),
+                ),
+              ),
+            )
+          else
+            Column(
+              children: [
+                for (var i = 0; i < items.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 14),
+                  _BreakdownRow(
+                    item: items[i],
+                    ratio: maxTotal == 0 ? 0.0 : items[i].total / maxTotal,
+                    color: iconColor,
+                  ),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BreakdownRow extends StatelessWidget {
+  final LabeledCount item;
+  final double ratio;
+  final Color color;
+
+  const _BreakdownRow({required this.item, required this.ratio, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: ForuiThemeConfig.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              item.total.toString(),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: ForuiThemeConfig.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: ratio,
+            backgroundColor: Colors.grey.shade200,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 6,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -146,6 +146,40 @@ func (r *VillagerRepository) CountAllKepalaKeluarga(villageID *uuid.UUID) (int64
 	return count, nil
 }
 
+// CountByPendidikan returns the number of villagers per distinct Pendidikan
+// value for the given village. Values are whatever is actually stored — the
+// caller normalizes/reorders for display.
+func (r *VillagerRepository) CountByPendidikan(villageID *uuid.UUID) ([]dtos.LabeledCount, error) {
+	var results []dtos.LabeledCount
+	err := r.DB.Model(&models.Villager{}).
+		Select("pendidikan AS label, COUNT(*) AS total").
+		Where("village_id = ?", villageID).
+		Group("pendidikan").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+// CountByPekerjaan returns the number of villagers per distinct Pekerjaan
+// value for the given village, largest group first. Pekerjaan is free text
+// (no dropdown in the manual form), so unlike Pendidikan there is no fixed
+// category list to order by.
+func (r *VillagerRepository) CountByPekerjaan(villageID *uuid.UUID) ([]dtos.LabeledCount, error) {
+	var results []dtos.LabeledCount
+	err := r.DB.Model(&models.Villager{}).
+		Select("pekerjaan AS label, COUNT(*) AS total").
+		Where("village_id = ?", villageID).
+		Group("pekerjaan").
+		Order("total DESC").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
 // GetExistingNIKs returns which of the given NIKs already exist, so bulk
 // import can detect duplicates with one query instead of one per row.
 func (r *VillagerRepository) GetExistingNIKs(niks []string) ([]string, error) {

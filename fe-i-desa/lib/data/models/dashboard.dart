@@ -1,3 +1,19 @@
+/// One bucket of a group-by-and-count breakdown (one education level, or one
+/// occupation) — mirrors the backend's shared LabeledCount shape.
+class LabeledCount {
+  final String label;
+  final int total;
+
+  LabeledCount({required this.label, required this.total});
+
+  factory LabeledCount.fromJson(Map<String, dynamic> json) {
+    return LabeledCount(
+      label: json['label'] as String? ?? '',
+      total: json['total'] as int? ?? 0,
+    );
+  }
+}
+
 class Dashboard {
   final int totalKeluarga;
   final int totalPenduduk;
@@ -10,6 +26,8 @@ class Dashboard {
   final int rw;
   final int kelurahan;
   final int kecamatan;
+  final List<LabeledCount> pendidikanBreakdown;
+  final List<LabeledCount> pekerjaanBreakdown;
 
   Dashboard({
     required this.totalKeluarga,
@@ -23,6 +41,8 @@ class Dashboard {
     required this.rw,
     required this.kelurahan,
     required this.kecamatan,
+    this.pendidikanBreakdown = const [],
+    this.pekerjaanBreakdown = const [],
   });
 
   factory Dashboard.fromJson(Map<String, dynamic> json) {
@@ -38,6 +58,12 @@ class Dashboard {
       rw: json['rw'] as int? ?? 0,
       kelurahan: json['kelurahan'] as int? ?? 0,
       kecamatan: json['kecamatan'] as int? ?? 0,
+      pendidikanBreakdown: ((json['pendidikanBreakdown'] as List?) ?? [])
+          .map((e) => LabeledCount.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      pekerjaanBreakdown: ((json['pekerjaanBreakdown'] as List?) ?? [])
+          .map((e) => LabeledCount.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
