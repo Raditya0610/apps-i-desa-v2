@@ -65,6 +65,11 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 				"message": "Failed to generate token",
 				"error":   err.Error(),
 			})
+		} else if err.Error() == "failed to start session" {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Failed to start session",
+				"error":   err.Error(),
+			})
 		} else {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"message": "Internal Server Error",
@@ -90,7 +95,10 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 
 // Logout handles user logout requests
 func (c *AuthController) Logout(ctx *fiber.Ctx) error {
-	response := c.authService.Logout()
+	// comma-ok: JWTAuth guarantees this is set for a valid token, but stays
+	// defensive rather than panicking on the assertion.
+	username, _ := ctx.Locals("username").(string)
+	response := c.authService.Logout(username)
 	ctx.ClearCookie("AppsIDesaCookie")
 	ctx.Cookie(&fiber.Cookie{
 		Name:     "AppsIDesaCookie",

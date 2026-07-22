@@ -3,6 +3,7 @@ package repositories
 import (
 	"Apps-I_Desa_Backend/config"
 	"Apps-I_Desa_Backend/models"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -44,4 +45,12 @@ func (r *UserRepository) FindByVillageID(villageID string) (*models.User, error)
 
 func (r *UserRepository) UpdatePassword(tx *gorm.DB, username string, hashedPassword string) error {
 	return tx.Model(&models.User{}).Where("username = ?", username).Update("password", hashedPassword).Error
+}
+
+// UpdateSessionID overwrites the account's active session marker. Called on
+// login (starting a new session) and on logout (invalidating the current
+// token immediately instead of leaving it valid until it expires) — either
+// way, any token embedding the previous session_id stops passing JWTAuth.
+func (r *UserRepository) UpdateSessionID(tx *gorm.DB, username string, sessionID uuid.UUID) error {
+	return tx.Model(&models.User{}).Where("username = ?", username).Update("session_id", sessionID).Error
 }

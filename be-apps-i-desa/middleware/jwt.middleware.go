@@ -4,11 +4,17 @@ import (
 	"os"
 	"strings"
 
+	"Apps-I_Desa_Backend/repositories"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 func JWTAuth() fiber.Handler {
+	// Constructed once when the route is set up, reused across every request
+	// this middleware handles — not per-request, matching how other route
+	// setups build their repositories/services once.
+	userRepo := repositories.NewUserRepository()
+
 	return func(c *fiber.Ctx) error {
 		var tokenStr string
 
@@ -46,16 +52,40 @@ func JWTAuth() fiber.Handler {
 			})
 		}
 
-		// Extract claims and set village ID in context
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			if villageID, exists := claims["village"]; exists {
-				c.Locals("village", villageID)
-			}
-			// Absent on tokens issued before "username" was added to the claims;
-			// those sessions log an empty actor rather than being rejected.
-			if username, exists := claims["username"]; exists {
-				c.Locals("username", username)
-			}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message": "Unauthorized: Invalid token",
+			})
+		}
+
+		if villageID, exists := claims["village"]; exists {
+			c.Locals("village", villageID)
+		}
+
+		// Single-device enforcement needs to know which account's session to
+		// check, so username is required from here on — tokens issued before
+		// "username"/"session_id" were added to the claims fail this check and
+		// force a one-time re-login rather than being silently trusted.
+		username, hasUsername := claims["username"].(string)
+		sessionID, hasSessionID := claims["session_id"].(string)
+		if !hasUsername || !hasSessionID {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message": "Unauthorized: Session expired, please log in again",
+			})
+		}
+		c.Locals("username", username)
+
+		// Reject any token whose session_id no longer matches the account's
+		// current session. A newer login overwrites the stored session_id (see
+		// AuthService.Login), so this is what actually forces a previously
+		// logged-in device out — the token itself doesn't otherwise know it's
+		// been superseded.
+		user, err := userRepo.FindByUsername(username)
+		if err != nil || user.SessionID.String() != sessionID {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message": "Unauthorized: Logged in on another device",
+			})
 		}
 
 		return c.Next()
