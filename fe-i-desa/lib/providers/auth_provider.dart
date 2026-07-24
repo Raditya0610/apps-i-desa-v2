@@ -14,12 +14,14 @@ class AuthState {
   final bool isAuthenticated;
   final bool isLoading;
   final String? username;
+  final String? villageName;
   final String? error;
 
   AuthState({
     this.isAuthenticated = false,
     this.isLoading = true,  // Start with loading=true so router waits for auth check
     this.username,
+    this.villageName,
     this.error,
   });
 
@@ -27,12 +29,14 @@ class AuthState {
     bool? isAuthenticated,
     bool? isLoading,
     String? username,
+    String? villageName,
     String? error,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isLoading: isLoading ?? this.isLoading,
       username: username ?? this.username,
+      villageName: villageName ?? this.villageName,
       error: error,
     );
   }
@@ -50,9 +54,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     final isLoggedIn = await _authService.isLoggedIn();
     final username = await _authService.getUsername();
+    final villageName = await _authService.getVillageName();
     state = state.copyWith(
       isAuthenticated: isLoggedIn,
       username: username,
+      villageName: villageName,
       isLoading: false,
     );
   }
@@ -76,8 +82,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Called by the login screen after the success animation completes.
-  void finalizeLogin(String username) {
-    state = state.copyWith(isAuthenticated: true, username: username);
+  void finalizeLogin(String username, {String? villageName}) {
+    state = state.copyWith(
+      isAuthenticated: true,
+      username: username,
+      villageName: villageName,
+    );
   }
 
   Future<Map<String, dynamic>> register(

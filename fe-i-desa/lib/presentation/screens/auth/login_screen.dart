@@ -82,7 +82,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       // Set auth state first, then explicitly navigate.
       // Don't rely on router redirect alone — it's unreliable on Flutter Web.
-      ref.read(authStateProvider.notifier).finalizeLogin(username);
+      ref.read(authStateProvider.notifier).finalizeLogin(
+            username,
+            villageName: result['villageName'] as String?,
+          );
       context.go('/');
     } else {
       setState(() {

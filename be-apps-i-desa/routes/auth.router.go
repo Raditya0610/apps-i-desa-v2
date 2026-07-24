@@ -11,7 +11,8 @@ import (
 func SetupAuthRoutes(app *fiber.App) {
 	// Initialize dependencies
 	authRepo := repositories.NewUserRepository()
-	authService := services.NewAuthService(authRepo)
+	villageRepo := repositories.NewVillageRepository()
+	authService := services.NewAuthService(authRepo, villageRepo)
 	authController := controllers.NewAuthController(authService)
 
 	// Auth routes

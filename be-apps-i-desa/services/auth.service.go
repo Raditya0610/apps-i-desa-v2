@@ -16,11 +16,12 @@ import (
 )
 
 type AuthService struct {
-	userRepo *repositories.UserRepository
+	userRepo    *repositories.UserRepository
+	villageRepo *repositories.VillageRepository
 }
 
-func NewAuthService(userRepo *repositories.UserRepository) *AuthService {
-	return &AuthService{userRepo: userRepo}
+func NewAuthService(userRepo *repositories.UserRepository, villageRepo *repositories.VillageRepository) *AuthService {
+	return &AuthService{userRepo: userRepo, villageRepo: villageRepo}
 }
 
 func (s *AuthService) Login(request *dtos.LoginRequest) (*dtos.LoginResponse, error) {
@@ -63,9 +64,21 @@ func (s *AuthService) Login(request *dtos.LoginRequest) (*dtos.LoginResponse, er
 		return nil, errors.New("failed to generate token")
 	}
 
+	// Display-only lookup for the dashboard greeting. Never fails the login
+	// over this — the token is already valid and usable even if this lookup
+	// has a problem, so it just logs and leaves VillageName blank.
+	villageName := ""
+	if village, err := s.villageRepo.GetVillageByID(user.VillageID); err != nil {
+		log.Error("Error fetching village name: ", err)
+	} else {
+		villageName = village.Name
+	}
+
 	return &dtos.LoginResponse{
-		Token:   token,
-		Message: "Login successful",
+		Token:       token,
+		Message:     "Login successful",
+		VillageID:   user.VillageID.String(),
+		VillageName: villageName,
 	}, nil
 }
 

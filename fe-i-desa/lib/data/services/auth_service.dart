@@ -21,6 +21,7 @@ class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _usernameKey = 'username';
   static const String _villageIdKey = 'village_id';
+  static const String _villageNameKey = 'village_name';
 
   // Helper methods for storage abstraction
   Future<void> _write(String key, String value) async {
@@ -112,19 +113,22 @@ class AuthService {
         await _write(_usernameKey, username);
         ApiService.setAuthToken(token);
 
-        // Extract and save village_id if available in response
-        if (data.containsKey('user')) {
-          final user = data['user'] as Map<String, dynamic>;
-          if (user.containsKey('village_id')) {
-            final villageId = user['village_id'] as String;
-            await _write(_villageIdKey, villageId);
-          }
+        // Save village_id/village_name straight from the login response —
+        // display-only (the greeting), never used for any access decision.
+        final villageId = data['village_id'] as String?;
+        final villageName = data['village_name'] as String?;
+        if (villageId != null && villageId.isNotEmpty) {
+          await _write(_villageIdKey, villageId);
+        }
+        if (villageName != null && villageName.isNotEmpty) {
+          await _write(_villageNameKey, villageName);
         }
 
         return {
           'success': true,
           'message': data['message'] ?? 'Login berhasil',
           'token': token,
+          'villageName': villageName ?? '',
         };
       } else {
         final data = response.data as Map<String, dynamic>;
@@ -244,6 +248,11 @@ class AuthService {
   // Get stored village ID
   Future<String?> getVillageId() async {
     return await _read(_villageIdKey);
+  }
+
+  // Get stored village name
+  Future<String?> getVillageName() async {
+    return await _read(_villageNameKey);
   }
 
   // Save village ID

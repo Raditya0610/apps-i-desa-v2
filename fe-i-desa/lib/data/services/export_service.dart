@@ -2,6 +2,7 @@ import 'package:excel/excel.dart';
 import 'package:csv/csv.dart';
 import 'package:intl/intl.dart';
 import 'file_saver/file_saver.dart';
+import '../models/dashboard.dart';
 
 class ExportService {
   /// Export villagers data to Excel format
@@ -201,6 +202,102 @@ class ExportService {
       final csv = const ListToCsvConverter().convert(rows);
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       return saveStringFile(csv, 'data_kartu_keluarga_$timestamp.csv');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Label/value rows for the dashboard summary report, shared by the Excel
+  /// and CSV exporters so the two formats can never drift apart.
+  static List<List<dynamic>> _dashboardSummaryRows(Dashboard dashboard) {
+    final generatedAt = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+    final rows = <List<dynamic>>[
+      ['Ringkasan Kondisi Demografi Desa', ''],
+      ['Dibuat pada', generatedAt],
+      ['', ''],
+      ['Total Kartu Keluarga', dashboard.totalKeluarga],
+      ['Total Penduduk', dashboard.totalPenduduk],
+      ['Rata-rata Anggota per Keluarga', dashboard.rerataKeluarga.toStringAsFixed(1)],
+      ['Laki-laki', '${dashboard.lakiLaki} (${dashboard.genderRatioMale.toStringAsFixed(1)}%)'],
+      ['Perempuan', '${dashboard.perempuan} (${dashboard.genderRatioFemale.toStringAsFixed(1)}%)'],
+      ['Kepala Keluarga', dashboard.kepalaKeluarga],
+      ['Rata-rata Umur', '${dashboard.rerataUmur.toStringAsFixed(1)} tahun'],
+      ['Jumlah RT', dashboard.rt],
+      ['Jumlah RW', dashboard.rw],
+      ['Jumlah Kelurahan/Desa', dashboard.kelurahan],
+      ['Jumlah Kecamatan', dashboard.kecamatan],
+    ];
+
+    if (dashboard.pendidikanBreakdown.isNotEmpty) {
+      rows.add(['', '']);
+      rows.add(['Breakdown Pendidikan Terakhir', 'Jumlah']);
+      for (final item in dashboard.pendidikanBreakdown) {
+        rows.add([item.label, item.total]);
+      }
+    }
+
+    if (dashboard.pekerjaanBreakdown.isNotEmpty) {
+      rows.add(['', '']);
+      rows.add(['Breakdown Pekerjaan', 'Jumlah']);
+      for (final item in dashboard.pekerjaanBreakdown) {
+        rows.add([item.label, item.total]);
+      }
+    }
+
+    return rows;
+  }
+
+  /// Export the dashboard's own report summary (totals, gender/age averages,
+  /// pendidikan/pekerjaan breakdowns) to Excel — not a per-resident listing,
+  /// which is what the dashboard page itself shows.
+  static Future<String?> exportDashboardSummaryToExcel(Dashboard dashboard) async {
+    try {
+      final excel = Excel.createExcel();
+      final sheet = excel['Ringkasan Dashboard'];
+      excel.delete('Sheet1');
+
+      final boldStyle = CellStyle(bold: true);
+      final rows = _dashboardSummaryRows(dashboard);
+      for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        final row = rows[rowIndex];
+        for (var colIndex = 0; colIndex < row.length; colIndex++) {
+          final cell = sheet.cell(
+            CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: rowIndex),
+          );
+          final value = row[colIndex];
+          cell.value = value is int
+              ? IntCellValue(value)
+              : TextCellValue(value.toString());
+          // Bold the title row and each section's header row (value column
+          // is blank on the title row, a label on breakdown header rows).
+          if (rowIndex == 0 || row[1] == 'Jumlah') {
+            cell.cellStyle = boldStyle;
+          }
+        }
+      }
+
+      sheet.setColumnWidth(0, 32);
+      sheet.setColumnWidth(1, 20);
+
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileBytes = excel.encode();
+      if (fileBytes != null) {
+        return saveBytesFile(fileBytes, 'ringkasan_dashboard_$timestamp.xlsx');
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Export the dashboard's own report summary to CSV — see
+  /// [exportDashboardSummaryToExcel].
+  static Future<String?> exportDashboardSummaryToCsv(Dashboard dashboard) async {
+    try {
+      final rows = _dashboardSummaryRows(dashboard);
+      final csv = const ListToCsvConverter().convert(rows);
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      return saveStringFile(csv, 'ringkasan_dashboard_$timestamp.csv');
     } catch (e) {
       return null;
     }

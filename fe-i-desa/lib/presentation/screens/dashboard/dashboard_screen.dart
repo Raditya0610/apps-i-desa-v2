@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../data/models/dashboard.dart';
+import '../../../data/services/export_service.dart';
 import '../../../providers/activity_log_provider.dart';
 import '../../../providers/dashboard_provider.dart';
 import '../../../providers/idm_score_provider.dart';
@@ -516,12 +517,111 @@ class _DashboardBody extends ConsumerWidget {
 
 // ─── Welcome Card ─────────────────────────────────────────────────────────────
 
-class _WelcomeCard extends StatelessWidget {
+class _WelcomeCard extends ConsumerWidget {
   final bool isWide;
   const _WelcomeCard({required this.isWide});
 
+  Future<void> _handleExport(BuildContext context, WidgetRef ref) async {
+    final dashboard = ref.read(dashboardProvider).dashboard;
+    if (dashboard == null) return;
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 120),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: SizedBox(
+          width: 280,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Export Ringkasan Dashboard',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: ForuiThemeConfig.textPrimary)),
+                const SizedBox(height: 4),
+                const Text('Pilih format export:',
+                    style: TextStyle(
+                        fontSize: 12, color: ForuiThemeConfig.textSecondary)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context, 'excel'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          side: const BorderSide(color: Color(0xFFDDE4DE)),
+                          foregroundColor: ForuiThemeConfig.textPrimary,
+                        ),
+                        child: const Text('Excel', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context, 'csv'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          side: const BorderSide(color: Color(0xFFDDE4DE)),
+                          foregroundColor: ForuiThemeConfig.textPrimary,
+                        ),
+                        child: const Text('CSV', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: ForuiThemeConfig.textSecondary,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  child: const Text('Batal', style: TextStyle(fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (choice == null || !context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final filePath = choice == 'excel'
+        ? await ExportService.exportDashboardSummaryToExcel(dashboard)
+        : await ExportService.exportDashboardSummaryToCsv(dashboard);
+
+    if (context.mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(filePath != null
+            ? 'File berhasil disimpan: $filePath'
+            : 'Gagal mengekspor data'),
+        backgroundColor: filePath != null
+            ? ForuiThemeConfig.primaryGreen
+            : ForuiThemeConfig.errorColor,
+      ));
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -541,7 +641,7 @@ class _WelcomeCard extends StatelessWidget {
           final isNarrow = constraints.maxWidth < 600;
 
           final exportBtn = OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () => _handleExport(context, ref),
             icon: const Icon(Icons.file_download_outlined, size: 16),
             label: const Text('Export'),
             style: OutlinedButton.styleFrom(
@@ -605,24 +705,29 @@ class _WelcomeCard extends StatelessWidget {
   }
 }
 
-class _WelcomeText extends StatelessWidget {
+class _WelcomeText extends ConsumerWidget {
   const _WelcomeText();
 
   @override
-  Widget build(BuildContext context) {
-    return const Column(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final villageName = ref.watch(authStateProvider).villageName;
+    final greeting = (villageName != null && villageName.isNotEmpty)
+        ? 'Admin, $villageName 👋'
+        : 'Halo, Admin! 👋';
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Halo, Admin! 👋',
-          style: TextStyle(
+          greeting,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: ForuiThemeConfig.textPrimary,
           ),
         ),
-        SizedBox(height: 6),
-        Text(
+        const SizedBox(height: 6),
+        const Text(
           'Berikut laporan terkini kondisi demografi desa.',
           style: TextStyle(
             fontSize: 14,
