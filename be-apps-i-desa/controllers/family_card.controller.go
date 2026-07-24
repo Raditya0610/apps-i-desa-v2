@@ -94,12 +94,17 @@ func (c *FamilyCardController) GetFamilyCardByNIK(ctx *fiber.Ctx) error {
 		})
 	}
 
-	response, err := c.familyCardService.GetFamilyCardByNIK(familyCardID)
+	response, err := c.familyCardService.GetFamilyCardByNIK(familyCardID, ctx)
 	if err != nil {
 		if err.Error() == "family card not found" {
 			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"message": "Family card not found",
 				"error":   err.Error(),
+			})
+		} else if err.Error() == "village ID is required" || err.Error() == "village ID is not valid" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid village ID",
+				"error":   "Check your token",
 			})
 		} else if err.Error() == "failed to get family card by NIK" {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -128,10 +133,15 @@ func (c *FamilyCardController) DeleteFamilyCard(ctx *fiber.Ctx) error {
 			"message": "NIK is required",
 		})
 	}
-	if err := c.familyCardService.DeleteFamilyCard(nik); err != nil {
+	if err := c.familyCardService.DeleteFamilyCard(nik, ctx); err != nil {
 		if err.Error() == "family card not found" {
 			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"message": "Family card not found",
+			})
+		} else if err.Error() == "village ID is required" || err.Error() == "village ID is not valid" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid village ID",
+				"error":   "Check your token",
 			})
 		}
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

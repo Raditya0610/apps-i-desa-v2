@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"Apps-I_Desa_Backend/config"
-	"Apps-I_Desa_Backend/dtos"
 	"Apps-I_Desa_Backend/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -24,19 +23,6 @@ func (r *FamilyCardRepository) BeginTransaction() *gorm.DB {
 
 func (r *FamilyCardRepository) CreateWithTx(tx *gorm.DB, familyCard *models.FamilyCard) error {
 	return tx.Create(familyCard).Error
-}
-
-func (r *FamilyCardRepository) GetNIKAndAddressByNIK(nik string) (*dtos.GetAllFamilyMember, error) {
-	var familyCard models.FamilyCard
-	err := r.DB.Where("nik = ?", nik).Select("nik", "alamat").First(&familyCard).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return &dtos.GetAllFamilyMember{
-		NIK:     familyCard.NIK,
-		Address: familyCard.Alamat,
-	}, nil
 }
 
 func (r *FamilyCardRepository) GetAllFamilyCardsByVillageID(
@@ -125,7 +111,10 @@ func (r *FamilyCardRepository) DeleteFamilyCardByNIK(tx *gorm.DB, nik string) er
 }
 
 // GetExistingNIKs returns which of the given NIKs already exist, so bulk
-// import can detect duplicates with one query instead of one per row.
+// import can detect duplicates with one query instead of one per row. Not
+// scoped to a village: NIK/Nomor KK is meant to be nationally unique, so a
+// collision anywhere is a legitimate duplicate regardless of which village
+// created it.
 func (r *FamilyCardRepository) GetExistingNIKs(niks []string) ([]string, error) {
 	if len(niks) == 0 {
 		return nil, nil
@@ -133,6 +122,26 @@ func (r *FamilyCardRepository) GetExistingNIKs(niks []string) ([]string, error) 
 	var existing []string
 	err := r.DB.Model(&models.FamilyCard{}).
 		Where("nik IN ?", niks).
+		Pluck("nik", &existing).Error
+	if err != nil {
+		return nil, err
+	}
+	return existing, nil
+}
+
+// GetExistingNIKsInVillage is the village-scoped counterpart to
+// GetExistingNIKs. Bulk import uses this — not the unscoped version — to
+// decide whether a villager row may link to an existing Nomor KK: without
+// scoping, a family card that happens to already exist in a different
+// village would still count as "usable", letting an import silently attach a
+// new villager to another village's family.
+func (r *FamilyCardRepository) GetExistingNIKsInVillage(villageID uuid.UUID, niks []string) ([]string, error) {
+	if len(niks) == 0 {
+		return nil, nil
+	}
+	var existing []string
+	err := r.DB.Model(&models.FamilyCard{}).
+		Where("village_id = ? AND nik IN ?", villageID, niks).
 		Pluck("nik", &existing).Error
 	if err != nil {
 		return nil, err

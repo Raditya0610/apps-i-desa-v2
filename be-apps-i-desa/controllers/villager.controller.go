@@ -94,12 +94,17 @@ func (c *VillagerController) GetVillager(ctx *fiber.Ctx) error {
 		})
 	}
 
-	response, err := c.villagerService.GetVillagerByNIK(&nik)
+	response, err := c.villagerService.GetVillagerByNIK(&nik, ctx)
 	if err != nil {
 		if err.Error() == "villager not found" {
 			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"Message": "Villager not found",
 				"Error":   err.Error(),
+			})
+		} else if err.Error() == "village ID is required" || err.Error() == "invalid village ID format" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"Message": "Invalid village ID",
+				"Error":   "Check your token",
 			})
 		} else if err.Error() == "failed to get villager by NIK" {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -152,12 +157,17 @@ func (c *VillagerController) UpdateVillager(ctx *fiber.Ctx) error {
 		})
 	}
 
-	response, err := c.villagerService.UpdateVillager(&nik, &request)
+	response, err := c.villagerService.UpdateVillager(&nik, &request, ctx)
 	if err != nil {
 		if err.Error() == "villager not found" {
 			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"Message": "Villager not found",
 				"Error":   err.Error(),
+			})
+		} else if err.Error() == "village ID is required" || err.Error() == "invalid village ID format" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"Message": "Invalid village ID",
+				"Error":   "Check your token",
 			})
 		} else if err.Error() == "failed to find villager" {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -228,12 +238,17 @@ func (c *VillagerController) DeleteVillager(ctx *fiber.Ctx) error {
 		}
 	}
 
-	response, err := c.villagerService.DeleteVillager(&nik)
+	response, err := c.villagerService.DeleteVillager(&nik, ctx)
 	if err != nil {
 		if err.Error() == "villager not found" {
 			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"Message": "Villager not found",
 				"Error":   err.Error(),
+			})
+		} else if err.Error() == "village ID is required" || err.Error() == "invalid village ID format" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"Message": "Invalid village ID",
+				"Error":   "Check your token",
 			})
 		} else if err.Error() == "failed to find villager" {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{

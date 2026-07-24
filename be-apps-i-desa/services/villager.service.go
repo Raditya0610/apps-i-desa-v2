@@ -30,16 +30,9 @@ func (s *VillagerService) CreateVillager(
 	tx := s.villagerRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	// Parse VillageID from string to UUID
-	villageIDStr, _ := ctx.Locals("village").(string)
-	if villageIDStr == "" {
-		log.Println("Village ID is empty")
-		return nil, errors.New("village ID is required")
-	}
-	villageID, err := uuid.Parse(villageIDStr)
+	villageID, err := s.villageIDFromCtx(ctx)
 	if err != nil {
-		log.Println("Error parsing village ID:", err)
-		return nil, errors.New("invalid village ID format")
+		return nil, err
 	}
 
 	// Parse TanggalLahir from string to time.Time
@@ -102,7 +95,12 @@ func (s *VillagerService) CreateVillager(
 	}, nil
 }
 
-func (s *VillagerService) GetVillagerByNIK(nik *string) (*dtos.GetVillagerResponse, error) {
+func (s *VillagerService) GetVillagerByNIK(nik *string, ctx *fiber.Ctx) (*dtos.GetVillagerResponse, error) {
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	villager, err := s.villagerRepo.FindVillagerByNIK(nik)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -111,6 +109,12 @@ func (s *VillagerService) GetVillagerByNIK(nik *string) (*dtos.GetVillagerRespon
 		}
 		log.Println("Error finding villager:", err)
 		return nil, errors.New("failed to find villager")
+	}
+	// Same response as a genuine not-found: confirming the record exists in
+	// another village would itself be a PII leak.
+	if villager.VillageID != villageID {
+		log.Println("Villager belongs to a different village:", villager.NIK)
+		return nil, errors.New("villager not found")
 	}
 	response := &dtos.GetVillagerResponse{
 		NIK:              villager.NIK,
@@ -137,7 +141,13 @@ func (s *VillagerService) GetVillagerByNIK(nik *string) (*dtos.GetVillagerRespon
 func (s *VillagerService) UpdateVillager(
 	nik *string,
 	request *dtos.UpdateVillagerRequest,
+	ctx *fiber.Ctx,
 ) (*dtos.MessageResponse, error) {
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	tx := s.villagerRepo.BeginTransaction()
 	defer tx.Rollback()
 
@@ -149,6 +159,10 @@ func (s *VillagerService) UpdateVillager(
 		}
 		log.Println("Error finding villager:", err)
 		return nil, errors.New("failed to find villager")
+	}
+	if villager.VillageID != villageID {
+		log.Println("Villager belongs to a different village:", villager.NIK)
+		return nil, errors.New("villager not found")
 	}
 
 	if request.NIK != nil {
@@ -228,11 +242,16 @@ func (s *VillagerService) UpdateVillager(
 	}, nil
 }
 
-func (s *VillagerService) DeleteVillager(nik *string) (*dtos.MessageResponse, error) {
+func (s *VillagerService) DeleteVillager(nik *string, ctx *fiber.Ctx) (*dtos.MessageResponse, error) {
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	tx := s.villagerRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	_, err := s.villagerRepo.FindVillagerByNIK(nik)
+	villager, err := s.villagerRepo.FindVillagerByNIK(nik)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Println("Villager not found:", err)
@@ -240,6 +259,10 @@ func (s *VillagerService) DeleteVillager(nik *string) (*dtos.MessageResponse, er
 		}
 		log.Println("Error finding villager:", err)
 		return nil, errors.New("failed to find villager")
+	}
+	if villager.VillageID != villageID {
+		log.Println("Villager belongs to a different village:", villager.NIK)
+		return nil, errors.New("villager not found")
 	}
 
 	if err := s.villagerRepo.DeleteVillagerWithTx(tx, nik); err != nil {
@@ -254,4 +277,18 @@ func (s *VillagerService) DeleteVillager(nik *string) (*dtos.MessageResponse, er
 	return &dtos.MessageResponse{
 		Message: "Villager deleted successfully",
 	}, nil
+}
+
+func (s *VillagerService) villageIDFromCtx(ctx *fiber.Ctx) (uuid.UUID, error) {
+	villageIDStr, _ := ctx.Locals("village").(string)
+	if villageIDStr == "" {
+		log.Println("Village ID is empty")
+		return uuid.Nil, errors.New("village ID is required")
+	}
+	villageID, err := uuid.Parse(villageIDStr)
+	if err != nil {
+		log.Println("Error parsing village ID:", err)
+		return uuid.Nil, errors.New("invalid village ID format")
+	}
+	return villageID, nil
 }

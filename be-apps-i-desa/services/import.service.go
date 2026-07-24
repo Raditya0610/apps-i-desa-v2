@@ -157,7 +157,7 @@ func (s *ImportService) ProcessImport(file interface {
 	fcRows := parseFamilyCardRows(fcRawRows)
 	vRows := parseVillagerRows(vRawRows)
 
-	existingFCSet, err := s.existingFamilyCardNIKs(fcRows, vRows)
+	existingFCSet, existingFCInVillageSet, err := s.existingFamilyCardNIKs(villageID, fcRows, vRows)
 	if err != nil {
 		return nil, errors.New("gagal memeriksa data Kartu Keluarga yang sudah ada")
 	}
@@ -166,8 +166,8 @@ func (s *ImportService) ProcessImport(file interface {
 		return nil, errors.New("gagal memeriksa data penduduk yang sudah ada")
 	}
 
-	fcResolved, usableKK, fcFailedSet := s.resolveFamilyCardRows(fcRows, existingFCSet)
-	vResolved := s.resolveVillagerRows(vRows, existingVillagerSet, existingFCSet, usableKK, fcFailedSet)
+	fcResolved, usableKK, fcFailedSet := s.resolveFamilyCardRows(fcRows, existingFCSet, existingFCInVillageSet)
+	vResolved := s.resolveVillagerRows(vRows, existingVillagerSet, existingFCInVillageSet, usableKK, fcFailedSet)
 
 	groups := buildFamilyGroups(fcResolved, vResolved)
 	for kk, g := range groups {
@@ -179,7 +179,20 @@ func (s *ImportService) ProcessImport(file interface {
 
 // ── Batch existence checks (2 queries total, no N+1) ────────────────────
 
-func (s *ImportService) existingFamilyCardNIKs(fcRows []familyCardRow, vRows []villagerRow) (map[string]bool, error) {
+// existingFamilyCardNIKs returns two views of Nomor KK existence:
+//   - global: any Nomor KK that already exists anywhere in the system, used
+//     to mark a Kartu Keluarga row as a duplicate. Intentionally not
+//     village-scoped — Nomor KK is meant to be nationally unique, so a
+//     collision anywhere is a legitimate duplicate regardless of which
+//     village created it.
+//   - inVillage: the subset of those that belong to the uploader's own
+//     village, used to decide whether a villager row may link to a family
+//     card that already exists. This one MUST stay village-scoped: without
+//     it, a villager row could name any Nomor KK that happens to exist in a
+//     different village and get silently attached to it.
+func (s *ImportService) existingFamilyCardNIKs(
+	villageID uuid.UUID, fcRows []familyCardRow, vRows []villagerRow,
+) (global map[string]bool, inVillage map[string]bool, err error) {
 	candidates := map[string]bool{}
 	for _, r := range fcRows {
 		if r.NIK != "" {
@@ -195,11 +208,17 @@ func (s *ImportService) existingFamilyCardNIKs(fcRows []familyCardRow, vRows []v
 	for k := range candidates {
 		list = append(list, k)
 	}
-	existing, err := s.familyCardRepo.GetExistingNIKs(list)
+
+	globalExisting, err := s.familyCardRepo.GetExistingNIKs(list)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return toSet(existing), nil
+	inVillageExisting, err := s.familyCardRepo.GetExistingNIKsInVillage(villageID, list)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return toSet(globalExisting), toSet(inVillageExisting), nil
 }
 
 func (s *ImportService) existingVillagerNIKs(vRows []villagerRow) (map[string]bool, error) {
@@ -223,12 +242,16 @@ func (s *ImportService) existingVillagerNIKs(vRows []villagerRow) (map[string]bo
 // ── Row resolution ───────────────────────────────────────────────────────
 
 // resolveFamilyCardRows validates each Kartu Keluarga row and decides its
-// outcome. usableKK reports which Nomor KK values members may link to (either
-// newly inserted here or already in the database); fcFailedSet flags Nomor KK
-// values that appear in the sheet but whose row failed, so a member
-// referencing one gets a precise reason instead of "not found".
+// outcome. usableKK reports which Nomor KK values members may link to — a
+// freshly-inserted row always qualifies, but a row skipped as an existing
+// duplicate only qualifies if that existing family card actually belongs to
+// this village (existingFCInVillageSet); otherwise a KK collision with
+// another village would wrongly let this upload's members attach to it.
+// fcFailedSet flags Nomor KK values that appear in the sheet but whose row
+// failed, so a member referencing one gets a precise reason instead of "not
+// found".
 func (s *ImportService) resolveFamilyCardRows(
-	rows []familyCardRow, existingFCSet map[string]bool,
+	rows []familyCardRow, existingFCSet, existingFCInVillageSet map[string]bool,
 ) (resolved []fcResolution, usableKK map[string]bool, fcFailedSet map[string]bool) {
 	usableKK = map[string]bool{}
 	fcFailedSet = map[string]bool{}
@@ -259,7 +282,9 @@ func (s *ImportService) resolveFamilyCardRows(
 				row: r, status: dtos.ImportStatusSkippedDuplicate,
 				reason: "Nomor KK sudah terdaftar di sistem",
 			})
-			usableKK[r.NIK] = true
+			if existingFCInVillageSet[r.NIK] {
+				usableKK[r.NIK] = true
+			}
 			continue
 		}
 
@@ -272,7 +297,7 @@ func (s *ImportService) resolveFamilyCardRows(
 
 func (s *ImportService) resolveVillagerRows(
 	rows []villagerRow,
-	existingVillagerSet, existingFCSet, usableKK, fcFailedSet map[string]bool,
+	existingVillagerSet, existingFCInVillageSet, usableKK, fcFailedSet map[string]bool,
 ) []villagerResolution {
 	var resolved []villagerResolution
 	seen := map[string]int{}
@@ -335,7 +360,10 @@ func (s *ImportService) resolveVillagerRows(
 		}
 
 		kk := strings.TrimSpace(r.FamilyCardNIK)
-		if !usableKK[kk] && !existingFCSet[kk] {
+		// existingFCInVillageSet, not the global existence set: a Nomor KK
+		// that exists but belongs to a different village must not be usable
+		// as a link target here.
+		if !usableKK[kk] && !existingFCInVillageSet[kk] {
 			reason := fmt.Sprintf("Nomor KK %q tidak ditemukan di sheet Kartu Keluarga maupun sistem", kk)
 			if fcFailedSet[kk] {
 				reason = fmt.Sprintf("Nomor KK %q ada di sheet Kartu Keluarga tetapi baris tersebut gagal diproses", kk)

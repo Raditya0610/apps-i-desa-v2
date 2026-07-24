@@ -34,16 +34,9 @@ func (s *FamilyCardService) CreateFamilyCard(
 	tx := s.familyCardRepo.BeginTransaction()
 	defer tx.Rollback()
 
-	villageIDStr, _ := ctx.Locals("village").(string)
-	if villageIDStr == "" {
-		log.Error("Village ID not found in context")
-		return nil, errors.New("village ID is required")
-	}
-	villageID, err := uuid.Parse(villageIDStr)
-	// Check if the village ID is valid
+	villageID, err := s.villageIDFromCtx(ctx)
 	if err != nil {
-		log.Error("Error parsing village ID:", err)
-		return nil, errors.New("village ID is not valid")
+		return nil, err
 	}
 
 	// Check if the NIK already exists
@@ -84,22 +77,31 @@ func (s *FamilyCardService) CreateFamilyCard(
 	}, nil
 }
 
-func (s *FamilyCardService) GetFamilyCardByNIK(nik string) (*dtos.GetAllFamilyMember, error) {
-	response, err := s.familyCardRepo.GetNIKAndAddressByNIK(nik)
+func (s *FamilyCardService) GetFamilyCardByNIK(nik string, ctx *fiber.Ctx) (*dtos.GetAllFamilyMember, error) {
+	villageID, err := s.villageIDFromCtx(ctx)
 	if err != nil {
+		return nil, err
+	}
+
+	familyCard, err := s.familyCardRepo.GetFamilyCardByNIK(&nik)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("family card not found")
+		}
 		log.Error("Error getting family card by NIK:", err)
 		return nil, errors.New("failed to get family card by NIK")
+	}
+	// Same response as a genuine not-found: confirming the record exists in
+	// another village would itself be a PII leak.
+	if familyCard.VillageID != villageID {
+		log.Error("Family card belongs to a different village:", familyCard.NIK)
+		return nil, errors.New("family card not found")
 	}
 
 	villagers, err := s.villagerRepo.GetVillagersByFamilyCardNIK(&nik)
 	if err != nil {
 		log.Error("Error getting villagers by family card ID:", err)
 		return nil, errors.New("failed to get villagers by family card ID")
-	}
-
-	if response == nil {
-		log.Error("Family card not found for NIK:", nik)
-		return nil, errors.New("family card not found")
 	}
 
 	// Convert []*dtos.GetFamilyMember to []dtos.GetFamilyMember
@@ -111,13 +113,18 @@ func (s *FamilyCardService) GetFamilyCardByNIK(nik string) (*dtos.GetAllFamilyMe
 	}
 
 	return &dtos.GetAllFamilyMember{
-		NIK:           nik,
-		Address:       response.Address,
+		NIK:           familyCard.NIK,
+		Address:       familyCard.Alamat,
 		FamilyMembers: familyMembers,
 	}, nil
 }
 
-func (s *FamilyCardService) DeleteFamilyCard(nik string) error {
+func (s *FamilyCardService) DeleteFamilyCard(nik string, ctx *fiber.Ctx) error {
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
 	tx := s.familyCardRepo.BeginTransaction()
 	defer tx.Rollback()
 
@@ -126,6 +133,10 @@ func (s *FamilyCardService) DeleteFamilyCard(nik string) error {
 		return errors.New("family card not found")
 	}
 	if existing == nil {
+		return errors.New("family card not found")
+	}
+	if existing.VillageID != villageID {
+		log.Error("Family card belongs to a different village:", existing.NIK)
 		return errors.New("family card not found")
 	}
 
@@ -146,15 +157,9 @@ func (s *FamilyCardService) DeleteFamilyCard(nik string) error {
 func (s *FamilyCardService) GetAllFamilyCardsByVillageID(
 	ctx *fiber.Ctx,
 ) (*dtos.GetAllFamilyCardsResponse, error) {
-	villageIDStr, _ := ctx.Locals("village").(string)
-	if villageIDStr == "" {
-		log.Error("Village ID not found in context")
-		return nil, errors.New("village ID is required")
-	}
-	villageID, err := uuid.Parse(villageIDStr)
+	villageID, err := s.villageIDFromCtx(ctx)
 	if err != nil {
-		log.Error("Error parsing village ID:", err)
-		return nil, errors.New("village ID is not valid")
+		return nil, err
 	}
 
 	familyCards, err := s.familyCardRepo.GetAllFamilyCardsByVillageID(&villageID)
@@ -201,4 +206,18 @@ func (s *FamilyCardService) GetAllFamilyCardsByVillageID(
 	}
 
 	return &response, nil
+}
+
+func (s *FamilyCardService) villageIDFromCtx(ctx *fiber.Ctx) (uuid.UUID, error) {
+	villageIDStr, _ := ctx.Locals("village").(string)
+	if villageIDStr == "" {
+		log.Error("Village ID not found in context")
+		return uuid.Nil, errors.New("village ID is required")
+	}
+	villageID, err := uuid.Parse(villageIDStr)
+	if err != nil {
+		log.Error("Error parsing village ID:", err)
+		return uuid.Nil, errors.New("village ID is not valid")
+	}
+	return villageID, nil
 }
