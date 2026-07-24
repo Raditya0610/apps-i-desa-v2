@@ -25,6 +25,10 @@ func (r *FamilyCardRepository) CreateWithTx(tx *gorm.DB, familyCard *models.Fami
 	return tx.Create(familyCard).Error
 }
 
+func (r *FamilyCardRepository) UpdateWithTx(tx *gorm.DB, familyCard *models.FamilyCard) error {
+	return tx.Save(familyCard).Error
+}
+
 func (r *FamilyCardRepository) GetAllFamilyCardsByVillageID(
 	villageID *uuid.UUID,
 ) ([]*models.FamilyCard, error) {

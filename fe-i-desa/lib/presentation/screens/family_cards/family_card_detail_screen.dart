@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../providers/family_card_detail_provider.dart';
+import '../../../data/models/family_card_detail.dart';
 import '../../../data/repositories/villager_repository.dart';
 import '../../widgets/common/app_shell.dart';
 import '../../widgets/common/offline_banner.dart';
@@ -54,7 +55,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Family Info Card
-                              _buildFamilyInfoCard(context, familyCardDetail),
+                              _buildFamilyInfoCard(context, ref, familyCardDetail),
                               const SizedBox(height: ForuiThemeConfig.spacingLarge),
 
                               // Members Section Header with Add Button
@@ -251,7 +252,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFamilyInfoCard(BuildContext context, dynamic familyCardDetail) {
+  Widget _buildFamilyInfoCard(BuildContext context, WidgetRef ref, dynamic familyCardDetail) {
     return Container(
       padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
       decoration: BoxDecoration(
@@ -297,11 +298,25 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined,
+                    size: 20, color: ForuiThemeConfig.primaryGreen),
+                onPressed: () => _navigateToEditFamilyCard(context, ref, familyCardDetail),
+                tooltip: 'Edit Kartu Keluarga',
+              ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _navigateToEditFamilyCard(
+      BuildContext context, WidgetRef ref, FamilyCardDetail familyCardDetail) async {
+    await context.push('/family-cards/add', extra: familyCardDetail);
+    if (context.mounted) {
+      ref.invalidate(familyCardDetailProvider(nik));
+    }
   }
 
   Widget _buildMembersSectionHeader(BuildContext context, WidgetRef ref) {

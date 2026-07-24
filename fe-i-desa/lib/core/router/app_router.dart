@@ -8,6 +8,7 @@ import '../../presentation/screens/dashboard/dashboard_screen.dart';
 import '../../presentation/screens/family_cards/family_cards_screen.dart';
 import '../../presentation/screens/family_cards/family_card_detail_screen.dart';
 import '../../presentation/screens/family_cards/add_family_card_screen.dart';
+import '../../data/models/family_card_detail.dart';
 import '../../presentation/screens/import/import_data_screen.dart';
 import '../../presentation/screens/sub_dimensions/sub_dimensions_hub_screen.dart';
 import '../../presentation/screens/sub_dimensions/pendidikan_form_screen.dart';
@@ -80,7 +81,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/family-cards/add',
-        pageBuilder: (context, state) => _page(state, const AddFamilyCardScreen()),
+        // Reused for both add and edit: passing a FamilyCardDetail as `extra`
+        // (see the Edit button in family_card_detail_screen.dart) switches
+        // the screen into edit mode instead of needing a second route.
+        pageBuilder: (context, state) => _page(
+          state,
+          AddFamilyCardScreen(existing: state.extra as FamilyCardDetail?),
+        ),
       ),
       GoRoute(
         path: '/import-data',

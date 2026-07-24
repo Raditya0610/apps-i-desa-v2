@@ -4,11 +4,19 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../data/models/family_card.dart';
+import '../../../data/models/family_card_detail.dart';
 import '../../../providers/family_card_provider.dart';
 import '../../widgets/common/app_shell.dart';
 
 class AddFamilyCardScreen extends ConsumerStatefulWidget {
-  const AddFamilyCardScreen({super.key});
+  /// When set, the screen edits this family card instead of creating a new
+  /// one — same form, prefilled, NIK locked (it's the record's own primary
+  /// key, not an editable attribute).
+  final FamilyCardDetail? existing;
+
+  const AddFamilyCardScreen({super.key, this.existing});
+
+  bool get isEditMode => existing != null;
 
   @override
   ConsumerState<AddFamilyCardScreen> createState() =>
@@ -28,6 +36,23 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
   final _provinsiController = TextEditingController();
 
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing != null) {
+      _nikController.text = existing.nik;
+      _addressController.text = existing.address;
+      _rtController.text = existing.rt;
+      _rwController.text = existing.rw;
+      _kelurahanController.text = existing.kelurahan;
+      _kecamatanController.text = existing.kecamatan;
+      _kabupatenKotaController.text = existing.kabupatenKota;
+      _kodePosController.text = existing.kodePos;
+      _provinsiController.text = existing.provinsi;
+    }
+  }
 
   @override
   void dispose() {
@@ -52,23 +77,39 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
       _isLoading = true;
     });
 
-    final familyCard = FamilyCard(
-      nik: _nikController.text,
-      name: '',
-      totalMembers: 0,
-      address: _addressController.text,
-      rt: _rtController.text,
-      rw: _rwController.text,
-      kelurahan: _kelurahanController.text,
-      kecamatan: _kecamatanController.text,
-      kabupatenKota: _kabupatenKotaController.text,
-      kodePos: _kodePosController.text,
-      provinsi: _provinsiController.text,
-    );
-
-    final result = await ref
-        .read(familyCardsProvider.notifier)
-        .addFamilyCard(familyCard);
+    final Map<String, dynamic> result;
+    if (widget.isEditMode) {
+      result = await ref.read(familyCardsProvider.notifier).updateFamilyCard(
+        _nikController.text,
+        {
+          'address': _addressController.text,
+          'rt': _rtController.text,
+          'rw': _rwController.text,
+          'kelurahan': _kelurahanController.text,
+          'kecamatan': _kecamatanController.text,
+          'kabupaten_kota': _kabupatenKotaController.text,
+          'kode_pos': _kodePosController.text,
+          'provinsi': _provinsiController.text,
+        },
+      );
+    } else {
+      final familyCard = FamilyCard(
+        nik: _nikController.text,
+        name: '',
+        totalMembers: 0,
+        address: _addressController.text,
+        rt: _rtController.text,
+        rw: _rwController.text,
+        kelurahan: _kelurahanController.text,
+        kecamatan: _kecamatanController.text,
+        kabupatenKota: _kabupatenKotaController.text,
+        kodePos: _kodePosController.text,
+        provinsi: _provinsiController.text,
+      );
+      result = await ref
+          .read(familyCardsProvider.notifier)
+          .addFamilyCard(familyCard);
+    }
 
     setState(() {
       _isLoading = false;
@@ -136,22 +177,24 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
             color: ForuiThemeConfig.textPrimary,
           ),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Tambah Kartu Keluarga',
-                  style: TextStyle(
+                  widget.isEditMode ? 'Edit Kartu Keluarga' : 'Tambah Kartu Keluarga',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: ForuiThemeConfig.textPrimary,
                   ),
                 ),
                 Text(
-                  'Tambahkan data kartu keluarga baru',
-                  style: TextStyle(
+                  widget.isEditMode
+                      ? 'Perbarui data kartu keluarga'
+                      : 'Tambahkan data kartu keluarga baru',
+                  style: const TextStyle(
                     fontSize: 12,
                     color: ForuiThemeConfig.textSecondary,
                   ),
@@ -200,11 +243,11 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
                   ),
                 ),
                 const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Informasi Kartu Keluarga',
                         style: TextStyle(
                           fontSize: 15,
@@ -212,10 +255,12 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
                           color: ForuiThemeConfig.textPrimary,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'Lengkapi data kartu keluarga di bawah ini',
-                        style: TextStyle(
+                        widget.isEditMode
+                            ? 'Perbarui data yang perlu diperbaiki di bawah ini'
+                            : 'Lengkapi data kartu keluarga di bawah ini',
+                        style: const TextStyle(
                           fontSize: 12,
                           color: ForuiThemeConfig.textSecondary,
                         ),
@@ -240,6 +285,7 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
                   const SizedBox(height: ForuiThemeConfig.spacingSmall),
                   TextFormField(
                     controller: _nikController,
+                    enabled: !widget.isEditMode,
                     decoration: _inputDecoration(
                       hint: 'Masukkan 16 digit nomor KK',
                       icon: Icons.credit_card,
@@ -445,9 +491,9 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
                                     ),
                                   ),
                                 )
-                              : const Text(
-                                  'Simpan',
-                                  style: TextStyle(
+                              : Text(
+                                  widget.isEditMode ? 'Simpan Perubahan' : 'Simpan',
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

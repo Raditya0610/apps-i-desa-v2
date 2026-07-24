@@ -14,12 +14,17 @@ import (
 )
 
 type VillagerService struct {
-	villagerRepo *repositories.VillagerRepository
+	villagerRepo   *repositories.VillagerRepository
+	familyCardRepo *repositories.FamilyCardRepository
 }
 
-func NewVillagerService(villagerRepo *repositories.VillagerRepository) *VillagerService {
+func NewVillagerService(
+	villagerRepo *repositories.VillagerRepository,
+	familyCardRepo *repositories.FamilyCardRepository,
+) *VillagerService {
 	return &VillagerService{
-		villagerRepo: villagerRepo,
+		villagerRepo:   villagerRepo,
+		familyCardRepo: familyCardRepo,
 	}
 }
 
@@ -52,6 +57,24 @@ func (s *VillagerService) CreateVillager(
 	if existingVillager != nil {
 		log.Println("Villager with the same NIK already exists")
 		return nil, errors.New("villager with the same NIK already exists")
+	}
+
+	// The family card must exist and belong to the caller's own village —
+	// without this, a client can submit any family_card_id and attach a
+	// fabricated resident to a different village's family, since nothing
+	// else here ties FamilyCardID back to the caller's identity.
+	familyCard, err := s.familyCardRepo.GetFamilyCardByNIK(&request.FamilyCardID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Println("Family card not found:", request.FamilyCardID)
+			return nil, errors.New("family card not found")
+		}
+		log.Println("Error checking family card:", err)
+		return nil, errors.New("failed to check family card")
+	}
+	if familyCard.VillageID != villageID {
+		log.Println("Family card belongs to a different village:", familyCard.NIK)
+		return nil, errors.New("family card not found")
 	}
 
 	villager := &models.Villager{

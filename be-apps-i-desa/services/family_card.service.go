@@ -115,7 +115,79 @@ func (s *FamilyCardService) GetFamilyCardByNIK(nik string, ctx *fiber.Ctx) (*dto
 	return &dtos.GetAllFamilyMember{
 		NIK:           familyCard.NIK,
 		Address:       familyCard.Alamat,
+		RT:            familyCard.RT,
+		RW:            familyCard.RW,
+		Kelurahan:     familyCard.Kelurahan,
+		Kecamatan:     familyCard.Kecamatan,
+		KabupatenKota: familyCard.KabupatenKota,
+		KodePos:       familyCard.KodePos,
+		Provinsi:      familyCard.Provinsi,
 		FamilyMembers: familyMembers,
+	}, nil
+}
+
+func (s *FamilyCardService) UpdateFamilyCard(
+	nik string,
+	request *dtos.UpdateFamilyCardRequest,
+	ctx *fiber.Ctx,
+) (*dtos.MessageResponse, error) {
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := s.familyCardRepo.BeginTransaction()
+	defer tx.Rollback()
+
+	familyCard, err := s.familyCardRepo.GetFamilyCardByNIK(&nik)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("family card not found")
+		}
+		log.Error("Error getting family card by NIK:", err)
+		return nil, errors.New("failed to get family card by NIK")
+	}
+	if familyCard.VillageID != villageID {
+		log.Error("Family card belongs to a different village:", familyCard.NIK)
+		return nil, errors.New("family card not found")
+	}
+
+	if request.Address != nil {
+		familyCard.Alamat = *request.Address
+	}
+	if request.RT != nil {
+		familyCard.RT = *request.RT
+	}
+	if request.RW != nil {
+		familyCard.RW = *request.RW
+	}
+	if request.Kelurahan != nil {
+		familyCard.Kelurahan = *request.Kelurahan
+	}
+	if request.Kecamatan != nil {
+		familyCard.Kecamatan = *request.Kecamatan
+	}
+	if request.KabupatenKota != nil {
+		familyCard.KabupatenKota = *request.KabupatenKota
+	}
+	if request.KodePos != nil {
+		familyCard.KodePos = *request.KodePos
+	}
+	if request.Provinsi != nil {
+		familyCard.Provinsi = *request.Provinsi
+	}
+
+	if err := s.familyCardRepo.UpdateWithTx(tx, familyCard); err != nil {
+		log.Error("Error updating family card:", err)
+		return nil, errors.New("failed to update family card")
+	}
+	if err := tx.Commit().Error; err != nil {
+		log.Error("Error committing transaction:", err)
+		return nil, errors.New("failed to commit transaction")
+	}
+
+	return &dtos.MessageResponse{
+		Message: "Family card updated successfully",
 	}, nil
 }
 

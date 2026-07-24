@@ -14,9 +14,13 @@ type AddVillagerRequest struct {
 	Kewarganegaraan  string  `json:"kewarganegaraan"   validate:"required"`
 	NomorPaspor      *string `json:"nomor_paspor"      validate:"omitempty"`
 	NomorKitas       *string `json:"nomor_kitas"       validate:"omitempty"`
-	NamaAyah         string  `json:"nama_ayah"         validate:"required"`
-	NamaIbu          string  `json:"nama_ibu"          validate:"required"`
-	FamilyCardID     string  `json:"family_card_id"    validate:"required"`
+	// Optional: the Buku Induk Penduduk ledger many villages import from has
+	// no parent-name columns at all, and plenty of manually-entered residents
+	// (e.g. elderly with unrecorded parentage) legitimately don't have this
+	// either. Editable later regardless via UpdateVillagerRequest.
+	NamaAyah     string `json:"nama_ayah"         validate:"omitempty"`
+	NamaIbu      string `json:"nama_ibu"          validate:"omitempty"`
+	FamilyCardID string `json:"family_card_id"    validate:"required"`
 }
 
 type GetVillagerResponse struct {

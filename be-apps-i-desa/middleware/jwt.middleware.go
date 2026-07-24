@@ -33,11 +33,23 @@ func JWTAuth() fiber.Handler {
 			})
 		}
 
+		// Fail closed, matching AdminToken's own handling of its secret: an
+		// unset JWT_SECRET must not silently become an empty-string HMAC key,
+		// since Go's HMAC accepts an empty key without error — that would let
+		// anyone self-sign an arbitrary token (any username/village/session_id)
+		// the moment this env var is ever missing in a deployed environment.
+		secret := os.Getenv("JWT_SECRET")
+		if secret == "" {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Server misconfigured: JWT_SECRET is not set",
+			})
+		}
+
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid token")
 			}
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			return []byte(secret), nil
 		})
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

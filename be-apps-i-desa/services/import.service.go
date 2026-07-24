@@ -36,7 +36,45 @@ func NewImportService(
 
 // ── Row shapes ───────────────────────────────────────────────────────────
 
-type familyCardRow struct {
+// personRow is one row of the single "Data Penduduk" sheet: one person, plus
+// the family-level fields that only need to be filled in on the first row of
+// a given Nomor KK (see resolveFamilyGroup).
+type personRow struct {
+	RowNum int
+
+	NamaLengkap      string
+	JenisKelamin     string
+	StatusPerkawinan string
+	TempatLahir      string
+	TanggalLahirRaw  string
+	Agama            string
+	Pendidikan       string
+	Pekerjaan        string
+	Kewarganegaraan  string
+	StatusHubungan   string
+	NIK              string
+	NomorKK          string
+	NamaAyah         string
+	NamaIbu          string
+	NomorPaspor      string
+	NomorKitas       string
+
+	// Family-level — only required on whichever row of a Nomor KK group ends
+	// up supplying them (see hasCompleteFamilyFields).
+	Alamat        string
+	RT            string
+	RW            string
+	Kelurahan     string
+	Kecamatan     string
+	KabupatenKota string
+	KodePos       string
+	Provinsi      string
+}
+
+// familyFields is the family-level data resolved for one Nomor KK group,
+// sourced from whichever row supplied complete address fields (or empty,
+// keyed just by RowNum/NIK, when no row did).
+type familyFields struct {
 	RowNum        int
 	NIK           string
 	Address       string
@@ -49,38 +87,18 @@ type familyCardRow struct {
 	Provinsi      string
 }
 
-type villagerRow struct {
-	RowNum           int
-	NamaLengkap      string
-	JenisKelamin     string
-	StatusPerkawinan string
-	TempatLahir      string
-	TanggalLahirRaw  string
-	Agama            string
-	Pendidikan       string
-	Pekerjaan        string
-	Kewarganegaraan  string
-	StatusHubungan   string
-	NIK              string
-	FamilyCardNIK    string
-	NamaAyah         string
-	NamaIbu          string
-	NomorPaspor      string
-	NomorKitas       string
-}
-
 // resolution wraps a parsed row with the outcome decided during validation.
 // Rows destined for insertion carry ImportStatusInserted provisionally until
 // their family group's transaction actually commits — commitFamilyGroup flips
 // this to Failed in place if the transaction does not succeed.
 type fcResolution struct {
-	row    familyCardRow
+	row    familyFields
 	status string
 	reason string
 }
 
 type villagerResolution struct {
-	row          villagerRow
+	row          personRow
 	status       string
 	reason       string
 	tanggalLahir time.Time
@@ -98,8 +116,9 @@ type familyGroup struct {
 
 // ── Field labels for validator-error translation ────────────────────────
 // Two separate maps because the same DTO field name means a different thing
-// on each sheet: AddFamilyCardRequest.NIK is what the template calls "Nomor
-// KK", while AddVillagerRequest.NIK is the person's own NIK.
+// depending on which struct it's validating: AddFamilyCardRequest.NIK is
+// what the template calls "Nomor KK", while AddVillagerRequest.NIK is the
+// person's own NIK.
 
 var familyCardFieldLabels = map[string]string{
 	"NIK": "Nomor KK", "Address": "Alamat Lengkap", "RT": "RT", "RW": "RW",
@@ -145,29 +164,23 @@ func (s *ImportService) ProcessImport(file interface {
 	}
 	defer wb.Close()
 
-	fcRawRows, err := wb.GetRows(importSheetFamilyCards)
+	rawRows, err := wb.GetRows(importSheetData)
 	if err != nil {
-		return nil, fmt.Errorf("sheet %q tidak ditemukan di file — gunakan template resmi", importSheetFamilyCards)
-	}
-	vRawRows, err := wb.GetRows(importSheetVillagers)
-	if err != nil {
-		return nil, fmt.Errorf("sheet %q tidak ditemukan di file — gunakan template resmi", importSheetVillagers)
+		return nil, fmt.Errorf("sheet %q tidak ditemukan di file — gunakan template resmi", importSheetData)
 	}
 
-	fcRows := parseFamilyCardRows(fcRawRows)
-	vRows := parseVillagerRows(vRawRows)
+	rows := parsePersonRows(rawRows)
 
-	existingFCSet, existingFCInVillageSet, err := s.existingFamilyCardNIKs(villageID, fcRows, vRows)
+	existingKKGlobal, existingKKInVillage, err := s.existingFamilyCardNIKs(villageID, rows)
 	if err != nil {
 		return nil, errors.New("gagal memeriksa data Kartu Keluarga yang sudah ada")
 	}
-	existingVillagerSet, err := s.existingVillagerNIKs(vRows)
+	existingPersonNIKs, err := s.existingVillagerNIKs(rows)
 	if err != nil {
 		return nil, errors.New("gagal memeriksa data penduduk yang sudah ada")
 	}
 
-	fcResolved, usableKK, fcFailedSet := s.resolveFamilyCardRows(fcRows, existingFCSet, existingFCInVillageSet)
-	vResolved := s.resolveVillagerRows(vRows, existingVillagerSet, existingFCInVillageSet, usableKK, fcFailedSet)
+	fcResolved, vResolved := s.resolvePersonRows(rows, existingPersonNIKs, existingKKGlobal, existingKKInVillage)
 
 	groups := buildFamilyGroups(fcResolved, vResolved)
 	for kk, g := range groups {
@@ -180,27 +193,20 @@ func (s *ImportService) ProcessImport(file interface {
 // ── Batch existence checks (2 queries total, no N+1) ────────────────────
 
 // existingFamilyCardNIKs returns two views of Nomor KK existence:
-//   - global: any Nomor KK that already exists anywhere in the system, used
-//     to mark a Kartu Keluarga row as a duplicate. Intentionally not
-//     village-scoped — Nomor KK is meant to be nationally unique, so a
-//     collision anywhere is a legitimate duplicate regardless of which
-//     village created it.
+//   - global: any Nomor KK that already exists anywhere in the system.
+//     Intentionally not village-scoped — Nomor KK is meant to be nationally
+//     unique, so a collision anywhere means this upload cannot create a new
+//     family card with that number, regardless of which village holds it.
 //   - inVillage: the subset of those that belong to the uploader's own
-//     village, used to decide whether a villager row may link to a family
-//     card that already exists. This one MUST stay village-scoped: without
-//     it, a villager row could name any Nomor KK that happens to exist in a
-//     different village and get silently attached to it.
+//     village — the only ones a person row may attach to as an existing
+//     family. Without this distinction, a Nomor KK that happens to exist in
+//     a different village would still let this upload's rows attach to it.
 func (s *ImportService) existingFamilyCardNIKs(
-	villageID uuid.UUID, fcRows []familyCardRow, vRows []villagerRow,
+	villageID uuid.UUID, rows []personRow,
 ) (global map[string]bool, inVillage map[string]bool, err error) {
 	candidates := map[string]bool{}
-	for _, r := range fcRows {
-		if r.NIK != "" {
-			candidates[r.NIK] = true
-		}
-	}
-	for _, r := range vRows {
-		if kk := strings.TrimSpace(r.FamilyCardNIK); kk != "" {
+	for _, r := range rows {
+		if kk := strings.TrimSpace(r.NomorKK); kk != "" {
 			candidates[kk] = true
 		}
 	}
@@ -221,9 +227,9 @@ func (s *ImportService) existingFamilyCardNIKs(
 	return toSet(globalExisting), toSet(inVillageExisting), nil
 }
 
-func (s *ImportService) existingVillagerNIKs(vRows []villagerRow) (map[string]bool, error) {
+func (s *ImportService) existingVillagerNIKs(rows []personRow) (map[string]bool, error) {
 	candidates := map[string]bool{}
-	for _, r := range vRows {
+	for _, r := range rows {
 		if r.NIK != "" {
 			candidates[r.NIK] = true
 		}
@@ -241,76 +247,35 @@ func (s *ImportService) existingVillagerNIKs(vRows []villagerRow) (map[string]bo
 
 // ── Row resolution ───────────────────────────────────────────────────────
 
-// resolveFamilyCardRows validates each Kartu Keluarga row and decides its
-// outcome. usableKK reports which Nomor KK values members may link to — a
-// freshly-inserted row always qualifies, but a row skipped as an existing
-// duplicate only qualifies if that existing family card actually belongs to
-// this village (existingFCInVillageSet); otherwise a KK collision with
-// another village would wrongly let this upload's members attach to it.
-// fcFailedSet flags Nomor KK values that appear in the sheet but whose row
-// failed, so a member referencing one gets a precise reason instead of "not
-// found".
-func (s *ImportService) resolveFamilyCardRows(
-	rows []familyCardRow, existingFCSet, existingFCInVillageSet map[string]bool,
-) (resolved []fcResolution, usableKK map[string]bool, fcFailedSet map[string]bool) {
-	usableKK = map[string]bool{}
-	fcFailedSet = map[string]bool{}
-	seen := map[string]int{}
-
+// resolvePersonRows validates every row's own person-level fields, resolves
+// one family outcome per distinct Nomor KK group, and combines the two into
+// a final per-row result: a row fails if its own fields are invalid, if it's
+// a duplicate NIK within the file, or if the family group it belongs to
+// could not be resolved.
+func (s *ImportService) resolvePersonRows(
+	rows []personRow,
+	existingPersonNIKs, existingKKGlobal, existingKKInVillage map[string]bool,
+) ([]fcResolution, []villagerResolution) {
+	// Phase 1: per-row person-level validation, independent of family/group
+	// concerns — a typo in one person's NIK has no bearing on whether their
+	// family's address data is usable, and vice versa.
+	type eval struct {
+		dup          bool
+		dupReason    string
+		reasons      []string
+		tanggalLahir time.Time
+	}
+	seenNIK := map[string]int{}
+	evals := make([]eval, len(rows))
 	for i, r := range rows {
-		if firstIdx, dup := seen[r.NIK]; dup {
-			resolved = append(resolved, fcResolution{
-				row: r, status: dtos.ImportStatusFailed,
-				reason: fmt.Sprintf("Nomor KK duplikat dalam file (baris pertama: baris %d)", rows[firstIdx].RowNum),
-			})
-			continue
-		}
-		seen[r.NIK] = i
-
-		req := buildFamilyCardRequest(r)
-		if err := s.validate.Struct(&req); err != nil {
-			resolved = append(resolved, fcResolution{
-				row: r, status: dtos.ImportStatusFailed,
-				reason: translateValidationErrors(err, familyCardFieldLabels),
-			})
-			fcFailedSet[r.NIK] = true
-			continue
-		}
-
-		if existingFCSet[r.NIK] {
-			resolved = append(resolved, fcResolution{
-				row: r, status: dtos.ImportStatusSkippedDuplicate,
-				reason: "Nomor KK sudah terdaftar di sistem",
-			})
-			if existingFCInVillageSet[r.NIK] {
-				usableKK[r.NIK] = true
+		if firstIdx, dup := seenNIK[r.NIK]; dup {
+			evals[i] = eval{
+				dup:       true,
+				dupReason: fmt.Sprintf("NIK duplikat dalam file (baris pertama: baris %d)", rows[firstIdx].RowNum),
 			}
 			continue
 		}
-
-		resolved = append(resolved, fcResolution{row: r, status: dtos.ImportStatusInserted})
-		usableKK[r.NIK] = true
-	}
-
-	return resolved, usableKK, fcFailedSet
-}
-
-func (s *ImportService) resolveVillagerRows(
-	rows []villagerRow,
-	existingVillagerSet, existingFCInVillageSet, usableKK, fcFailedSet map[string]bool,
-) []villagerResolution {
-	var resolved []villagerResolution
-	seen := map[string]int{}
-
-	for i, r := range rows {
-		if firstIdx, dup := seen[r.NIK]; dup {
-			resolved = append(resolved, villagerResolution{
-				row: r, status: dtos.ImportStatusFailed,
-				reason: fmt.Sprintf("NIK duplikat dalam file (baris pertama: baris %d)", rows[firstIdx].RowNum),
-			})
-			continue
-		}
-		seen[r.NIK] = i
+		seenNIK[r.NIK] = i
 
 		var reasons []string
 		if reason := validateEnumOption("Jenis Kelamin", r.JenisKelamin, dtos.ImportJenisKelaminOptions); reason != "" {
@@ -345,39 +310,180 @@ func (s *ImportService) resolveVillagerRows(
 			reasons = append(reasons, translateValidationErrors(err, villagerFieldLabels))
 		}
 
-		if len(reasons) > 0 {
-			resolved = append(resolved, villagerResolution{
-				row: r, status: dtos.ImportStatusFailed, reason: strings.Join(reasons, "; "),
-			})
+		evals[i] = eval{reasons: reasons, tanggalLahir: tanggalLahir}
+	}
+
+	// Phase 2: one family resolution per distinct Nomor KK. Rows with a
+	// blank Nomor KK are excluded from grouping — they already fail on their
+	// own via the "required" check on FamilyCardID above.
+	groupRows := map[string][]personRow{}
+	var groupOrder []string
+	for _, r := range rows {
+		kk := strings.TrimSpace(r.NomorKK)
+		if kk == "" {
+			continue
+		}
+		if _, seen := groupRows[kk]; !seen {
+			groupOrder = append(groupOrder, kk)
+		}
+		groupRows[kk] = append(groupRows[kk], r)
+	}
+
+	var fcResolved []fcResolution
+	familyOutcome := make(map[string]fcResolution, len(groupOrder))
+	for _, kk := range groupOrder {
+		res := s.resolveFamilyGroup(kk, groupRows[kk], existingKKGlobal, existingKKInVillage)
+		familyOutcome[kk] = res
+		fcResolved = append(fcResolved, res)
+	}
+
+	// Phase 3: combine. A non-fatal note (not a failure) is attached when a
+	// later row of the same family repeats an address field that disagrees
+	// with the row actually used to create it — most likely a typo, not
+	// something that should block that row from being inserted.
+	var vResolved []villagerResolution
+	for i, r := range rows {
+		e := evals[i]
+		if e.dup {
+			vResolved = append(vResolved, villagerResolution{row: r, status: dtos.ImportStatusFailed, reason: e.dupReason})
 			continue
 		}
 
-		if existingVillagerSet[r.NIK] {
-			resolved = append(resolved, villagerResolution{
-				row: r, status: dtos.ImportStatusSkippedDuplicate, reason: "NIK sudah terdaftar di sistem",
-			})
-			continue
-		}
+		reasons := append([]string{}, e.reasons...)
+		var notes []string
 
-		kk := strings.TrimSpace(r.FamilyCardNIK)
-		// existingFCInVillageSet, not the global existence set: a Nomor KK
-		// that exists but belongs to a different village must not be usable
-		// as a link target here.
-		if !usableKK[kk] && !existingFCInVillageSet[kk] {
-			reason := fmt.Sprintf("Nomor KK %q tidak ditemukan di sheet Kartu Keluarga maupun sistem", kk)
-			if fcFailedSet[kk] {
-				reason = fmt.Sprintf("Nomor KK %q ada di sheet Kartu Keluarga tetapi baris tersebut gagal diproses", kk)
+		kk := strings.TrimSpace(r.NomorKK)
+		if fam, hasFamily := familyOutcome[kk]; hasFamily {
+			if fam.status == dtos.ImportStatusFailed {
+				reasons = append(reasons, "Kartu Keluarga terkait gagal diproses: "+fam.reason)
+			} else if fam.status == dtos.ImportStatusInserted && r.RowNum != fam.row.RowNum {
+				if mismatch := describeFamilyFieldMismatch(r, fam.row); mismatch != "" {
+					notes = append(notes, mismatch)
+				}
 			}
-			resolved = append(resolved, villagerResolution{row: r, status: dtos.ImportStatusFailed, reason: reason})
+		}
+		// hasFamily is false only when kk == "" — the FamilyCardID
+		// "required" validator error already explains that case.
+
+		if len(reasons) > 0 {
+			vResolved = append(vResolved, villagerResolution{row: r, status: dtos.ImportStatusFailed, reason: strings.Join(reasons, "; ")})
 			continue
 		}
 
-		resolved = append(resolved, villagerResolution{
-			row: r, status: dtos.ImportStatusInserted, tanggalLahir: tanggalLahir,
+		if existingPersonNIKs[r.NIK] {
+			reason := "NIK sudah terdaftar di sistem"
+			if len(notes) > 0 {
+				reason += "; " + strings.Join(notes, "; ")
+			}
+			vResolved = append(vResolved, villagerResolution{row: r, status: dtos.ImportStatusSkippedDuplicate, reason: reason})
+			continue
+		}
+
+		vResolved = append(vResolved, villagerResolution{
+			row: r, status: dtos.ImportStatusInserted, tanggalLahir: e.tanggalLahir,
+			reason: strings.Join(notes, "; "),
 		})
 	}
 
-	return resolved
+	return fcResolved, vResolved
+}
+
+// resolveFamilyGroup decides what happens to one Nomor KK: already this
+// village's (skip, members may attach), already exists but belongs to
+// another village (fail — cannot create it, cannot attach to it either),
+// or new (create it from whichever row in the group supplied complete,
+// valid address fields).
+func (s *ImportService) resolveFamilyGroup(
+	nomorKK string, rows []personRow, existingKKGlobal, existingKKInVillage map[string]bool,
+) fcResolution {
+	firstRowNum := rows[0].RowNum
+
+	type kkFormatCheck struct {
+		NIK string `validate:"required,len=16,numeric"`
+	}
+	if err := s.validate.Struct(&kkFormatCheck{NIK: nomorKK}); err != nil {
+		return fcResolution{
+			row:    familyFields{RowNum: firstRowNum, NIK: nomorKK},
+			status: dtos.ImportStatusFailed,
+			reason: translateValidationErrors(err, familyCardFieldLabels),
+		}
+	}
+
+	if existingKKInVillage[nomorKK] {
+		return fcResolution{
+			row:    familyFields{RowNum: firstRowNum, NIK: nomorKK},
+			status: dtos.ImportStatusSkippedDuplicate,
+			reason: "Nomor KK sudah terdaftar di sistem",
+		}
+	}
+
+	if existingKKGlobal[nomorKK] {
+		return fcResolution{
+			row:    familyFields{RowNum: firstRowNum, NIK: nomorKK},
+			status: dtos.ImportStatusFailed,
+			reason: "Nomor KK ini sudah terdaftar di sistem tetapi bukan milik desa Anda",
+		}
+	}
+
+	for _, r := range rows {
+		if !hasCompleteFamilyFields(r) {
+			continue
+		}
+		fields := familyFieldsFromRow(r, nomorKK)
+		req := buildFamilyCardRequest(fields)
+		if err := s.validate.Struct(&req); err != nil {
+			return fcResolution{
+				row: fields, status: dtos.ImportStatusFailed,
+				reason: translateValidationErrors(err, familyCardFieldLabels),
+			}
+		}
+		return fcResolution{row: fields, status: dtos.ImportStatusInserted}
+	}
+
+	return fcResolution{
+		row:    familyFields{RowNum: firstRowNum, NIK: nomorKK},
+		status: dtos.ImportStatusFailed,
+		reason: "Nomor KK ini belum pernah dibuat — isi Alamat Lengkap, Kelurahan, Kecamatan, Kabupaten/Kota, dan Provinsi pada salah satu baris penduduk untuk Nomor KK ini",
+	}
+}
+
+// hasCompleteFamilyFields reports whether a row carries enough family-level
+// data to create a family_cards row from. RT/RW/Kode Pos are deliberately
+// excluded — those stay optional even on the row that supplies the rest.
+func hasCompleteFamilyFields(r personRow) bool {
+	return r.Alamat != "" && r.Kelurahan != "" && r.Kecamatan != "" && r.KabupatenKota != "" && r.Provinsi != ""
+}
+
+func familyFieldsFromRow(r personRow, nomorKK string) familyFields {
+	return familyFields{
+		RowNum: r.RowNum, NIK: nomorKK, Address: r.Alamat,
+		RT: r.RT, RW: r.RW, Kelurahan: r.Kelurahan, Kecamatan: r.Kecamatan,
+		KabupatenKota: r.KabupatenKota, KodePos: r.KodePos, Provinsi: r.Provinsi,
+	}
+}
+
+func describeFamilyFieldMismatch(r personRow, source familyFields) string {
+	var diffs []string
+	check := func(label, got, want string) {
+		if got != "" && got != want {
+			diffs = append(diffs, label)
+		}
+	}
+	check("Alamat Lengkap", r.Alamat, source.Address)
+	check("RT", r.RT, source.RT)
+	check("RW", r.RW, source.RW)
+	check("Kelurahan", r.Kelurahan, source.Kelurahan)
+	check("Kecamatan", r.Kecamatan, source.Kecamatan)
+	check("Kabupaten/Kota", r.KabupatenKota, source.KabupatenKota)
+	check("Kode Pos", r.KodePos, source.KodePos)
+	check("Provinsi", r.Provinsi, source.Provinsi)
+	if len(diffs) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(
+		"Catatan: %s berbeda dari baris pertama Nomor KK ini (baris %d) — data yang dipakai adalah baris pertama",
+		strings.Join(diffs, ", "), source.RowNum,
+	)
 }
 
 // ── Transactional insert, grouped per family ────────────────────────────
@@ -402,7 +508,7 @@ func buildFamilyGroups(fcResolved []fcResolution, vResolved []villagerResolution
 		if vResolved[i].status != dtos.ImportStatusInserted {
 			continue
 		}
-		kk := strings.TrimSpace(vResolved[i].row.FamilyCardNIK)
+		kk := strings.TrimSpace(vResolved[i].row.NomorKK)
 		g := groups[kk]
 		if g == nil {
 			g = &familyGroup{}
@@ -514,7 +620,7 @@ func buildSummaryResponse(fcResolved []fcResolution, vResolved []villagerResolut
 
 	for _, r := range fcResolved {
 		results = append(results, dtos.ImportRowResult{
-			Sheet: importSheetFamilyCards, Row: r.row.RowNum, Identifier: r.row.NIK,
+			Sheet: importSheetData, Row: r.row.RowNum, Identifier: r.row.NIK,
 			Status: r.status, Reason: r.reason,
 		})
 		summary.FamilyCardsTotal++
@@ -530,7 +636,7 @@ func buildSummaryResponse(fcResolved []fcResolution, vResolved []villagerResolut
 
 	for _, r := range vResolved {
 		results = append(results, dtos.ImportRowResult{
-			Sheet: importSheetVillagers, Row: r.row.RowNum, Identifier: r.row.NIK,
+			Sheet: importSheetData, Row: r.row.RowNum, Identifier: r.row.NIK,
 			Status: r.status, Reason: r.reason,
 		})
 		summary.VillagersTotal++
@@ -549,42 +655,19 @@ func buildSummaryResponse(fcResolved []fcResolution, vResolved []villagerResolut
 
 // ── Parsing helpers ──────────────────────────────────────────────────────
 
-func parseFamilyCardRows(rows [][]string) []familyCardRow {
-	var out []familyCardRow
+// Column indices (0-based) into importDataColumns. Three positions —
+// Nomor Urut (0), Dapat Membaca Huruf (9), Ket (15) — are deliberately
+// skipped: they exist in the template only so a row from the Buku Induk
+// Penduduk ledger can be pasted in one motion (see importDataIgnoredColumns
+// in import_template.service.go).
+func parsePersonRows(rows [][]string) []personRow {
+	var out []personRow
 	for i, row := range rows {
 		rowNum := i + 1
 		if rowNum == 1 || isRowBlank(row) {
 			continue
 		}
-		out = append(out, familyCardRow{
-			RowNum:        rowNum,
-			NIK:           strings.TrimSpace(cell(row, 0)),
-			Address:       strings.TrimSpace(cell(row, 1)),
-			RT:            strings.TrimSpace(cell(row, 2)),
-			RW:            strings.TrimSpace(cell(row, 3)),
-			Kelurahan:     strings.TrimSpace(cell(row, 4)),
-			Kecamatan:     strings.TrimSpace(cell(row, 5)),
-			KabupatenKota: strings.TrimSpace(cell(row, 6)),
-			KodePos:       strings.TrimSpace(cell(row, 7)),
-			Provinsi:      strings.TrimSpace(cell(row, 8)),
-		})
-	}
-	return out
-}
-
-// Column indices (0-based) into importVillagerColumns. Four positions —
-// Nomor Urut (0), Dapat Membaca Huruf (9), Alamat Lengkap (11), Ket (15) —
-// are deliberately skipped: they exist in the template only so a row from
-// the Buku Induk Penduduk ledger can be pasted in one motion (see
-// importVillagerIgnoredColumns in import_template.service.go).
-func parseVillagerRows(rows [][]string) []villagerRow {
-	var out []villagerRow
-	for i, row := range rows {
-		rowNum := i + 1
-		if rowNum == 1 || isRowBlank(row) {
-			continue
-		}
-		out = append(out, villagerRow{
+		out = append(out, personRow{
 			RowNum:           rowNum,
 			NamaLengkap:      strings.TrimSpace(cell(row, 1)),
 			JenisKelamin:     strings.TrimSpace(cell(row, 2)),
@@ -595,13 +678,21 @@ func parseVillagerRows(rows [][]string) []villagerRow {
 			Pendidikan:       strings.TrimSpace(cell(row, 7)),
 			Pekerjaan:        strings.TrimSpace(cell(row, 8)),
 			Kewarganegaraan:  strings.TrimSpace(cell(row, 10)),
+			Alamat:           strings.TrimSpace(cell(row, 11)),
 			StatusHubungan:   strings.TrimSpace(cell(row, 12)),
 			NIK:              strings.TrimSpace(cell(row, 13)),
-			FamilyCardNIK:    strings.TrimSpace(cell(row, 14)),
-			NamaAyah:         strings.TrimSpace(cell(row, 16)),
-			NamaIbu:          strings.TrimSpace(cell(row, 17)),
-			NomorPaspor:      strings.TrimSpace(cell(row, 18)),
-			NomorKitas:       strings.TrimSpace(cell(row, 19)),
+			NomorKK:          strings.TrimSpace(cell(row, 14)),
+			RT:               strings.TrimSpace(cell(row, 16)),
+			RW:               strings.TrimSpace(cell(row, 17)),
+			Kelurahan:        strings.TrimSpace(cell(row, 18)),
+			Kecamatan:        strings.TrimSpace(cell(row, 19)),
+			KabupatenKota:    strings.TrimSpace(cell(row, 20)),
+			KodePos:          strings.TrimSpace(cell(row, 21)),
+			Provinsi:         strings.TrimSpace(cell(row, 22)),
+			NamaAyah:         strings.TrimSpace(cell(row, 23)),
+			NamaIbu:          strings.TrimSpace(cell(row, 24)),
+			NomorPaspor:      strings.TrimSpace(cell(row, 25)),
+			NomorKitas:       strings.TrimSpace(cell(row, 26)),
 		})
 	}
 	return out
@@ -665,13 +756,13 @@ func validateEnumOption(label, value string, options []string) string {
 	return fmt.Sprintf("%s harus salah satu dari: %s (nilai saat ini: %q)", label, strings.Join(options, ", "), value)
 }
 
-func buildFamilyCardRequest(r familyCardRow) dtos.AddFamilyCardRequest {
+func buildFamilyCardRequest(fields familyFields) dtos.AddFamilyCardRequest {
 	// RT/RW/KodePos may legitimately be blank (villages often only have the
 	// Buku Induk Penduduk, not the physical KK certificate with RT/RW/postal
 	// data). Placeholders here only satisfy the shared "required" tag so the
 	// rest of the struct's validation still runs; the real default ('0' for
 	// RT/RW, '' for KodePos) is applied at insert time in commitFamilyGroup.
-	rt, rw, kodePos := r.RT, r.RW, r.KodePos
+	rt, rw, kodePos := fields.RT, fields.RW, fields.KodePos
 	if rt == "" {
 		rt = "0"
 	}
@@ -682,13 +773,13 @@ func buildFamilyCardRequest(r familyCardRow) dtos.AddFamilyCardRequest {
 		kodePos = "0"
 	}
 	return dtos.AddFamilyCardRequest{
-		NIK: r.NIK, Address: r.Address, RT: rt, RW: rw,
-		Kelurahan: r.Kelurahan, Kecamatan: r.Kecamatan,
-		KabupatenKota: r.KabupatenKota, KodePos: kodePos, Provinsi: r.Provinsi,
+		NIK: fields.NIK, Address: fields.Address, RT: rt, RW: rw,
+		Kelurahan: fields.Kelurahan, Kecamatan: fields.Kecamatan,
+		KabupatenKota: fields.KabupatenKota, KodePos: kodePos, Provinsi: fields.Provinsi,
 	}
 }
 
-func buildVillagerRequest(r villagerRow, tanggalLahirStr string) dtos.AddVillagerRequest {
+func buildVillagerRequest(r personRow, tanggalLahirStr string) dtos.AddVillagerRequest {
 	var nomorPaspor, nomorKitas *string
 	if r.NomorPaspor != "" {
 		v := r.NomorPaspor
@@ -704,7 +795,7 @@ func buildVillagerRequest(r villagerRow, tanggalLahirStr string) dtos.AddVillage
 		Pendidikan: r.Pendidikan, Pekerjaan: r.Pekerjaan, StatusPerkawinan: r.StatusPerkawinan,
 		StatusHubungan: r.StatusHubungan, Kewarganegaraan: r.Kewarganegaraan,
 		NomorPaspor: nomorPaspor, NomorKitas: nomorKitas,
-		NamaAyah: r.NamaAyah, NamaIbu: r.NamaIbu, FamilyCardID: strings.TrimSpace(r.FamilyCardNIK),
+		NamaAyah: r.NamaAyah, NamaIbu: r.NamaIbu, FamilyCardID: strings.TrimSpace(r.NomorKK),
 	}
 }
 

@@ -126,6 +126,68 @@ func (c *FamilyCardController) GetFamilyCardByNIK(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusOK).JSON(response)
 }
 
+// UpdateFamilyCard handles partial updates to an existing family card
+func (c *FamilyCardController) UpdateFamilyCard(ctx *fiber.Ctx) error {
+	nik := ctx.Params("id")
+	if nik == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "NIK is required",
+		})
+	}
+
+	var request dtos.UpdateFamilyCardRequest
+	if err := ctx.BodyParser(&request); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid request body",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.validate.Struct(&request); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+
+	response, err := c.familyCardService.UpdateFamilyCard(nik, &request, ctx)
+	if err != nil {
+		if err.Error() == "family card not found" {
+			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"message": "Family card not found",
+				"error":   err.Error(),
+			})
+		} else if err.Error() == "village ID is required" || err.Error() == "village ID is not valid" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid village ID",
+				"error":   "Check your token",
+			})
+		} else if err.Error() == "failed to get family card by NIK" {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Failed to retrieve family card",
+				"error":   err.Error(),
+			})
+		} else if err.Error() == "failed to update family card" {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Failed to update family card",
+				"error":   err.Error(),
+			})
+		} else if err.Error() == "failed to commit transaction" {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Failed to commit transaction",
+				"error":   err.Error(),
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to update family card",
+			"error":   err.Error(),
+		})
+	}
+
+	services.RecordActivity(ctx, services.ActionUpdate, services.EntityFamilyCard, nik)
+
+	return ctx.Status(fiber.StatusOK).JSON(response)
+}
+
 func (c *FamilyCardController) DeleteFamilyCard(ctx *fiber.Ctx) error {
 	nik := ctx.Params("id")
 	if nik == "" {

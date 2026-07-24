@@ -10,7 +10,8 @@ import (
 
 func SetupVillagerRoutes(app *fiber.App) {
 	villagerRepo := repositories.NewVillagerRepository()
-	villagerService := services.NewVillagerService(villagerRepo)
+	familyCardRepo := repositories.NewFamilyCardRepository()
+	villagerService := services.NewVillagerService(villagerRepo, familyCardRepo)
 	villagerController := controllers.NewVillagerController(villagerService)
 
 	api := app.Group("/api/villagers")

@@ -121,6 +121,36 @@ class FamilyCardRepository {
     }
   }
 
+  Future<Map<String, dynamic>> updateFamilyCard(
+    String nik,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _api.put(
+        ApiConstants.familyCardById(nik),
+        data: data,
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Kartu keluarga berhasil diperbarui',
+        };
+      } else {
+        final data = response.data as Map<String, dynamic>;
+        return {
+          'success': false,
+          'message': ApiService.getResponseError(data, fallback: 'Gagal memperbarui kartu keluarga'),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': ApiService.getErrorMessage(e),
+      };
+    }
+  }
+
   Future<Map<String, dynamic>> createFamilyCard(FamilyCard familyCard) async {
     try {
       final response = await _api.post(

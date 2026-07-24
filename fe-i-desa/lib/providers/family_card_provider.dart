@@ -86,6 +86,17 @@ class FamilyCardsNotifier extends StateNotifier<FamilyCardsState> {
     return result;
   }
 
+  Future<Map<String, dynamic>> updateFamilyCard(
+    String nik,
+    Map<String, dynamic> data,
+  ) async {
+    final result = await _repository.updateFamilyCard(nik, data);
+    if (result['success'] == true) {
+      await loadFamilyCards(); // Refresh the list (name/address may show there)
+    }
+    return result;
+  }
+
   Future<Map<String, dynamic>> deleteFamilyCard(String nik) async {
     final result = await _repository.deleteFamilyCard(nik);
     if (result['success'] == true) {

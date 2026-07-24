@@ -9,54 +9,62 @@ import (
 )
 
 const (
-	importSheetFamilyCards = "Kartu Keluarga"
-	importSheetVillagers   = "Anggota Keluarga"
-	importSheetGuide       = "Petunjuk"
+	importSheetData  = "Data Penduduk"
+	importSheetGuide = "Petunjuk"
 
 	importDataRowStart = 2
 	importDataRowEnd   = 1000
 )
 
-// importFamilyCardColumns and importVillagerColumns are the single source of
-// truth for column order in the generated template. import.service.go indexes
-// into GetRows results using these same positions, so header text and parsing
-// position can never silently drift apart.
-var importFamilyCardColumns = []string{
-	"Nomor KK", "Alamat Lengkap", "RT", "RW", "Kelurahan", "Kecamatan",
-	"Kabupaten/Kota", "Kode Pos", "Provinsi",
-}
-
-// importVillagerColumns mirrors the Buku Induk Penduduk ledger's own column
-// order exactly (Nomor Urut, ..., Ket), not just the fields the system
-// stores. Four of these columns — Nomor Urut, Dapat Membaca Huruf, Alamat
-// Lengkap, Ket — have no matching Villager field and are ignored on import
-// (see importVillagerIgnoredColumns). They're kept in the template anyway so
-// a village can select an entire row straight out of their ledger and paste
-// it in one motion instead of pasting around gaps. Nama Ayah/Nama Ibu/Nomor
-// Paspor/Nomor KITAS are appended at the end since the ledger doesn't carry
-// them at all.
-var importVillagerColumns = []string{
+// importDataColumns is the single source of truth for column order in the
+// generated template. import.service.go indexes into GetRows results using
+// these same positions, so header text and parsing position can never
+// silently drift apart.
+//
+// One sheet, one row per person — not two sheets linked by Nomor KK. Columns
+// 1-16 mirror the Buku Induk Penduduk ledger's own column order exactly
+// (Nomor Urut, ..., Ket), so a village with that ledger can select an entire
+// row and paste it in one motion. Four of those — Nomor Urut, Dapat Membaca
+// Huruf, Ket, and (unlike before) NOT Alamat Lengkap — have no matching
+// field and are ignored on import (see importDataIgnoredColumns); Alamat
+// Lengkap now feeds family_cards.Alamat, since the real ledger already
+// repeats that value on every member's row.
+//
+// Columns 17-23 (RT/RW/Kelurahan/Kecamatan/Kabupaten-Kota/Kode Pos/Provinsi)
+// are new: the ledger has no equivalent, but family_cards needs them. Only
+// the first row of a given Nomor KK needs these filled in — see
+// resolvePersonGroups in import.service.go — so a village whose source is
+// individual KK cards (not a ledger) fills them once per card, and a village
+// pasting straight from the ledger can just leave them blank since the
+// ledger never had them either.
+//
+// Nama Ayah/Nama Ibu/Nomor Paspor/Nomor KITAS stay appended at the end,
+// since the ledger doesn't carry them at all.
+var importDataColumns = []string{
 	"Nomor Urut (diabaikan)", "Nama Lengkap", "Jenis Kelamin", "Status Perkawinan",
 	"Tempat Lahir", "Tanggal Lahir", "Agama", "Pendidikan Terakhir", "Pekerjaan",
-	"Dapat Membaca Huruf (diabaikan)", "Kewarganegaraan", "Alamat Lengkap (diabaikan)",
+	"Dapat Membaca Huruf (diabaikan)", "Kewarganegaraan", "Alamat Lengkap",
 	"Kedudukan Dalam Keluarga", "NIK", "Nomor KK", "Ket (diabaikan)",
+	"RT", "RW", "Kelurahan", "Kecamatan", "Kabupaten/Kota", "Kode Pos", "Provinsi",
 	"Nama Ayah", "Nama Ibu", "Nomor Paspor", "Nomor KITAS",
 }
 
-// 1-based positions (within importVillagerColumns) that the parser never
-// reads — kept only so a full ledger row pastes without gaps.
-var importVillagerIgnoredColumns = map[int]bool{1: true, 10: true, 12: true, 16: true}
+// 1-based positions (within importDataColumns) that the parser never reads —
+// kept only so a full ledger row pastes without gaps.
+var importDataIgnoredColumns = map[int]bool{1: true, 10: true, 16: true}
 
-// 1-based positions (within importVillagerColumns) of dropdown-backed columns.
+// 1-based positions (within importDataColumns) of dropdown-backed columns.
+// All ≤ 16, so these did not shift when columns 17-23 were inserted after
+// the ledger-matching block.
 const (
-	colVillagerJenisKelamin      = 3
-	colVillagerStatusPerkawinan  = 4
-	colVillagerTanggalLahir      = 6
-	colVillagerAgama             = 7
-	colVillagerPendidikan        = 8
-	colVillagerKewarganegaraan   = 11
-	colVillagerKedudukanKeluarga = 13
-	colVillagerNIK               = 14
+	colDataJenisKelamin      = 3
+	colDataStatusPerkawinan  = 4
+	colDataTanggalLahir      = 6
+	colDataAgama             = 7
+	colDataPendidikan        = 8
+	colDataKewarganegaraan   = 11
+	colDataKedudukanKeluarga = 13
+	colDataNIK               = 14
 )
 
 type ImportTemplateService struct{}
@@ -66,16 +74,13 @@ func NewImportTemplateService() *ImportTemplateService {
 }
 
 // GenerateTemplate builds the downloadable import workbook fresh on every
-// call: Kartu Keluarga + Anggota Keluarga sheets with Excel-native dropdowns
-// and date validation, plus a Petunjuk (instructions) sheet.
+// call: one "Data Penduduk" sheet with Excel-native dropdowns and date
+// validation, plus a Petunjuk (instructions) sheet.
 func (s *ImportTemplateService) GenerateTemplate() (*bytes.Buffer, error) {
 	f := excelize.NewFile()
 	defer f.Close()
 
-	if err := f.SetSheetName("Sheet1", importSheetFamilyCards); err != nil {
-		return nil, err
-	}
-	if _, err := f.NewSheet(importSheetVillagers); err != nil {
+	if err := f.SetSheetName("Sheet1", importSheetData); err != nil {
 		return nil, err
 	}
 	if _, err := f.NewSheet(importSheetGuide); err != nil {
@@ -91,27 +96,20 @@ func (s *ImportTemplateService) GenerateTemplate() (*bytes.Buffer, error) {
 		return nil, err
 	}
 
-	if err := writeHeaderRow(f, importSheetFamilyCards, importFamilyCardColumns, headerStyle); err != nil {
-		return nil, err
-	}
-	if err := writeHeaderRow(f, importSheetVillagers, importVillagerColumns, headerStyle); err != nil {
+	if err := writeHeaderRow(f, importSheetData, importDataColumns, headerStyle); err != nil {
 		return nil, err
 	}
 
-	if err := addFamilyCardExampleRow(f); err != nil {
+	if err := addDataDropdowns(f); err != nil {
 		return nil, err
 	}
-
-	if err := addVillagerDropdowns(f); err != nil {
-		return nil, err
-	}
-	if err := addVillagerDateValidation(f); err != nil {
+	if err := addDataDateValidation(f); err != nil {
 		return nil, err
 	}
 	if err := addNikLengthHint(f); err != nil {
 		return nil, err
 	}
-	if err := markIgnoredVillagerColumns(f); err != nil {
+	if err := markIgnoredDataColumns(f); err != nil {
 		return nil, err
 	}
 
@@ -142,43 +140,14 @@ func writeHeaderRow(f *excelize.File, sheet string, headers []string, styleID in
 	return f.SetCellStyle(sheet, "A1", lastCol+"1", styleID)
 }
 
-// addFamilyCardExampleRow fills row 2 with sample values so villages see the
-// expected shape before entering real data; the guide sheet tells them to
-// delete it.
-func addFamilyCardExampleRow(f *excelize.File) error {
-	example := []interface{}{
-		"3271010101010001", "Ohoi Contoh", "001", "002", "Ohoi Contoh",
-		"Kei Kecil Timur Selatan", "Maluku Tenggara", "97651", "Maluku",
-	}
-	for i, v := range example {
-		cell, err := excelize.CoordinatesToCellName(i+1, 2)
-		if err != nil {
-			return err
-		}
-		if err := f.SetCellValue(importSheetFamilyCards, cell, v); err != nil {
-			return err
-		}
-	}
-
-	italicGray, err := f.NewStyle(&excelize.Style{Font: &excelize.Font{Italic: true, Color: "888888"}})
-	if err != nil {
-		return err
-	}
-	lastCol, err := excelize.ColumnNumberToName(len(importFamilyCardColumns))
-	if err != nil {
-		return err
-	}
-	return f.SetCellStyle(importSheetFamilyCards, "A2", lastCol+"2", italicGray)
-}
-
-func addVillagerDropdowns(f *excelize.File) error {
+func addDataDropdowns(f *excelize.File) error {
 	dropdowns := map[int][]string{
-		colVillagerJenisKelamin:      dtos.ImportJenisKelaminOptions,
-		colVillagerStatusPerkawinan:  dtos.ImportStatusPerkawinanOptions,
-		colVillagerAgama:             dtos.ImportAgamaOptions,
-		colVillagerPendidikan:        dtos.ImportPendidikanOptions,
-		colVillagerKewarganegaraan:   dtos.ImportKewarganegaraanOptions,
-		colVillagerKedudukanKeluarga: dtos.ImportStatusHubunganOptions,
+		colDataJenisKelamin:      dtos.ImportJenisKelaminOptions,
+		colDataStatusPerkawinan:  dtos.ImportStatusPerkawinanOptions,
+		colDataAgama:             dtos.ImportAgamaOptions,
+		colDataPendidikan:        dtos.ImportPendidikanOptions,
+		colDataKewarganegaraan:   dtos.ImportKewarganegaraanOptions,
+		colDataKedudukanKeluarga: dtos.ImportStatusHubunganOptions,
 	}
 
 	for col, options := range dropdowns {
@@ -194,7 +163,7 @@ func addVillagerDropdowns(f *excelize.File) error {
 		}
 		dv.SetError(excelize.DataValidationErrorStyleStop, "Pilihan Tidak Valid", "Pilih salah satu nilai dari daftar dropdown di kolom ini.")
 
-		if err := f.AddDataValidation(importSheetVillagers, dv); err != nil {
+		if err := f.AddDataValidation(importSheetData, dv); err != nil {
 			return err
 		}
 	}
@@ -202,13 +171,13 @@ func addVillagerDropdowns(f *excelize.File) error {
 	return nil
 }
 
-// addVillagerDateValidation restricts Tanggal Lahir to real dates between
+// addDataDateValidation restricts Tanggal Lahir to real dates between
 // 1900-01-01 and today. excelize does not expose a public helper to convert a
 // time.Time into its serial-date form, so the bounds are passed as plain
 // Excel formula strings — this sidesteps hand-rolling the 1900 leap-year-bug
 // date math ourselves.
-func addVillagerDateValidation(f *excelize.File) error {
-	col, err := excelize.ColumnNumberToName(colVillagerTanggalLahir)
+func addDataDateValidation(f *excelize.File) error {
+	col, err := excelize.ColumnNumberToName(colDataTanggalLahir)
 	if err != nil {
 		return err
 	}
@@ -220,7 +189,7 @@ func addVillagerDateValidation(f *excelize.File) error {
 	}
 	dv.SetError(excelize.DataValidationErrorStyleStop, "Format Tanggal Salah",
 		"Masukkan tanggal lahir sebagai tanggal (bukan teks), antara 1 Januari 1900 dan hari ini.")
-	if err := f.AddDataValidation(importSheetVillagers, dv); err != nil {
+	if err := f.AddDataValidation(importSheetData, dv); err != nil {
 		return err
 	}
 
@@ -229,7 +198,7 @@ func addVillagerDateValidation(f *excelize.File) error {
 	if err != nil {
 		return err
 	}
-	return f.SetCellStyle(importSheetVillagers, col+"2", fmt.Sprintf("%s%d", col, importDataRowEnd), styleID)
+	return f.SetCellStyle(importSheetData, col+"2", fmt.Sprintf("%s%d", col, importDataRowEnd), styleID)
 }
 
 // addNikLengthHint is a soft assist only (Warning, not Stop): Excel's
@@ -237,7 +206,7 @@ func addVillagerDateValidation(f *excelize.File) error {
 // hard block here could wrongly reject an edge case. Real validation happens
 // on the backend at upload time regardless.
 func addNikLengthHint(f *excelize.File) error {
-	col, err := excelize.ColumnNumberToName(colVillagerNIK)
+	col, err := excelize.ColumnNumberToName(colDataNIK)
 	if err != nil {
 		return err
 	}
@@ -250,14 +219,14 @@ func addNikLengthHint(f *excelize.File) error {
 	dv.SetError(excelize.DataValidationErrorStyleWarning, "Periksa Kembali NIK",
 		"NIK biasanya terdiri dari 16 digit. Sistem akan memvalidasi ulang saat file diunggah.")
 
-	return f.AddDataValidation(importSheetVillagers, dv)
+	return f.AddDataValidation(importSheetData, dv)
 }
 
-// markIgnoredVillagerColumns greys out the columns kept purely for
+// markIgnoredDataColumns greys out the columns kept purely for
 // paste-compatibility with the Buku Induk Penduduk ledger (see
-// importVillagerIgnoredColumns) so it's visually obvious — not just stated in
+// importDataIgnoredColumns) so it's visually obvious — not just stated in
 // the header text — that nothing typed there gets saved.
-func markIgnoredVillagerColumns(f *excelize.File) error {
+func markIgnoredDataColumns(f *excelize.File) error {
 	ignoredStyle, err := f.NewStyle(&excelize.Style{
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"F0F0F0"}, Pattern: 1},
 		Font: &excelize.Font{Italic: true, Color: "999999"},
@@ -266,13 +235,13 @@ func markIgnoredVillagerColumns(f *excelize.File) error {
 		return err
 	}
 
-	for col := range importVillagerIgnoredColumns {
+	for col := range importDataIgnoredColumns {
 		colName, err := excelize.ColumnNumberToName(col)
 		if err != nil {
 			return err
 		}
 		if err := f.SetCellStyle(
-			importSheetVillagers,
+			importSheetData,
 			colName+"2",
 			fmt.Sprintf("%s%d", colName, importDataRowEnd),
 			ignoredStyle,
@@ -288,15 +257,18 @@ func writeGuideSheet(f *excelize.File) error {
 	lines := []string{
 		"PETUNJUK PENGISIAN TEMPLATE IMPORT DATA",
 		"",
-		"1. Sheet \"Kartu Keluarga\" — satu baris per kartu keluarga. Baris ke-2 adalah CONTOH, hapus sebelum mengisi data asli.",
-		"2. Sheet \"Anggota Keluarga\" — satu baris per penduduk. Kolom \"Nomor KK\" harus sama persis dengan salah satu Nomor KK di sheet \"Kartu Keluarga\", atau Nomor KK yang sudah terdaftar di sistem.",
-		"3. NIK harus 16 digit angka dan wajib diisi untuk setiap penduduk.",
-		"4. Tanggal Lahir harus diisi sebagai tanggal asli (klik sel, pilih tanggal dari kalender), bukan diketik sebagai teks.",
-		"5. Kolom dengan dropdown (Jenis Kelamin, Agama, Pendidikan Terakhir, Status Perkawinan, Kedudukan Dalam Keluarga, Kewarganegaraan) wajib dipilih dari daftar yang muncul, bukan diketik bebas.",
-		"6. RT, RW, dan Kode Pos boleh dikosongkan jika belum ada datanya.",
-		"7. Baris dengan Nomor KK yang sudah terdaftar di sistem akan dilewati (tidak dianggap error) dan dilaporkan terpisah setelah unggah — anggota keluarganya tetap akan diproses.",
-		"8. Setelah unggah, sistem akan menampilkan laporan: baris mana yang berhasil, dilewati, atau gagal, beserta alasannya.",
-		"9. Kolom \"Nomor Urut\", \"Dapat Membaca Huruf\", \"Alamat Lengkap\", dan \"Ket\" pada sheet \"Anggota Keluarga\" (ditandai abu-abu) sengaja disediakan supaya satu baris dari Buku Induk Penduduk bisa langsung disalin utuh tanpa lompat kolom. Sistem TIDAK menyimpan isi kolom-kolom ini — boleh dikosongkan atau dibiarkan apa adanya.",
+		"1. Satu sheet saja: \"Data Penduduk\". Satu baris = satu orang.",
+		"2. Penduduk dalam satu keluarga punya Nomor KK yang SAMA — tulis Nomor KK yang sama di setiap baris anggota keluarga itu.",
+		"3. Kolom Alamat Lengkap, RT, RW, Kelurahan, Kecamatan, Kabupaten/Kota, Kode Pos, dan Provinsi HANYA WAJIB diisi pada baris PERTAMA setiap Nomor KK baru — baris itu yang dipakai sistem untuk membuat data Kartu Keluarga. Baris anggota berikutnya dari Nomor KK yang sama boleh dikosongkan pada kolom-kolom ini.",
+		"4. Kalau sumber data Anda Buku Induk Penduduk (buku besar yang alamatnya memang tertulis berulang di setiap baris), tinggal salin apa adanya — tidak perlu dihapus dulu.",
+		"5. Kalau sumber data Anda kartu Kartu Keluarga satuan (bukan buku besar), isi satu kartu = isi beberapa baris berurutan ke bawah untuk anggota kartu itu di sheet yang sama — alamat cukup ditulis di baris pertama saja, tidak perlu pindah sheet.",
+		"6. RT, RW, dan Kode Pos boleh dikosongkan kalau memang belum ada datanya.",
+		"7. NIK harus 16 digit angka dan wajib diisi untuk setiap penduduk.",
+		"8. Tanggal Lahir harus diisi sebagai tanggal asli (klik sel, pilih tanggal dari kalender), bukan diketik sebagai teks.",
+		"9. Kolom dengan dropdown (Jenis Kelamin, Agama, Pendidikan Terakhir, Status Perkawinan, Kedudukan Dalam Keluarga, Kewarganegaraan) wajib dipilih dari daftar yang muncul, bukan diketik bebas.",
+		"10. Baris dengan Nomor KK yang sudah terdaftar di sistem akan dilewati (tidak dianggap error) dan dilaporkan terpisah setelah unggah — anggota keluarganya tetap akan diproses.",
+		"11. Setelah unggah, sistem akan menampilkan laporan: baris mana yang berhasil, dilewati, atau gagal, beserta alasannya.",
+		"12. Kolom \"Nomor Urut\", \"Dapat Membaca Huruf\", dan \"Ket\" (ditandai abu-abu) sengaja disediakan supaya satu baris dari Buku Induk Penduduk bisa langsung disalin utuh tanpa lompat kolom. Sistem TIDAK menyimpan isi kolom-kolom ini — boleh dikosongkan atau dibiarkan apa adanya.",
 	}
 
 	for i, line := range lines {

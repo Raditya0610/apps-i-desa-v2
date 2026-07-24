@@ -58,6 +58,16 @@ func (c *VillagerController) CreateVillager(ctx *fiber.Ctx) error {
 				"Message": "Villager with the same NIK already exists",
 				"Error":   err.Error(),
 			})
+		} else if err.Error() == "family card not found" {
+			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"Message": "Family card not found",
+				"Error":   err.Error(),
+			})
+		} else if err.Error() == "failed to check family card" {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"Message": "Failed to check family card",
+				"Error":   err.Error(),
+			})
 		} else if err.Error() == "failed to check existing villager" {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"Message": "Failed to check existing villager",
