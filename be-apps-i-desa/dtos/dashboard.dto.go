@@ -25,6 +25,8 @@ type GetDashboardResponse struct {
 	// matching ImportPendidikanOptions), not by count — a jumbled order would
 	// defeat the point of a progression chart. PekerjaanBreakdown is freeform
 	// text, so it's ordered by count descending with a capped "Lainnya" bucket.
+	// UsiaBreakdown is ordered youngest to oldest (see ageGroupBuckets).
 	PendidikanBreakdown []LabeledCount `json:"pendidikanBreakdown"`
 	PekerjaanBreakdown  []LabeledCount `json:"pekerjaanBreakdown"`
+	UsiaBreakdown       []LabeledCount `json:"usiaBreakdown"`
 }

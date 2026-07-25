@@ -19,6 +19,23 @@ import (
 // which would make the chart unreadable.
 const pekerjaanBreakdownTopN = 8
 
+// ageGroupBuckets defines the age-range boundaries for the dashboard's Usia
+// breakdown, youngest to oldest. MaxYears is inclusive; the last bucket
+// (MaxYears -1) has no upper bound. Single source of truth for the buckets —
+// adjust here only, nothing else needs to change.
+var ageGroupBuckets = []struct {
+	Label    string
+	MaxYears int
+}{
+	{"0-5 Tahun", 5},
+	{"6-12 Tahun", 12},
+	{"13-18 Tahun", 18},
+	{"19-30 Tahun", 30},
+	{"31-45 Tahun", 45},
+	{"46-60 Tahun", 60},
+	{"60+ Tahun", -1},
+}
+
 type DashboardService struct {
 	villagerRepo   *repositories.VillagerRepository
 	familyCardRepo *repositories.FamilyCardRepository
@@ -67,6 +84,7 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 	kepalaKeluargaCh := make(chan result, 1)
 	pendidikanCh := make(chan result, 1)
 	pekerjaanCh := make(chan result, 1)
+	agesCh := make(chan result, 1)
 
 	var wg sync.WaitGroup
 
@@ -137,7 +155,7 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 		kepalaKeluargaCh <- result{count, err}
 	}()
 
-	wg.Add(2)
+	wg.Add(3)
 	go func() {
 		defer wg.Done()
 		items, err := s.villagerRepo.CountByPendidikan(&villageID)
@@ -148,6 +166,12 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 		defer wg.Done()
 		items, err := s.villagerRepo.CountByPekerjaan(&villageID)
 		pekerjaanCh <- result{items, err}
+	}()
+
+	go func() {
+		defer wg.Done()
+		ages, err := s.villagerRepo.GetAllAges(&villageID)
+		agesCh <- result{ages, err}
 	}()
 
 	// Wait for all goroutines to complete
@@ -238,6 +262,13 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 	}
 	pekerjaanBreakdown := buildPekerjaanBreakdown(pekerjaanRes.value.([]dtos.LabeledCount))
 
+	agesRes := <-agesCh
+	if agesRes.err != nil {
+		log.Error("Error getting ages for usia breakdown:", agesRes.err)
+		return nil, errors.New("error getting ages for usia breakdown")
+	}
+	usiaBreakdown := buildUsiaBreakdown(agesRes.value.([]int))
+
 	// Guarded: dividing by zero residents yields +Inf, and encoding/json refuses
 	// to marshal Inf — an empty village would fail the whole dashboard request
 	// rather than return zeros.
@@ -260,6 +291,7 @@ func (s *DashboardService) GetDashboardData(ctx *fiber.Ctx) (*dtos.GetDashboardR
 		TotalKecamatan:      int32(countDistinctKecamatan),
 		PendidikanBreakdown: pendidikanBreakdown,
 		PekerjaanBreakdown:  pekerjaanBreakdown,
+		UsiaBreakdown:       usiaBreakdown,
 	}, nil
 }
 
@@ -349,4 +381,37 @@ func buildPekerjaanBreakdown(raw []dtos.LabeledCount) []dtos.LabeledCount {
 	}
 
 	return top
+}
+
+// bucketForAge maps a single age in years to its ageGroupBuckets label.
+func bucketForAge(age int) string {
+	for _, b := range ageGroupBuckets {
+		if b.MaxYears == -1 || age <= b.MaxYears {
+			return b.Label
+		}
+	}
+	return ageGroupBuckets[len(ageGroupBuckets)-1].Label
+}
+
+// buildUsiaBreakdown buckets raw per-resident ages (from GetAllAges) into
+// ageGroupBuckets, youngest to oldest, omitting any bucket nobody falls
+// into rather than showing a zero-width row.
+func buildUsiaBreakdown(ages []int) []dtos.LabeledCount {
+	counts := make(map[string]int64, len(ageGroupBuckets))
+	for _, age := range ages {
+		// A negative age means a birthdate in the future — bad legacy data,
+		// not a real bucket to count.
+		if age < 0 {
+			continue
+		}
+		counts[bucketForAge(age)]++
+	}
+
+	var result []dtos.LabeledCount
+	for _, b := range ageGroupBuckets {
+		if total, ok := counts[b.Label]; ok {
+			result = append(result, dtos.LabeledCount{Label: b.Label, Total: total})
+		}
+	}
+	return result
 }

@@ -180,6 +180,21 @@ func (r *VillagerRepository) CountByPekerjaan(villageID *uuid.UUID) ([]dtos.Labe
 	return results, nil
 }
 
+// GetAllAges returns each villager's current age in years, for bucketing into
+// the dashboard's Usia breakdown. Returns raw per-resident ages rather than
+// pre-grouped buckets, so changing the bucket boundaries (see
+// ageGroupBuckets in dashboard.service.go) never needs a query change.
+func (r *VillagerRepository) GetAllAges(villageID *uuid.UUID) ([]int, error) {
+	var ages []int
+	err := r.DB.Model(&models.Villager{}).
+		Where("village_id = ?", villageID).
+		Pluck("EXTRACT(YEAR FROM AGE(CURRENT_DATE, tanggal_lahir))::int", &ages).Error
+	if err != nil {
+		return nil, err
+	}
+	return ages, nil
+}
+
 // GetExistingNIKs returns which of the given NIKs already exist, so bulk
 // import can detect duplicates with one query instead of one per row.
 func (r *VillagerRepository) GetExistingNIKs(niks []string) ([]string, error) {

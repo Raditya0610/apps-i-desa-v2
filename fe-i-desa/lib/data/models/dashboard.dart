@@ -28,6 +28,7 @@ class Dashboard {
   final int kecamatan;
   final List<LabeledCount> pendidikanBreakdown;
   final List<LabeledCount> pekerjaanBreakdown;
+  final List<LabeledCount> usiaBreakdown;
 
   Dashboard({
     required this.totalKeluarga,
@@ -43,6 +44,7 @@ class Dashboard {
     required this.kecamatan,
     this.pendidikanBreakdown = const [],
     this.pekerjaanBreakdown = const [],
+    this.usiaBreakdown = const [],
   });
 
   factory Dashboard.fromJson(Map<String, dynamic> json) {
@@ -62,6 +64,9 @@ class Dashboard {
           .map((e) => LabeledCount.fromJson(e as Map<String, dynamic>))
           .toList(),
       pekerjaanBreakdown: ((json['pekerjaanBreakdown'] as List?) ?? [])
+          .map((e) => LabeledCount.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      usiaBreakdown: ((json['usiaBreakdown'] as List?) ?? [])
           .map((e) => LabeledCount.fromJson(e as Map<String, dynamic>))
           .toList(),
     );

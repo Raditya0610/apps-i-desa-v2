@@ -73,3 +73,56 @@ func TestBuildPekerjaanBreakdownNoOthersBucketWhenUnderCap(t *testing.T) {
 		t.Errorf("expected sorted by count desc, got %+v", got)
 	}
 }
+
+func TestBuildUsiaBreakdownOrdersYoungestToOldestAndSkipsEmptyBuckets(t *testing.T) {
+	ages := []int{3, 7, 7, 25, 70, 70, 70, -1} // -1: bad legacy data, must be dropped
+
+	got := buildUsiaBreakdown(ages)
+
+	wantOrder := []string{"0-5 Tahun", "6-12 Tahun", "19-30 Tahun", "60+ Tahun"}
+	if len(got) != len(wantOrder) {
+		t.Fatalf("got %d buckets, want %d: %+v", len(got), len(wantOrder), got)
+	}
+	for i, label := range wantOrder {
+		if got[i].Label != label {
+			t.Errorf("index %d: got label %q, want %q", i, got[i].Label, label)
+		}
+	}
+
+	// No one aged 13-18, 31-45, or 46-60 in the input — those buckets must not
+	// appear at all, not appear with total=0.
+	for _, r := range got {
+		if r.Label == "13-18 Tahun" || r.Label == "31-45 Tahun" || r.Label == "46-60 Tahun" {
+			t.Errorf("expected empty bucket %q to be omitted, got %+v", r.Label, r)
+		}
+	}
+
+	last := got[len(got)-1]
+	if last.Label != "60+ Tahun" || last.Total != 3 {
+		t.Errorf("expected 60+ Tahun total=3, got %+v", last)
+	}
+}
+
+func TestBucketForAgeBoundaries(t *testing.T) {
+	cases := map[int]string{
+		0:   "0-5 Tahun",
+		5:   "0-5 Tahun",
+		6:   "6-12 Tahun",
+		12:  "6-12 Tahun",
+		13:  "13-18 Tahun",
+		18:  "13-18 Tahun",
+		19:  "19-30 Tahun",
+		30:  "19-30 Tahun",
+		31:  "31-45 Tahun",
+		45:  "31-45 Tahun",
+		46:  "46-60 Tahun",
+		60:  "46-60 Tahun",
+		61:  "60+ Tahun",
+		120: "60+ Tahun",
+	}
+	for age, want := range cases {
+		if got := bucketForAge(age); got != want {
+			t.Errorf("bucketForAge(%d) = %q, want %q", age, got, want)
+		}
+	}
+}

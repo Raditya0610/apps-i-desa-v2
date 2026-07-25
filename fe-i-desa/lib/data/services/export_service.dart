@@ -244,6 +244,14 @@ class ExportService {
       }
     }
 
+    if (dashboard.usiaBreakdown.isNotEmpty) {
+      rows.add(['', '']);
+      rows.add(['Breakdown Kelompok Usia', 'Jumlah']);
+      for (final item in dashboard.usiaBreakdown) {
+        rows.add([item.label, item.total]);
+      }
+    }
+
     return rows;
   }
 

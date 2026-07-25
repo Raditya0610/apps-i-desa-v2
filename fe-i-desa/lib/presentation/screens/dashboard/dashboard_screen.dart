@@ -502,7 +502,7 @@ class _DashboardBody extends ConsumerWidget {
                   ),
                 const SizedBox(height: 24),
                 if (dashboardState.dashboard != null)
-                  _EducationOccupationSection(
+                  _DemographicBreakdownSection(
                     dashboard: dashboardState.dashboard!,
                     isWide: isWide,
                   ),
@@ -942,29 +942,46 @@ class _MainContentLayout extends StatelessWidget {
 
 // ─── Education & Occupation Breakdown ─────────────────────────────────────────
 
-class _EducationOccupationSection extends StatelessWidget {
+// ─── Demographic Breakdown Section (Pendidikan, Pekerjaan, Usia) ─────────────
+
+class _DemographicBreakdownSection extends StatelessWidget {
   final Dashboard dashboard;
   final bool isWide;
-  const _EducationOccupationSection({required this.dashboard, required this.isWide});
+  const _DemographicBreakdownSection({required this.dashboard, required this.isWide});
 
   @override
   Widget build(BuildContext context) {
     final pendidikanCard = _BreakdownCard(
       title: 'Tingkat Pendidikan Terakhir',
-      subtitle: 'Ringkasan pendidikan terakhir penduduk',
+      subtitle: 'Distribusi tingkat pendidikan penduduk desa',
       icon: Icons.school_outlined,
       iconColor: const Color(0xFF3B82F6),
       iconBg: const Color(0xFFDBEAFE),
       items: dashboard.pendidikanBreakdown,
+      totalPenduduk: dashboard.totalPenduduk,
     );
 
     final pekerjaanCard = _BreakdownCard(
       title: 'Pekerjaan',
-      subtitle: 'Ringkasan pekerjaan penduduk',
+      subtitle: 'Distribusi mata pencaharian penduduk desa',
       icon: Icons.work_outline_rounded,
       iconColor: const Color(0xFFF59E0B),
       iconBg: const Color(0xFFFEF3C7),
       items: dashboard.pekerjaanBreakdown,
+      totalPenduduk: dashboard.totalPenduduk,
+    );
+
+    final usiaCard = _BreakdownCard(
+      title: 'Kelompok Usia',
+      subtitle: 'Distribusi rentang umur penduduk desa',
+      icon: Icons.cake_outlined,
+      iconColor: const Color(0xFF10B981),
+      iconBg: const Color(0xFFD1FAE5),
+      items: dashboard.usiaBreakdown,
+      totalPenduduk: dashboard.totalPenduduk,
+      badgeOverride: dashboard.rerataUmur > 0
+          ? 'Rerata ${dashboard.rerataUmur.toStringAsFixed(1)} Thn'
+          : null,
     );
 
     if (isWide) {
@@ -972,14 +989,22 @@ class _EducationOccupationSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: pendidikanCard),
-          const SizedBox(width: 24),
+          const SizedBox(width: 20),
           Expanded(child: pekerjaanCard),
+          const SizedBox(width: 20),
+          Expanded(child: usiaCard),
         ],
       );
     }
 
     return Column(
-      children: [pendidikanCard, const SizedBox(height: 20), pekerjaanCard],
+      children: [
+        pendidikanCard,
+        const SizedBox(height: 20),
+        pekerjaanCard,
+        const SizedBox(height: 20),
+        usiaCard,
+      ],
     );
   }
 }
@@ -991,6 +1016,8 @@ class _BreakdownCard extends StatelessWidget {
   final Color iconColor;
   final Color iconBg;
   final List<LabeledCount> items;
+  final int totalPenduduk;
+  final String? badgeOverride;
 
   const _BreakdownCard({
     required this.title,
@@ -999,6 +1026,8 @@ class _BreakdownCard extends StatelessWidget {
     required this.iconColor,
     required this.iconBg,
     required this.items,
+    required this.totalPenduduk,
+    this.badgeOverride,
   });
 
   @override
@@ -1006,6 +1035,20 @@ class _BreakdownCard extends StatelessWidget {
     final maxTotal = items.isEmpty
         ? 0
         : items.map((e) => e.total).reduce((a, b) => a > b ? a : b);
+    final sumTotal = items.isEmpty
+        ? 0
+        : items.map((e) => e.total).reduce((a, b) => a + b);
+
+    String? pillBadgeText;
+    if (badgeOverride != null) {
+      pillBadgeText = badgeOverride;
+    } else if (items.isNotEmpty && maxTotal > 0) {
+      final topItem = items.reduce((a, b) => a.total >= b.total ? a : b);
+      if (sumTotal > 0) {
+        final pct = (topItem.total / sumTotal * 100).toStringAsFixed(0);
+        pillBadgeText = 'Dominan: ${topItem.label} ($pct%)';
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1014,6 +1057,7 @@ class _BreakdownCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
@@ -1028,18 +1072,46 @@ class _BreakdownCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: ForuiThemeConfig.textPrimary,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: ForuiThemeConfig.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (pillBadgeText != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: iconBg,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              pillBadgeText,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: iconColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 12, color: ForuiThemeConfig.textSecondary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: ForuiThemeConfig.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -1053,7 +1125,8 @@ class _BreakdownCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   'Belum ada data.',
-                  style: TextStyle(fontSize: 13, color: ForuiThemeConfig.textSecondary),
+                  style: TextStyle(
+                      fontSize: 13, color: ForuiThemeConfig.textSecondary),
                 ),
               ),
             )
@@ -1065,6 +1138,7 @@ class _BreakdownCard extends StatelessWidget {
                   _BreakdownRow(
                     item: items[i],
                     ratio: maxTotal == 0 ? 0.0 : items[i].total / maxTotal,
+                    percentage: sumTotal == 0 ? 0.0 : (items[i].total / sumTotal * 100),
                     color: iconColor,
                   ),
                 ],
@@ -1079,9 +1153,15 @@ class _BreakdownCard extends StatelessWidget {
 class _BreakdownRow extends StatelessWidget {
   final LabeledCount item;
   final double ratio;
+  final double percentage;
   final Color color;
 
-  const _BreakdownRow({required this.item, required this.ratio, required this.color});
+  const _BreakdownRow({
+    required this.item,
+    required this.ratio,
+    required this.percentage,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1104,11 +1184,11 @@ class _BreakdownRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              item.total.toString(),
+              '${item.total} (${percentage.toStringAsFixed(1)}%)',
               style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: ForuiThemeConfig.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: ForuiThemeConfig.textSecondary,
               ),
             ),
           ],
@@ -1117,8 +1197,8 @@ class _BreakdownRow extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: LinearProgressIndicator(
-            value: ratio,
-            backgroundColor: Colors.grey.shade200,
+            value: ratio.clamp(0.0, 1.0),
+            backgroundColor: Colors.grey.shade100,
             valueColor: AlwaysStoppedAnimation<Color>(color),
             minHeight: 6,
           ),
