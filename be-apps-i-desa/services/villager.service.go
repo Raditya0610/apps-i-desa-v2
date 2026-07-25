@@ -118,6 +118,43 @@ func (s *VillagerService) CreateVillager(
 	}, nil
 }
 
+func (s *VillagerService) GetAllVillagers(ctx *fiber.Ctx) ([]*dtos.GetVillagerResponse, error) {
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	villagers, err := s.villagerRepo.GetAllVillagersByVillageID(&villageID)
+	if err != nil {
+		log.Println("Error finding villagers:", err)
+		return nil, errors.New("failed to get villagers")
+	}
+
+	var responses []*dtos.GetVillagerResponse
+	for _, villager := range villagers {
+		responses = append(responses, &dtos.GetVillagerResponse{
+			NIK:              villager.NIK,
+			NamaLengkap:      villager.NamaLengkap,
+			JenisKelamin:     villager.JenisKelamin,
+			TempatLahir:      villager.TempatLahir,
+			TanggalLahir:     villager.TanggalLahir.Format("2006-01-02"),
+			Agama:            villager.Agama,
+			Pendidikan:       villager.Pendidikan,
+			Pekerjaan:        villager.Pekerjaan,
+			StatusPerkawinan: villager.StatusPerkawinan,
+			StatusHubungan:   villager.StatusHubungan,
+			Kewarganegaraan:  villager.Kewarganegaraan,
+			NomorPaspor:      villager.NomorPaspor,
+			NomorKitas:       villager.NomorKitas,
+			NamaAyah:         villager.NamaAyah,
+			NamaIbu:          villager.NamaIbu,
+			FamilyCardID:     villager.FamilyCardID,
+			VillageID:        villager.VillageID.String(),
+		})
+	}
+	return responses, nil
+}
+
 func (s *VillagerService) GetVillagerByNIK(nik *string, ctx *fiber.Ctx) (*dtos.GetVillagerResponse, error) {
 	villageID, err := s.villageIDFromCtx(ctx)
 	if err != nil {

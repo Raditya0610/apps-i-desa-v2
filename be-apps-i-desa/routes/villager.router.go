@@ -18,6 +18,7 @@ func SetupVillagerRoutes(app *fiber.App) {
 	// Apply JWT middleware to all villager routes
 	api.Use(middleware.JWTAuth())
 
+	api.Get("/", villagerController.GetAllVillagers)
 	api.Post("/", villagerController.CreateVillager)
 	api.Get("/:nik", villagerController.GetVillager)
 	api.Put("/:nik", villagerController.UpdateVillager)

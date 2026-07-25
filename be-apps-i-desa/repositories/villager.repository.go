@@ -24,6 +24,15 @@ func (r *VillagerRepository) BeginTransaction() *gorm.DB {
 	return r.DB.Begin()
 }
 
+func (r *VillagerRepository) GetAllVillagersByVillageID(villageID *uuid.UUID) ([]*models.Villager, error) {
+	var villagers []*models.Villager
+	err := r.DB.Where("village_id = ?", villageID).Order("nama_lengkap ASC").Find(&villagers).Error
+	if err != nil {
+		return nil, err
+	}
+	return villagers, nil
+}
+
 func (r *VillagerRepository) FindVillagerByNIK(nik *string) (*models.Villager, error) {
 	var villager models.Villager
 	err := r.DB.Where("nik = ?", nik).First(&villager).Error

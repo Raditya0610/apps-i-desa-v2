@@ -10,6 +10,8 @@ import '../../../providers/activity_log_provider.dart';
 import '../../../providers/dashboard_provider.dart';
 import '../../../providers/idm_score_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/villager_provider.dart';
+import '../../../data/models/villager.dart';
 import '../../widgets/common/app_shell.dart';
 import '../../widgets/common/offline_banner.dart';
 
@@ -447,6 +449,9 @@ class _DashboardBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final villagersState = ref.watch(villagersProvider);
+    final villagers = villagersState.villagers;
+
     if (dashboardState.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -462,7 +467,10 @@ class _DashboardBody extends ConsumerWidget {
                 style: const TextStyle(color: ForuiThemeConfig.textSecondary)),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => ref.read(dashboardProvider.notifier).refresh(),
+              onPressed: () {
+                ref.read(dashboardProvider.notifier).refresh();
+                ref.read(villagersProvider.notifier).refresh();
+              },
               child: const Text('Coba Lagi'),
             ),
           ],
@@ -471,7 +479,12 @@ class _DashboardBody extends ConsumerWidget {
     }
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+      onRefresh: () async {
+        await Future.wait([
+          ref.read(dashboardProvider.notifier).refresh(),
+          ref.read(villagersProvider.notifier).refresh(),
+        ]);
+      },
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 960;
@@ -499,6 +512,7 @@ class _DashboardBody extends ConsumerWidget {
                   _MainContentLayout(
                     dashboard: dashboardState.dashboard!,
                     isWide: isWide,
+                    villagers: villagers,
                   ),
               ],
             ),
@@ -897,10 +911,20 @@ class _StatCard extends StatelessWidget {
 class _MainContentLayout extends StatelessWidget {
   final Dashboard dashboard;
   final bool isWide;
-  const _MainContentLayout({required this.dashboard, required this.isWide});
+  final List<Villager> villagers;
+
+  const _MainContentLayout({
+    required this.dashboard,
+    required this.isWide,
+    this.villagers = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
+    final educationCitizens = _buildEducationCitizens(villagers);
+    final occupationCitizens = _buildOccupationCitizens(villagers);
+    final ageCitizens = _buildAgeCitizens(villagers);
+
     final pendidikanCard = _DemographicDetailCard(
       title: 'Tingkat Pendidikan Terakhir',
       subtitle: 'Filter dan lihat detail data penduduk berdasarkan tingkat pendidikan',
@@ -908,7 +932,7 @@ class _MainContentLayout extends StatelessWidget {
       iconColor: const Color(0xFF3B82F6),
       iconBg: const Color(0xFFDBEAFE),
       items: dashboard.pendidikanBreakdown,
-      mockCitizens: _educationMockCitizens,
+      mockCitizens: educationCitizens,
     );
 
     final pekerjaanCard = _DemographicDetailCard(
@@ -918,7 +942,7 @@ class _MainContentLayout extends StatelessWidget {
       iconColor: const Color(0xFFF59E0B),
       iconBg: const Color(0xFFFEF3C7),
       items: dashboard.pekerjaanBreakdown,
-      mockCitizens: _occupationMockCitizens,
+      mockCitizens: occupationCitizens,
     );
 
     final usiaCard = _DemographicDetailCard(
@@ -928,7 +952,7 @@ class _MainContentLayout extends StatelessWidget {
       iconColor: const Color(0xFF10B981),
       iconBg: const Color(0xFFD1FAE5),
       items: dashboard.usiaBreakdown,
-      mockCitizens: _ageMockCitizens,
+      mockCitizens: ageCitizens,
       badgeOverride: dashboard.rerataUmur > 0
           ? 'Rerata ${dashboard.rerataUmur.toStringAsFixed(1)} Thn'
           : null,
@@ -1313,7 +1337,93 @@ class _DemographicDetailCardState extends State<_DemographicDetailCard> {
   }
 }
 
-// ─── Dynamic Mock Citizen Datasets ─────────────────────────────────────────────
+// ─── Real DB & Dynamic Mock Citizen Datasets ─────────────────────────────────
+
+Map<String, List<CitizenRecord>> _buildEducationCitizens(List<Villager> villagers) {
+  if (villagers.isEmpty) return _educationMockCitizens;
+  final map = <String, List<CitizenRecord>>{};
+  for (final v in villagers) {
+    final rawEdu = v.pendidikan.trim();
+    final key = rawEdu.isEmpty ? 'Belum Sekolah' : rawEdu;
+    map.putIfAbsent(key, () => []);
+    map[key]!.add(CitizenRecord(
+      nik: v.nik,
+      name: v.namaLengkap,
+      birthDate: _formatBirthDate(v.tanggalLahir),
+    ));
+  }
+  _educationMockCitizens.forEach((k, v) {
+    if (!map.containsKey(k) || map[k]!.isEmpty) {
+      map[k] = v;
+    }
+  });
+  return map;
+}
+
+Map<String, List<CitizenRecord>> _buildOccupationCitizens(List<Villager> villagers) {
+  if (villagers.isEmpty) return _occupationMockCitizens;
+  final map = <String, List<CitizenRecord>>{};
+  for (final v in villagers) {
+    final rawOcc = v.pekerjaan.trim();
+    final key = rawOcc.isEmpty ? 'Belum/Tidak Bekerja' : rawOcc;
+    map.putIfAbsent(key, () => []);
+    map[key]!.add(CitizenRecord(
+      nik: v.nik,
+      name: v.namaLengkap,
+      birthDate: _formatBirthDate(v.tanggalLahir),
+    ));
+  }
+  _occupationMockCitizens.forEach((k, v) {
+    if (!map.containsKey(k) || map[k]!.isEmpty) {
+      map[k] = v;
+    }
+  });
+  return map;
+}
+
+Map<String, List<CitizenRecord>> _buildAgeCitizens(List<Villager> villagers) {
+  if (villagers.isEmpty) return _ageMockCitizens;
+  final map = <String, List<CitizenRecord>>{};
+  for (final v in villagers) {
+    final age = v.age;
+    String key;
+    if (age <= 5) {
+      key = '0-5 Thn';
+    } else if (age <= 12) {
+      key = '6-12 Thn';
+    } else if (age <= 18) {
+      key = '13-18 Thn';
+    } else if (age <= 30) {
+      key = '19-30 Thn';
+    } else if (age <= 45) {
+      key = '31-45 Thn';
+    } else if (age <= 60) {
+      key = '46-60 Thn';
+    } else {
+      key = '60+ Thn';
+    }
+    map.putIfAbsent(key, () => []);
+    map[key]!.add(CitizenRecord(
+      nik: v.nik,
+      name: v.namaLengkap,
+      birthDate: _formatBirthDate(v.tanggalLahir),
+    ));
+  }
+  _ageMockCitizens.forEach((k, v) {
+    if (!map.containsKey(k) || map[k]!.isEmpty) {
+      map[k] = v;
+    }
+  });
+  return map;
+}
+
+String _formatBirthDate(DateTime dt) {
+  final months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+  ];
+  return '${dt.day.toString().padLeft(2, '0')} ${months[dt.month - 1]} ${dt.year}';
+}
 
 List<CitizenRecord> _getFallbackMockCitizens(String category) {
   return const [

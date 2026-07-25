@@ -19,6 +19,26 @@ func NewVillagerController(villagerService *services.VillagerService) *VillagerC
 	}
 }
 
+func (c *VillagerController) GetAllVillagers(ctx *fiber.Ctx) error {
+	responses, err := c.villagerService.GetAllVillagers(ctx)
+	if err != nil {
+		if err.Error() == "village ID is required" || err.Error() == "invalid village ID format" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"Message": "Invalid village ID",
+				"Error":   "Check your token",
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"Message": "Failed to get villagers",
+			"Error":   err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data": responses,
+	})
+}
+
 func (c *VillagerController) CreateVillager(ctx *fiber.Ctx) error {
 	var request dtos.AddVillagerRequest
 
