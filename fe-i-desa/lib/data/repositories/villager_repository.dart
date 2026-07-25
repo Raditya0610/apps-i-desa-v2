@@ -19,11 +19,25 @@ class VillagerRepository {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
-        final villagers = (data['data'] ?? data['villagers']) as List;
-        return villagers
-            .map((json) => Villager.fromJson(json as Map<String, dynamic>))
-            .toList();
+        final data = response.data;
+        List rawList = [];
+        if (data is List) {
+          rawList = data;
+        } else if (data is Map<String, dynamic>) {
+          rawList = (data['data'] ?? data['villagers'] ?? []) as List;
+        }
+
+        final villagers = <Villager>[];
+        for (final item in rawList) {
+          try {
+            if (item is Map<String, dynamic>) {
+              villagers.add(Villager.fromJson(item));
+            }
+          } catch (e) {
+            print('Error parsing villager item: $e');
+          }
+        }
+        return villagers;
       }
       return [];
     } catch (e) {

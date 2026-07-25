@@ -42,29 +42,37 @@ class Villager {
   });
 
   factory Villager.fromJson(Map<String, dynamic> json) {
+    DateTime parsedDate;
+    final rawDate = json['tanggal_lahir'];
+    if (rawDate != null && rawDate.toString().isNotEmpty) {
+      parsedDate = DateTime.tryParse(rawDate.toString()) ?? DateTime(2000);
+    } else {
+      parsedDate = DateTime(2000);
+    }
+
     return Villager(
-      nik: json['nik'] as String,
-      namaLengkap: json['nama_lengkap'] as String,
-      jenisKelamin: json['jenis_kelamin'] as String,
-      tempatLahir: json['tempat_lahir'] as String,
-      tanggalLahir: DateTime.parse(json['tanggal_lahir'] as String),
-      agama: json['agama'] as String,
-      pendidikan: json['pendidikan'] as String,
-      pekerjaan: json['pekerjaan'] as String,
-      statusPerkawinan: json['status_perkawinan'] as String,
-      statusHubungan: json['status_hubungan'] as String,
-      kewarganegaraan: json['kewarganegaraan'] as String,
+      nik: (json['nik'] ?? '') as String,
+      namaLengkap: (json['nama_lengkap'] ?? json['name'] ?? '') as String,
+      jenisKelamin: (json['jenis_kelamin'] ?? '') as String,
+      tempatLahir: (json['tempat_lahir'] ?? '') as String,
+      tanggalLahir: parsedDate,
+      agama: (json['agama'] ?? '') as String,
+      pendidikan: (json['pendidikan'] ?? '') as String,
+      pekerjaan: (json['pekerjaan'] ?? '') as String,
+      statusPerkawinan: (json['status_perkawinan'] ?? '') as String,
+      statusHubungan: (json['status_hubungan'] ?? '') as String,
+      kewarganegaraan: (json['kewarganegaraan'] ?? 'WNI') as String,
       nomorPaspor: json['nomor_paspor'] as String?,
       nomorKitas: json['nomor_kitas'] as String?,
-      namaAyah: json['nama_ayah'] as String,
-      namaIbu: json['nama_ibu'] as String,
+      namaAyah: (json['nama_ayah'] ?? '') as String,
+      namaIbu: (json['nama_ibu'] ?? '') as String,
       villageId: json['village_id'] as String?,
       familyCardId: json['family_card_id'] as String?,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.tryParse(json['created_at'].toString())
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? DateTime.tryParse(json['updated_at'].toString())
           : null,
     );
   }
