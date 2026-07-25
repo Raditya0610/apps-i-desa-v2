@@ -1091,8 +1091,7 @@ class _DemographicDetailCardState extends State<_DemographicDetailCard> {
 
     final activeCategory = _selectedCategory ??
         (widget.items.isNotEmpty ? widget.items.first.label : '');
-    final citizenList = widget.mockCitizens[activeCategory] ??
-        _getFallbackMockCitizens(activeCategory);
+    final citizenList = _getCitizensForCategory(activeCategory);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1335,85 +1334,145 @@ class _DemographicDetailCardState extends State<_DemographicDetailCard> {
       ),
     );
   }
+
+  List<CitizenRecord> _getCitizensForCategory(String category) {
+    if (widget.mockCitizens.containsKey(category)) {
+      return widget.mockCitizens[category]!;
+    }
+
+    final normCategory = category.trim().toLowerCase();
+    for (final entry in widget.mockCitizens.entries) {
+      if (entry.key.trim().toLowerCase() == normCategory) {
+        return entry.value;
+      }
+    }
+
+    final ageNorm = normCategory.replaceAll('tahun', '').replaceAll('thn', '').trim();
+    for (final entry in widget.mockCitizens.entries) {
+      final entryNorm = entry.key.trim().toLowerCase().replaceAll('tahun', '').replaceAll('thn', '').trim();
+      if (entryNorm == ageNorm) {
+        return entry.value;
+      }
+    }
+
+    final mappedEdu = _normalizeEducationString(category);
+    if (widget.mockCitizens.containsKey(mappedEdu)) {
+      return widget.mockCitizens[mappedEdu]!;
+    }
+
+    return widget.mockCitizens[category] ?? [];
+  }
 }
 
 // ─── Real DB & Dynamic Mock Citizen Datasets ─────────────────────────────────
 
+String _normalizeEducationString(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return 'Tidak/Belum Sekolah';
+  const mapping = {
+    'SD': 'Tamat SD/Sederajat',
+    'SMP': 'SLTP/Sederajat',
+    'SMA': 'SLTA/Sederajat',
+    'SMK': 'SLTA/Sederajat',
+    'D1': 'Diploma I/II',
+    'D2': 'Diploma I/II',
+    'D3': 'Akademi/Diploma III/Sarjana Muda',
+    'S1': 'Diploma IV/Strata I',
+    'S2': 'Strata II',
+    'S3': 'Strata III',
+    'Belum Sekolah': 'Tidak/Belum Sekolah',
+    'Tidak Sekolah': 'Tidak/Belum Sekolah',
+    'TK': 'Belum Tamat SD/Sederajat',
+  };
+  return mapping[trimmed] ?? trimmed;
+}
+
 Map<String, List<CitizenRecord>> _buildEducationCitizens(List<Villager> villagers) {
   if (villagers.isEmpty) return _educationMockCitizens;
   final map = <String, List<CitizenRecord>>{};
+
   for (final v in villagers) {
     final rawEdu = v.pendidikan.trim();
-    final key = rawEdu.isEmpty ? 'Belum Sekolah' : rawEdu;
-    map.putIfAbsent(key, () => []);
-    map[key]!.add(CitizenRecord(
+    final canonical = _normalizeEducationString(rawEdu);
+    final record = CitizenRecord(
       nik: v.nik,
       name: v.namaLengkap,
       birthDate: _formatBirthDate(v.tanggalLahir),
-    ));
-  }
-  _educationMockCitizens.forEach((k, v) {
-    if (!map.containsKey(k) || map[k]!.isEmpty) {
-      map[k] = v;
+    );
+
+    map.putIfAbsent(canonical, () => []);
+    map[canonical]!.add(record);
+
+    if (rawEdu.isNotEmpty && rawEdu != canonical) {
+      map.putIfAbsent(rawEdu, () => []);
+      map[rawEdu]!.add(record);
     }
-  });
+  }
   return map;
 }
 
 Map<String, List<CitizenRecord>> _buildOccupationCitizens(List<Villager> villagers) {
   if (villagers.isEmpty) return _occupationMockCitizens;
   final map = <String, List<CitizenRecord>>{};
+
   for (final v in villagers) {
     final rawOcc = v.pekerjaan.trim();
     final key = rawOcc.isEmpty ? 'Belum/Tidak Bekerja' : rawOcc;
-    map.putIfAbsent(key, () => []);
-    map[key]!.add(CitizenRecord(
+    final record = CitizenRecord(
       nik: v.nik,
       name: v.namaLengkap,
       birthDate: _formatBirthDate(v.tanggalLahir),
-    ));
+    );
+
+    map.putIfAbsent(key, () => []);
+    map[key]!.add(record);
   }
-  _occupationMockCitizens.forEach((k, v) {
-    if (!map.containsKey(k) || map[k]!.isEmpty) {
-      map[k] = v;
-    }
-  });
   return map;
 }
 
 Map<String, List<CitizenRecord>> _buildAgeCitizens(List<Villager> villagers) {
   if (villagers.isEmpty) return _ageMockCitizens;
   final map = <String, List<CitizenRecord>>{};
+
   for (final v in villagers) {
     final age = v.age;
-    String key;
+    String labelFull;
+    String labelShort;
     if (age <= 5) {
-      key = '0-5 Thn';
+      labelFull = '0-5 Tahun';
+      labelShort = '0-5 Thn';
     } else if (age <= 12) {
-      key = '6-12 Thn';
+      labelFull = '6-12 Tahun';
+      labelShort = '6-12 Thn';
     } else if (age <= 18) {
-      key = '13-18 Thn';
+      labelFull = '13-18 Tahun';
+      labelShort = '13-18 Thn';
     } else if (age <= 30) {
-      key = '19-30 Thn';
+      labelFull = '19-30 Tahun';
+      labelShort = '19-30 Thn';
     } else if (age <= 45) {
-      key = '31-45 Thn';
+      labelFull = '31-45 Tahun';
+      labelShort = '31-45 Thn';
     } else if (age <= 60) {
-      key = '46-60 Thn';
+      labelFull = '46-60 Tahun';
+      labelShort = '46-60 Thn';
     } else {
-      key = '60+ Thn';
+      labelFull = '60+ Tahun';
+      labelShort = '60+ Thn';
     }
-    map.putIfAbsent(key, () => []);
-    map[key]!.add(CitizenRecord(
+
+    final record = CitizenRecord(
       nik: v.nik,
       name: v.namaLengkap,
       birthDate: _formatBirthDate(v.tanggalLahir),
-    ));
+    );
+
+    map.putIfAbsent(labelFull, () => []);
+    map[labelFull]!.add(record);
+
+    map.putIfAbsent(labelShort, () => []);
+    map[labelShort]!.add(record);
   }
-  _ageMockCitizens.forEach((k, v) {
-    if (!map.containsKey(k) || map[k]!.isEmpty) {
-      map[k] = v;
-    }
-  });
   return map;
 }
 
