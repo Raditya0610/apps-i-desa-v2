@@ -500,12 +500,6 @@ class _DashboardBody extends ConsumerWidget {
                     dashboard: dashboardState.dashboard!,
                     isWide: isWide,
                   ),
-                const SizedBox(height: 24),
-                if (dashboardState.dashboard != null)
-                  _DemographicBreakdownSection(
-                    dashboard: dashboardState.dashboard!,
-                    isWide: isWide,
-                  ),
               ],
             ),
           );
@@ -901,53 +895,9 @@ class _StatCard extends StatelessWidget {
 // ─── Main Content (chart + insight) ──────────────────────────────────────────
 
 class _MainContentLayout extends StatelessWidget {
-  final dynamic dashboard;
-  final bool isWide;
-  const _MainContentLayout({required this.dashboard, required this.isWide});
-
-  @override
-  Widget build(BuildContext context) {
-    final left = Column(
-      children: [
-        _GenderChart(dashboard: dashboard),
-        const SizedBox(height: 20),
-        _AdminStats(dashboard: dashboard),
-      ],
-    );
-
-    final right = Column(
-      children: [
-        _InsightCard(dashboard: dashboard),
-        const SizedBox(height: 20),
-        const _RecentActivity(),
-      ],
-    );
-
-    if (isWide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(flex: 7, child: left),
-          const SizedBox(width: 24),
-          Expanded(flex: 3, child: right),
-        ],
-      );
-    }
-
-    return Column(
-      children: [left, const SizedBox(height: 20), right],
-    );
-  }
-}
-
-// ─── Education & Occupation Breakdown ─────────────────────────────────────────
-
-// ─── Demographic Breakdown Section (Pendidikan, Pekerjaan, Usia) ─────────────
-
-class _DemographicBreakdownSection extends StatelessWidget {
   final Dashboard dashboard;
   final bool isWide;
-  const _DemographicBreakdownSection({required this.dashboard, required this.isWide});
+  const _MainContentLayout({required this.dashboard, required this.isWide});
 
   @override
   Widget build(BuildContext context) {
@@ -985,25 +935,58 @@ class _DemographicBreakdownSection extends StatelessWidget {
     );
 
     if (isWide) {
+      final left = Column(
+        children: [
+          _GenderChart(dashboard: dashboard),
+          const SizedBox(height: 20),
+          _AdminStats(dashboard: dashboard),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: pendidikanCard),
+              const SizedBox(width: 20),
+              Expanded(child: pekerjaanCard),
+            ],
+          ),
+        ],
+      );
+
+      final right = Column(
+        children: [
+          _InsightCard(dashboard: dashboard),
+          const SizedBox(height: 20),
+          usiaCard,
+          const SizedBox(height: 20),
+          const _RecentActivity(),
+        ],
+      );
+
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: pendidikanCard),
-          const SizedBox(width: 20),
-          Expanded(child: pekerjaanCard),
-          const SizedBox(width: 20),
-          Expanded(child: usiaCard),
+          Expanded(flex: 7, child: left),
+          const SizedBox(width: 24),
+          Expanded(flex: 3, child: right),
         ],
       );
     }
 
     return Column(
       children: [
+        _GenderChart(dashboard: dashboard),
+        const SizedBox(height: 20),
+        _AdminStats(dashboard: dashboard),
+        const SizedBox(height: 20),
+        _InsightCard(dashboard: dashboard),
+        const SizedBox(height: 20),
         pendidikanCard,
         const SizedBox(height: 20),
         pekerjaanCard,
         const SizedBox(height: 20),
         usiaCard,
+        const SizedBox(height: 20),
+        const _RecentActivity(),
       ],
     );
   }
