@@ -901,34 +901,34 @@ class _MainContentLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pendidikanCard = _BreakdownCard(
+    final pendidikanCard = _DemographicDetailCard(
       title: 'Tingkat Pendidikan Terakhir',
-      subtitle: 'Distribusi tingkat pendidikan penduduk desa',
+      subtitle: 'Filter dan lihat detail data penduduk berdasarkan tingkat pendidikan',
       icon: Icons.school_outlined,
       iconColor: const Color(0xFF3B82F6),
       iconBg: const Color(0xFFDBEAFE),
       items: dashboard.pendidikanBreakdown,
-      totalPenduduk: dashboard.totalPenduduk,
+      mockCitizens: _educationMockCitizens,
     );
 
-    final pekerjaanCard = _BreakdownCard(
+    final pekerjaanCard = _DemographicDetailCard(
       title: 'Pekerjaan',
-      subtitle: 'Distribusi mata pencaharian penduduk desa',
+      subtitle: 'Filter dan lihat detail data penduduk berdasarkan mata pencaharian',
       icon: Icons.work_outline_rounded,
       iconColor: const Color(0xFFF59E0B),
       iconBg: const Color(0xFFFEF3C7),
       items: dashboard.pekerjaanBreakdown,
-      totalPenduduk: dashboard.totalPenduduk,
+      mockCitizens: _occupationMockCitizens,
     );
 
-    final usiaCard = _BreakdownCard(
+    final usiaCard = _DemographicDetailCard(
       title: 'Kelompok Usia',
-      subtitle: 'Distribusi rentang umur penduduk desa',
+      subtitle: 'Filter dan lihat detail data penduduk berdasarkan rentang umur',
       icon: Icons.cake_outlined,
       iconColor: const Color(0xFF10B981),
       iconBg: const Color(0xFFD1FAE5),
       items: dashboard.usiaBreakdown,
-      totalPenduduk: dashboard.totalPenduduk,
+      mockCitizens: _ageMockCitizens,
       badgeOverride: dashboard.rerataUmur > 0
           ? 'Rerata ${dashboard.rerataUmur.toStringAsFixed(1)} Thn'
           : null,
@@ -941,22 +941,17 @@ class _MainContentLayout extends StatelessWidget {
           const SizedBox(height: 20),
           _AdminStats(dashboard: dashboard),
           const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: pendidikanCard),
-              const SizedBox(width: 20),
-              Expanded(child: pekerjaanCard),
-            ],
-          ),
+          pendidikanCard,
+          const SizedBox(height: 20),
+          pekerjaanCard,
+          const SizedBox(height: 20),
+          usiaCard,
         ],
       );
 
       final right = Column(
         children: [
           _InsightCard(dashboard: dashboard),
-          const SizedBox(height: 20),
-          usiaCard,
           const SizedBox(height: 20),
           const _RecentActivity(),
         ],
@@ -992,46 +987,88 @@ class _MainContentLayout extends StatelessWidget {
   }
 }
 
-class _BreakdownCard extends StatelessWidget {
+// ─── Citizen Record Model & Interactive Demographic Detail Card ────────────────
+
+class CitizenRecord {
+  final String nik;
+  final String name;
+  final String birthDate;
+
+  const CitizenRecord({
+    required this.nik,
+    required this.name,
+    required this.birthDate,
+  });
+}
+
+class _DemographicDetailCard extends StatefulWidget {
   final String title;
   final String subtitle;
   final IconData icon;
   final Color iconColor;
   final Color iconBg;
   final List<LabeledCount> items;
-  final int totalPenduduk;
+  final Map<String, List<CitizenRecord>> mockCitizens;
   final String? badgeOverride;
 
-  const _BreakdownCard({
+  const _DemographicDetailCard({
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.iconColor,
     required this.iconBg,
     required this.items,
-    required this.totalPenduduk,
+    required this.mockCitizens,
     this.badgeOverride,
   });
 
   @override
+  State<_DemographicDetailCard> createState() => _DemographicDetailCardState();
+}
+
+class _DemographicDetailCardState extends State<_DemographicDetailCard> {
+  String? _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.items.isNotEmpty) {
+      _selectedCategory = widget.items.first.label;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _DemographicDetailCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_selectedCategory == null && widget.items.isNotEmpty) {
+      _selectedCategory = widget.items.first.label;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final maxTotal = items.isEmpty
+    final maxTotal = widget.items.isEmpty
         ? 0
-        : items.map((e) => e.total).reduce((a, b) => a > b ? a : b);
-    final sumTotal = items.isEmpty
+        : widget.items.map((e) => e.total).reduce((a, b) => a > b ? a : b);
+    final sumTotal = widget.items.isEmpty
         ? 0
-        : items.map((e) => e.total).reduce((a, b) => a + b);
+        : widget.items.map((e) => e.total).reduce((a, b) => a + b);
 
     String? pillBadgeText;
-    if (badgeOverride != null) {
-      pillBadgeText = badgeOverride;
-    } else if (items.isNotEmpty && maxTotal > 0) {
-      final topItem = items.reduce((a, b) => a.total >= b.total ? a : b);
+    if (widget.badgeOverride != null) {
+      pillBadgeText = widget.badgeOverride;
+    } else if (widget.items.isNotEmpty && maxTotal > 0) {
+      final topItem = widget.items.reduce((a, b) => a.total >= b.total ? a : b);
       if (sumTotal > 0) {
         final pct = (topItem.total / sumTotal * 100).toStringAsFixed(0);
         pillBadgeText = 'Dominan: ${topItem.label} ($pct%)';
       }
     }
+
+    final activeCategory = _selectedCategory ??
+        (widget.items.isNotEmpty ? widget.items.first.label : '');
+    final citizenList = widget.mockCitizens[activeCategory] ??
+        _getFallbackMockCitizens(activeCategory);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1039,16 +1076,17 @@ class _BreakdownCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Card Header
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: iconBg,
+                  color: widget.iconBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: iconColor, size: 20),
+                child: Icon(widget.icon, color: widget.iconColor, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1059,7 +1097,7 @@ class _BreakdownCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            title,
+                            widget.title,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -1073,7 +1111,7 @@ class _BreakdownCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: iconBg,
+                              color: widget.iconBg,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -1081,7 +1119,7 @@ class _BreakdownCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: iconColor,
+                                color: widget.iconColor,
                               ),
                             ),
                           ),
@@ -1090,7 +1128,7 @@ class _BreakdownCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      subtitle,
+                      widget.subtitle,
                       style: const TextStyle(
                         fontSize: 12,
                         color: ForuiThemeConfig.textSecondary,
@@ -1101,95 +1139,299 @@ class _BreakdownCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: Text(
-                  'Belum ada data.',
-                  style: TextStyle(
-                      fontSize: 13, color: ForuiThemeConfig.textSecondary),
-                ),
+          const SizedBox(height: 18),
+
+          // Category Filter Tabs (Horizontal Scrollable)
+          if (widget.items.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: widget.items.map((item) {
+                  final isSelected = item.label == activeCategory;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedCategory = item.label;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? widget.iconColor
+                              : widget.iconBg.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected
+                                ? widget.iconColor
+                                : Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          '${item.label} (${item.total})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white
+                                : ForuiThemeConfig.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
-            )
-          else
-            Column(
-              children: [
-                for (var i = 0; i < items.length; i++) ...[
-                  if (i > 0) const SizedBox(height: 14),
-                  _BreakdownRow(
-                    item: items[i],
-                    ratio: maxTotal == 0 ? 0.0 : items[i].total / maxTotal,
-                    percentage: sumTotal == 0 ? 0.0 : (items[i].total / sumTotal * 100),
-                    color: iconColor,
-                  ),
-                ],
-              ],
             ),
+          const SizedBox(height: 16),
+
+          // Citizen List Container (~5 items visible, overflow-y scroll)
+          Container(
+            height: 260,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: citizenList.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Belum ada data penduduk untuk kategori ini.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: ForuiThemeConfig.textSecondary,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: citizenList.length,
+                    separatorBuilder: (_, __) => const Divider(
+                      height: 12,
+                      thickness: 0.8,
+                      color: Color(0xFFF3F4F6),
+                    ),
+                    itemBuilder: (context, index) {
+                      final c = citizenList[index];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: widget.iconBg,
+                              child: Text(
+                                c.name.isNotEmpty
+                                    ? c.name[0].toUpperCase()
+                                    : 'P',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: widget.iconColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    c.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: ForuiThemeConfig.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          'NIK: ${c.nik}',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w500,
+                                            color:
+                                                ForuiThemeConfig.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Icon(Icons.cake_outlined,
+                                          size: 12,
+                                          color: Colors.grey.shade500),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        c.birthDate,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color:
+                                              ForuiThemeConfig.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _BreakdownRow extends StatelessWidget {
-  final LabeledCount item;
-  final double ratio;
-  final double percentage;
-  final Color color;
+// ─── Dynamic Mock Citizen Datasets ─────────────────────────────────────────────
 
-  const _BreakdownRow({
-    required this.item,
-    required this.ratio,
-    required this.percentage,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                item.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: ForuiThemeConfig.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${item.total} (${percentage.toStringAsFixed(1)}%)',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: ForuiThemeConfig.textSecondary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(
-            value: ratio.clamp(0.0, 1.0),
-            backgroundColor: Colors.grey.shade100,
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: 6,
-          ),
-        ),
-      ],
-    );
-  }
+List<CitizenRecord> _getFallbackMockCitizens(String category) {
+  return const [
+    CitizenRecord(nik: '3402011505900001', name: 'Budi Santoso', birthDate: '15 Mei 1990'),
+    CitizenRecord(nik: '3402012208850002', name: 'Siti Aminah', birthDate: '22 Agustus 1985'),
+    CitizenRecord(nik: '3402011003980003', name: 'Ahmad Dahlan', birthDate: '10 Maret 1998'),
+    CitizenRecord(nik: '3402010411920004', name: 'Dewi Lestari', birthDate: '04 November 1992'),
+    CitizenRecord(nik: '3402011801010005', name: 'Rizky Pratama', birthDate: '18 Januari 2001'),
+    CitizenRecord(nik: '3402012907950006', name: 'Eka Rahmawati', birthDate: '29 Juli 1995'),
+  ];
 }
+
+final Map<String, List<CitizenRecord>> _educationMockCitizens = {
+  'Belum Sekolah': [
+    const CitizenRecord(nik: '3402010101230001', name: 'Ananda Putri', birthDate: '01 Jan 2023'),
+    const CitizenRecord(nik: '3402010502220002', name: 'Muhammad Alfi', birthDate: '05 Feb 2022'),
+    const CitizenRecord(nik: '3402011203240003', name: 'Nabila Zahra', birthDate: '12 Mar 2024'),
+  ],
+  'Tamat SD/Sederajat': [
+    const CitizenRecord(nik: '3402011204780001', name: 'Slamet Riyadi', birthDate: '12 Apr 1978'),
+    const CitizenRecord(nik: '3402012506650002', name: 'Siti Maryam', birthDate: '25 Jun 1965'),
+    const CitizenRecord(nik: '3402010809800003', name: 'Bambang Utomo', birthDate: '08 Sep 1980'),
+    const CitizenRecord(nik: '3402011410720004', name: 'Sri Wahyuni', birthDate: '14 Okt 1972'),
+    const CitizenRecord(nik: '3402013011680005', name: 'Joko Susilo', birthDate: '30 Nov 1968'),
+  ],
+  'SLTP/Sederajat': [
+    const CitizenRecord(nik: '3402011508080001', name: 'Fikri Ardiansyah', birthDate: '15 Agu 2008'),
+    const CitizenRecord(nik: '3402012010090002', name: 'Aulia Rahma', birthDate: '20 Okt 2009'),
+    const CitizenRecord(nik: '3402010305070003', name: 'Dimas Setiawan', birthDate: '03 Mei 2007'),
+    const CitizenRecord(nik: '3402011707080004', name: 'Rina Kurniawati', birthDate: '17 Jul 2008'),
+    const CitizenRecord(nik: '3402012812090005', name: 'Bayu Saputra', birthDate: '28 Des 2009'),
+  ],
+  'SLTA/Sederajat': [
+    const CitizenRecord(nik: '3402011505900001', name: 'Budi Santoso', birthDate: '15 Mei 1990'),
+    const CitizenRecord(nik: '3402012208850002', name: 'Siti Aminah', birthDate: '22 Agu 1985'),
+    const CitizenRecord(nik: '3402011003980003', name: 'Ahmad Dahlan', birthDate: '10 Mar 1998'),
+    const CitizenRecord(nik: '3402010411920004', name: 'Dewi Lestari', birthDate: '04 Nov 1992'),
+    const CitizenRecord(nik: '3402011801010005', name: 'Rizky Pratama', birthDate: '18 Jan 2001'),
+    const CitizenRecord(nik: '3402012907950006', name: 'Eka Rahmawati', birthDate: '29 Jul 1995'),
+  ],
+  'Akademi/Diploma III/Sarjana Muda': [
+    const CitizenRecord(nik: '3402010506940001', name: 'Hendra Wijaya', birthDate: '05 Jun 1994'),
+    const CitizenRecord(nik: '3402011902960002', name: 'Lia Fitriani', birthDate: '19 Feb 1996'),
+  ],
+  'Diploma IV/Strata I': [
+    const CitizenRecord(nik: '3402011109930001', name: 'Dr. Raditya Kurniawan', birthDate: '11 Sep 1993'),
+    const CitizenRecord(nik: '3402012404910002', name: 'Nurul Hidayah M.Pd', birthDate: '24 Apr 1991'),
+    const CitizenRecord(nik: '3402010712950003', name: 'Fajar Nugraha S.T.', birthDate: '07 Des 1995'),
+  ],
+};
+
+final Map<String, List<CitizenRecord>> _occupationMockCitizens = {
+  'Pelajar/Mahasiswa': [
+    const CitizenRecord(nik: '3402011508080001', name: 'Fikri Ardiansyah', birthDate: '15 Agu 2008'),
+    const CitizenRecord(nik: '3402012010090002', name: 'Aulia Rahma', birthDate: '20 Okt 2009'),
+    const CitizenRecord(nik: '3402011801010005', name: 'Rizky Pratama', birthDate: '18 Jan 2001'),
+    const CitizenRecord(nik: '3402010305070003', name: 'Dimas Setiawan', birthDate: '03 Mei 2007'),
+    const CitizenRecord(nik: '3402011707080004', name: 'Rina Kurniawati', birthDate: '17 Jul 2008'),
+    const CitizenRecord(nik: '3402012812090005', name: 'Bayu Saputra', birthDate: '28 Des 2009'),
+  ],
+  'Mengurus Rumah Tangga': [
+    const CitizenRecord(nik: '3402012208850002', name: 'Siti Aminah', birthDate: '22 Agu 1985'),
+    const CitizenRecord(nik: '3402010411920004', name: 'Dewi Lestari', birthDate: '04 Nov 1992'),
+    const CitizenRecord(nik: '3402012506650002', name: 'Siti Maryam', birthDate: '25 Jun 1965'),
+    const CitizenRecord(nik: '3402011410720004', name: 'Sri Wahyuni', birthDate: '14 Okt 1972'),
+    const CitizenRecord(nik: '3402012907950006', name: 'Eka Rahmawati', birthDate: '29 Jul 1995'),
+  ],
+  'Belum/Tidak Bekerja': [
+    const CitizenRecord(nik: '3402011003980003', name: 'Ahmad Dahlan', birthDate: '10 Mar 1998'),
+    const CitizenRecord(nik: '3402011902960002', name: 'Lia Fitriani', birthDate: '19 Feb 1996'),
+    const CitizenRecord(nik: '3402010809800003', name: 'Bambang Utomo', birthDate: '08 Sep 1980'),
+  ],
+  'Petani/Pekebun': [
+    const CitizenRecord(nik: '3402011204780001', name: 'Slamet Riyadi', birthDate: '12 Apr 1978'),
+    const CitizenRecord(nik: '3402013011680005', name: 'Joko Susilo', birthDate: '30 Nov 1968'),
+    const CitizenRecord(nik: '3402010506940001', name: 'Hendra Wijaya', birthDate: '05 Jun 1994'),
+  ],
+};
+
+final Map<String, List<CitizenRecord>> _ageMockCitizens = {
+  '0-5 Thn': [
+    const CitizenRecord(nik: '3402010101230001', name: 'Ananda Putri', birthDate: '01 Jan 2023'),
+    const CitizenRecord(nik: '3402010502220002', name: 'Muhammad Alfi', birthDate: '05 Feb 2022'),
+    const CitizenRecord(nik: '3402011203240003', name: 'Nabila Zahra', birthDate: '12 Mar 2024'),
+  ],
+  '6-12 Thn': [
+    const CitizenRecord(nik: '3402011005160001', name: 'Kevin Sanjaya', birthDate: '10 Mei 2016'),
+    const CitizenRecord(nik: '3402011809180002', name: 'Gisella Anastasia', birthDate: '18 Sep 2018'),
+  ],
+  '13-18 Thn': [
+    const CitizenRecord(nik: '3402011508080001', name: 'Fikri Ardiansyah', birthDate: '15 Agu 2008'),
+    const CitizenRecord(nik: '3402012010090002', name: 'Aulia Rahma', birthDate: '20 Okt 2009'),
+    const CitizenRecord(nik: '3402010305070003', name: 'Dimas Setiawan', birthDate: '03 Mei 2007'),
+  ],
+  '19-30 Thn': [
+    const CitizenRecord(nik: '3402011801010005', name: 'Rizky Pratama', birthDate: '18 Jan 2001'),
+    const CitizenRecord(nik: '3402012907950006', name: 'Eka Rahmawati', birthDate: '29 Jul 1995'),
+    const CitizenRecord(nik: '3402011003980003', name: 'Ahmad Dahlan', birthDate: '10 Mar 1998'),
+    const CitizenRecord(nik: '3402011902960002', name: 'Lia Fitriani', birthDate: '19 Feb 1996'),
+    const CitizenRecord(nik: '3402010712950003', name: 'Fajar Nugraha S.T.', birthDate: '07 Des 1995'),
+  ],
+  '31-45 Thn': [
+    const CitizenRecord(nik: '3402011505900001', name: 'Budi Santoso', birthDate: '15 Mei 1990'),
+    const CitizenRecord(nik: '3402012208850002', name: 'Siti Aminah', birthDate: '22 Agu 1985'),
+    const CitizenRecord(nik: '3402010411920004', name: 'Dewi Lestari', birthDate: '04 Nov 1992'),
+    const CitizenRecord(nik: '3402010506940001', name: 'Hendra Wijaya', birthDate: '05 Jun 1994'),
+    const CitizenRecord(nik: '3402011109930001', name: 'Dr. Raditya Kurniawan', birthDate: '11 Sep 1993'),
+  ],
+  '46-60 Thn': [
+    const CitizenRecord(nik: '3402011204780001', name: 'Slamet Riyadi', birthDate: '12 Apr 1978'),
+    const CitizenRecord(nik: '3402010809800003', name: 'Bambang Utomo', birthDate: '08 Sep 1980'),
+    const CitizenRecord(nik: '3402011410720004', name: 'Sri Wahyuni', birthDate: '14 Okt 1972'),
+  ],
+  '60+ Thn': [
+    const CitizenRecord(nik: '3402012506650002', name: 'Siti Maryam', birthDate: '25 Jun 1965'),
+    const CitizenRecord(nik: '3402013011680005', name: 'Joko Susilo', birthDate: '30 Nov 1968'),
+  ],
+};
 
 // ─── Gender Chart ─────────────────────────────────────────────────────────────
 
