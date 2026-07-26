@@ -12,6 +12,49 @@ class VillagerRepository {
   dynamic get _api => AppConfig.useMockApi ? _mockApiService : _apiService;
 
   Future<List<Villager>> getAllVillagers({int page = 1, int limit = 100}) async {
+    return (await _fetchVillagerPage(page: page, limit: limit)).villagers;
+  }
+
+  /// Fetches every resident across all pages, using the `pagination.total_pages`
+  /// the backend now reports (added alongside real LIMIT/OFFSET support) to
+  /// know exactly how many requests to make.
+  ///
+  /// Falls back to a single page — via [seenNiks]/[maxPages] as a last-resort
+  /// safety net rather than trusting `total_pages` blindly — if a response
+  /// ever omits pagination metadata (e.g. the mock API, which returns
+  /// everything in one unpaginated response).
+  Future<List<Villager>> getAllVillagersAcrossPages({int pageSize = 100}) async {
+    final first = await _fetchVillagerPage(page: 1, limit: pageSize);
+    final all = <Villager>[...first.villagers];
+    if (first.totalPages == null || first.totalPages! <= 1) {
+      return all;
+    }
+
+    final seenNiks = all.map((v) => v.nik).toSet();
+    const maxPages = 200;
+    final lastPage = first.totalPages! > maxPages ? maxPages : first.totalPages!;
+
+    for (var page = 2; page <= lastPage; page++) {
+      final next = await _fetchVillagerPage(page: page, limit: pageSize);
+      if (next.villagers.isEmpty) break;
+
+      var addedNew = false;
+      for (final v in next.villagers) {
+        if (seenNiks.add(v.nik)) {
+          all.add(v);
+          addedNew = true;
+        }
+      }
+      if (!addedNew) break;
+    }
+
+    return all;
+  }
+
+  Future<({List<Villager> villagers, int? totalPages})> _fetchVillagerPage({
+    required int page,
+    required int limit,
+  }) async {
     try {
       final response = await _api.get(
         ApiConstants.villagers,
@@ -21,10 +64,15 @@ class VillagerRepository {
       if (response.statusCode == 200) {
         final data = response.data;
         List rawList = [];
+        int? totalPages;
         if (data is List) {
           rawList = data;
         } else if (data is Map<String, dynamic>) {
           rawList = (data['data'] ?? data['villagers'] ?? []) as List;
+          final pagination = data['pagination'];
+          if (pagination is Map<String, dynamic>) {
+            totalPages = (pagination['total_pages'] as num?)?.toInt();
+          }
         }
 
         final villagers = <Villager>[];
@@ -37,35 +85,13 @@ class VillagerRepository {
             print('Error parsing villager item: $e');
           }
         }
-        return villagers;
+        return (villagers: villagers, totalPages: totalPages);
       }
-      return [];
+      return (villagers: <Villager>[], totalPages: null);
     } catch (e) {
       print('Error fetching villagers: ${ApiService.getErrorMessage(e)}');
-      return [];
+      return (villagers: <Villager>[], totalPages: null);
     }
-  }
-
-  /// Fetches every resident across all pages.
-  ///
-  /// [getAllVillagers] only returns one page (100 rows by default) — screens
-  /// that need the whole village, like the dashboard's demographic
-  /// breakdowns, were silently dropping every resident past #100. Stops once
-  /// a page comes back short of [pageSize], with a hard cap so a backend that
-  /// never returns a short page can't spin this forever.
-  Future<List<Villager>> getAllVillagersAcrossPages({int pageSize = 100}) async {
-    final all = <Villager>[];
-    var page = 1;
-    const maxPages = 500;
-
-    while (page <= maxPages) {
-      final batch = await getAllVillagers(page: page, limit: pageSize);
-      all.addAll(batch);
-      if (batch.length < pageSize) break;
-      page++;
-    }
-
-    return all;
   }
 
   /// Full record for one resident.
