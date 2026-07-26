@@ -1023,11 +1023,13 @@ class CitizenRecord {
   final String nik;
   final String name;
   final String birthDate;
+  final String? familyCardId;
 
   const CitizenRecord({
     required this.nik,
     required this.name,
     required this.birthDate,
+    this.familyCardId,
   });
 }
 
@@ -1251,11 +1253,21 @@ class _DemographicDetailCardState extends State<_DemographicDetailCard> {
                     ),
                     itemBuilder: (context, index) {
                       final c = citizenList[index];
-                      return Container(
+                      final hasFamilyCard = c.familyCardId != null &&
+                          c.familyCardId!.isNotEmpty;
+                      return Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: hasFamilyCard
+                            ? () => context
+                                .push('/family-cards/${c.familyCardId}')
+                            : null,
+                        child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFF3F4F6)),
                         ),
@@ -1327,10 +1339,39 @@ class _DemographicDetailCardState extends State<_DemographicDetailCard> {
                                       ),
                                     ],
                                   ),
+                                  if (hasFamilyCard) ...[
+                                    const SizedBox(height: 3),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.badge_outlined,
+                                            size: 12,
+                                            color: Colors.grey.shade500),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            'KK: ${c.familyCardId}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontFamily: 'monospace',
+                                              color: ForuiThemeConfig
+                                                  .textSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
+                            if (hasFamilyCard)
+                              Icon(Icons.chevron_right_rounded,
+                                  size: 18, color: Colors.grey.shade400),
                           ],
+                        ),
+                        ),
                         ),
                       );
                     },
@@ -1372,33 +1413,26 @@ class _DemographicDetailCardState extends State<_DemographicDetailCard> {
 
 // ─── Real DB & Dynamic Mock Citizen Datasets ─────────────────────────────────
 
-// Mirrors normalizeLabel in be-apps-i-desa/services/dashboard.service.go,
-// which is what the backend's Pendidikan/Pekerjaan breakdown counts actually
-// group by — a blank or "-" field folds into "Tidak Diketahui", not into any
-// domain-specific bucket. Getting this wrong is what made a chip's badge
-// count (backend) disagree with the citizen list under it (this file): every
-// resident with no pendidikan entered — mostly infants too young to be in
-// school — was being assumed to mean "Tidak/Belum Sekolah" client-side, while
-// the backend counted them separately as unknown.
+// Mirrors normalizeLabel in be-apps-i-desa/services/dashboard.service.go: a
+// blank or "-" field folds into "Tidak Diketahui", nothing else is touched
+// here.
+//
+// This used to also fold legacy spellings ("Belum Sekolah" -> "Tidak/Belum
+// Sekolah", short codes like "SD"/"S1", etc.) — but real production data
+// showed that guess was wrong on both counts: the actual legacy variants in
+// use were different from the guessed ones ("Belum Tamat SD", "Diploma
+// IV/Strata 1", "Diploma III" — not "SD"/"SMP"/"D1"), and folding them
+// client-side while the backend counted them as separate raw buckets is
+// exactly what made a chip's badge count disagree with the citizen list
+// under it. That canonicalization now lives once, server-side, in
+// legacyPendidikanAliases (dashboard.service.go) — the backend's breakdown
+// labels are already canonical by the time they reach here, so this only
+// needs to handle blank/dash to match the same rows the backend folds into
+// "Tidak Diketahui".
 String _normalizeEducationString(String raw) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty || trimmed == '-') return 'Tidak Diketahui';
-  const mapping = {
-    'SD': 'Tamat SD/Sederajat',
-    'SMP': 'SLTP/Sederajat',
-    'SMA': 'SLTA/Sederajat',
-    'SMK': 'SLTA/Sederajat',
-    'D1': 'Diploma I/II',
-    'D2': 'Diploma I/II',
-    'D3': 'Akademi/Diploma III/Sarjana Muda',
-    'S1': 'Diploma IV/Strata I',
-    'S2': 'Strata II',
-    'S3': 'Strata III',
-    'Belum Sekolah': 'Tidak/Belum Sekolah',
-    'Tidak Sekolah': 'Tidak/Belum Sekolah',
-    'TK': 'Belum Tamat SD/Sederajat',
-  };
-  return mapping[trimmed] ?? trimmed;
+  return trimmed;
 }
 
 /// Finds the backend breakdown label that [normalized] refers to, matching
@@ -1427,6 +1461,7 @@ Map<String, List<CitizenRecord>> _buildEducationCitizens(
       nik: v.nik,
       name: v.namaLengkap,
       birthDate: _formatBirthDate(v.tanggalLahir),
+      familyCardId: v.familyCardId,
     );
 
     map.putIfAbsent(key, () => []);
@@ -1473,6 +1508,7 @@ Map<String, List<CitizenRecord>> _buildOccupationCitizens(
       nik: v.nik,
       name: v.namaLengkap,
       birthDate: _formatBirthDate(v.tanggalLahir),
+      familyCardId: v.familyCardId,
     );
 
     map.putIfAbsent(key, () => []);
@@ -1516,6 +1552,7 @@ Map<String, List<CitizenRecord>> _buildAgeCitizens(List<Villager> villagers) {
       nik: v.nik,
       name: v.namaLengkap,
       birthDate: _formatBirthDate(v.tanggalLahir),
+      familyCardId: v.familyCardId,
     );
 
     map.putIfAbsent(labelFull, () => []);
