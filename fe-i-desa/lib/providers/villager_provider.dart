@@ -54,7 +54,7 @@ class VillagersNotifier extends StateNotifier<VillagersState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final villagers = await _repository.getAllVillagers();
+      final villagers = await _repository.getAllVillagersAcrossPages();
       state = state.copyWith(villagers: villagers, isLoading: false);
     } catch (e) {
       state = state.copyWith(

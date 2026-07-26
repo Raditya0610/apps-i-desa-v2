@@ -921,8 +921,14 @@ class _MainContentLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final educationCitizens = _buildEducationCitizens(villagers);
-    final occupationCitizens = _buildOccupationCitizens(villagers);
+    final educationCitizens = _buildEducationCitizens(
+      villagers,
+      dashboard.pendidikanBreakdown.map((e) => e.label).toList(),
+    );
+    final occupationCitizens = _buildOccupationCitizens(
+      villagers,
+      dashboard.pekerjaanBreakdown.map((e) => e.label).toList(),
+    );
     final ageCitizens = _buildAgeCitizens(villagers);
 
     final pendidikanCard = _DemographicDetailCard(
@@ -1387,37 +1393,89 @@ String _normalizeEducationString(String raw) {
   return mapping[trimmed] ?? trimmed;
 }
 
-Map<String, List<CitizenRecord>> _buildEducationCitizens(List<Villager> villagers) {
+/// Finds the backend breakdown label that [normalized] refers to, matching
+/// case/whitespace-insensitively. Returns null if the backend never reported
+/// that category (e.g. it has zero residents, so the chip for it doesn't
+/// exist), in which case the caller falls back to [normalized] itself.
+String? _snapToBackendLabel(String normalized, List<String> backendLabels) {
+  final target = normalized.trim().toLowerCase();
+  for (final label in backendLabels) {
+    if (label.trim().toLowerCase() == target) return label;
+  }
+  return null;
+}
+
+Map<String, List<CitizenRecord>> _buildEducationCitizens(
+  List<Villager> villagers,
+  List<String> backendLabels,
+) {
   if (villagers.isEmpty) return _educationMockCitizens;
   final map = <String, List<CitizenRecord>>{};
 
   for (final v in villagers) {
-    final rawEdu = v.pendidikan.trim();
-    final canonical = _normalizeEducationString(rawEdu);
+    final canonical = _normalizeEducationString(v.pendidikan.trim());
+    final key = _snapToBackendLabel(canonical, backendLabels) ?? canonical;
     final record = CitizenRecord(
       nik: v.nik,
       name: v.namaLengkap,
       birthDate: _formatBirthDate(v.tanggalLahir),
     );
 
-    map.putIfAbsent(canonical, () => []);
-    map[canonical]!.add(record);
-
-    if (rawEdu.isNotEmpty && rawEdu != canonical) {
-      map.putIfAbsent(rawEdu, () => []);
-      map[rawEdu]!.add(record);
-    }
+    map.putIfAbsent(key, () => []);
+    map[key]!.add(record);
   }
   return map;
 }
 
-Map<String, List<CitizenRecord>> _buildOccupationCitizens(List<Villager> villagers) {
+/// Pekerjaan is a free-text field (no dropdown, unlike pendidikan), so raw
+/// values vary a lot — "Tani", "Petani", "petani " all mean the same thing.
+/// This maps the common Indonesian synonyms onto the categories the dummy
+/// dataset (and typical dukcapil exports) use, before falling back to
+/// whatever the resident's record actually says.
+String _normalizePekerjaanString(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return 'Belum/Tidak Bekerja';
+
+  const synonyms = {
+    'tidak bekerja': 'Belum/Tidak Bekerja',
+    'belum bekerja': 'Belum/Tidak Bekerja',
+    'pengangguran': 'Belum/Tidak Bekerja',
+    'irt': 'Mengurus Rumah Tangga',
+    'ibu rumah tangga': 'Mengurus Rumah Tangga',
+    'rumah tangga': 'Mengurus Rumah Tangga',
+    'mahasiswa': 'Pelajar/Mahasiswa',
+    'pelajar': 'Pelajar/Mahasiswa',
+    'siswa': 'Pelajar/Mahasiswa',
+    'tani': 'Petani/Pekebun',
+    'petani': 'Petani/Pekebun',
+    'pekebun': 'Petani/Pekebun',
+    'berkebun': 'Petani/Pekebun',
+    'nelayan': 'Nelayan/Perikanan',
+    'wiraswasta': 'Wiraswasta',
+    'wirausaha': 'Wiraswasta',
+    'pedagang': 'Wiraswasta',
+    'pns': 'Pegawai Negeri Sipil',
+    'asn': 'Pegawai Negeri Sipil',
+    'pegawai negeri': 'Pegawai Negeri Sipil',
+    'karyawan swasta': 'Karyawan Swasta',
+    'pegawai swasta': 'Karyawan Swasta',
+    'buruh': 'Buruh Harian Lepas',
+    'buruh harian': 'Buruh Harian Lepas',
+  };
+
+  return synonyms[trimmed.toLowerCase()] ?? trimmed;
+}
+
+Map<String, List<CitizenRecord>> _buildOccupationCitizens(
+  List<Villager> villagers,
+  List<String> backendLabels,
+) {
   if (villagers.isEmpty) return _occupationMockCitizens;
   final map = <String, List<CitizenRecord>>{};
 
   for (final v in villagers) {
-    final rawOcc = v.pekerjaan.trim();
-    final key = rawOcc.isEmpty ? 'Belum/Tidak Bekerja' : rawOcc;
+    final normalized = _normalizePekerjaanString(v.pekerjaan);
+    final key = _snapToBackendLabel(normalized, backendLabels) ?? normalized;
     final record = CitizenRecord(
       nik: v.nik,
       name: v.namaLengkap,

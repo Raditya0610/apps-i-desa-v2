@@ -46,6 +46,28 @@ class VillagerRepository {
     }
   }
 
+  /// Fetches every resident across all pages.
+  ///
+  /// [getAllVillagers] only returns one page (100 rows by default) — screens
+  /// that need the whole village, like the dashboard's demographic
+  /// breakdowns, were silently dropping every resident past #100. Stops once
+  /// a page comes back short of [pageSize], with a hard cap so a backend that
+  /// never returns a short page can't spin this forever.
+  Future<List<Villager>> getAllVillagersAcrossPages({int pageSize = 100}) async {
+    final all = <Villager>[];
+    var page = 1;
+    const maxPages = 500;
+
+    while (page <= maxPages) {
+      final batch = await getAllVillagers(page: page, limit: pageSize);
+      all.addAll(batch);
+      if (batch.length < pageSize) break;
+      page++;
+    }
+
+    return all;
+  }
+
   /// Full record for one resident.
   ///
   /// The family-card detail response only carries a few fields per member, so
