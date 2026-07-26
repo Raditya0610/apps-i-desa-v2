@@ -372,6 +372,10 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
   Widget _buildResultView(BuildContext context, {required bool isPreview}) {
     final result = _result!;
     final summary = result.summary;
+    // Problems first, so the operator sees what needs attention without
+    // scrolling past hundreds of clean rows: rejected, then skipped, then
+    // the (usually much longer) list of rows that are fine.
+    final sortedResults = _sortResultsByPriority(result.results);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -430,6 +434,8 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
             const Expanded(
               child: Text(
                 'Rincian Per Baris',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -437,7 +443,26 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
                 ),
               ),
             ),
-            if (!isPreview)
+            if (isPreview) ...[
+              OutlinedButton(
+                onPressed: _handleDiscardPreview,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ForuiThemeConfig.textSecondary,
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+                child: const Text('Batalkan'),
+              ),
+              const SizedBox(width: ForuiThemeConfig.spacingSmall),
+              ElevatedButton.icon(
+                onPressed: _handleCommit,
+                icon: const Icon(Icons.check_rounded, size: 18),
+                label: const Text('Terima & Simpan'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ForuiThemeConfig.primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ] else
               OutlinedButton.icon(
                 onPressed: _handleImportAnother,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
@@ -459,49 +484,12 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: result.results.length,
+            itemCount: sortedResults.length,
             separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
             itemBuilder: (context, index) =>
-                _buildResultRow(result.results[index], isPreview: isPreview),
+                _buildResultRow(sortedResults[index], isPreview: isPreview),
           ),
         ),
-        if (isPreview) ...[
-          const SizedBox(height: ForuiThemeConfig.spacingLarge),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _handleDiscardPreview,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    foregroundColor: ForuiThemeConfig.textSecondary,
-                    side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
-                    ),
-                  ),
-                  child: const Text('Batalkan'),
-                ),
-              ),
-              const SizedBox(width: ForuiThemeConfig.spacingMedium),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _handleCommit,
-                  icon: const Icon(Icons.check_rounded),
-                  label: const Text('Terima & Simpan'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ForuiThemeConfig.primaryGreen,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
@@ -595,6 +583,22 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
       ),
     );
   }
+}
+
+/// Orders rows so the ones needing attention surface first: rejected, then
+/// skipped, then the (usually much longer) run of clean rows — instead of
+/// the file's own row order, which buries problems hundreds of rows deep.
+/// Groups rather than sorts-with-a-comparator so rows keep their original
+/// relative order within each status (List.sort isn't guaranteed stable).
+List<ImportRowResult> _sortResultsByPriority(List<ImportRowResult> results) {
+  const priority = {'failed': 0, 'skipped_duplicate': 1, 'inserted': 2};
+  final buckets = <int, List<ImportRowResult>>{};
+  for (final r in results) {
+    final rank = priority[r.status] ?? 3;
+    buckets.putIfAbsent(rank, () => []).add(r);
+  }
+  final sortedRanks = buckets.keys.toList()..sort();
+  return [for (final rank in sortedRanks) ...buckets[rank]!];
 }
 
 class _ImportStatTile extends StatelessWidget {
