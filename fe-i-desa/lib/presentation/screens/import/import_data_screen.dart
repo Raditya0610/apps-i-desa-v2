@@ -132,32 +132,142 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AppShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-              child: switch (_stage) {
-                _ImportStage.landing => _buildLandingCard(context),
-                _ImportStage.uploading => _buildUploadingCard(
-                    context,
-                    caption: 'Mengunggah dan memeriksa file...',
+  /// Guards navigating away while a preview hasn't been accepted or
+  /// discarded yet — the fetched-but-unconfirmed report (and the file bytes
+  /// held for commit) would otherwise be silently lost. Fires for the header
+  /// back button, the system/browser back gesture, and any other pop
+  /// attempt alike, since [PopScope] intercepts all of them the same way.
+  Future<void> _handlePopAttempt(bool didPop, Object? result) async {
+    if (didPop) return;
+
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
+        ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Padding(
+            padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                _ImportStage.preview => _buildResultView(context, isPreview: true),
-                _ImportStage.committing => _buildUploadingCard(
-                    context,
-                    caption: 'Menyimpan data...',
-                  ),
-                _ImportStage.result => _buildResultView(context, isPreview: false),
-              },
+                  child: const Icon(Icons.warning_amber_rounded, color: ForuiThemeConfig.warningColor, size: 28),
+                ),
+                const SizedBox(height: ForuiThemeConfig.spacingMedium),
+                const Text(
+                  'Pratinjau belum disimpan',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ForuiThemeConfig.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Anda belum menekan "Terima & Simpan". Jika keluar sekarang, hasil pratinjau ini akan hilang dan Anda perlu mengunggah ulang file.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: ForuiThemeConfig.textSecondary),
+                ),
+                const SizedBox(height: ForuiThemeConfig.spacingLarge),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: ForuiThemeConfig.textSecondary,
+                          side: BorderSide(color: Colors.grey.shade300),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
+                          ),
+                        ),
+                        child: const Text('Lanjutkan Pratinjau'),
+                      ),
+                    ),
+                    const SizedBox(width: ForuiThemeConfig.spacingMedium),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ForuiThemeConfig.errorColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
+                          ),
+                        ),
+                        child: const Text('Keluar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+      ),
+    );
+
+    if (leave == true) {
+      _handleDiscardPreview();
+      if (mounted) Navigator.of(context).pop(result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: _stage != _ImportStage.preview,
+      onPopInvokedWithResult: _handlePopAttempt,
+      child: AppShell(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(context),
+            Expanded(
+              // Preview/result contain a long row list — that list scrolls on
+              // its own (see _buildResultView) so the header, stat tiles, and
+              // Batalkan/Terima & Simpan buttons stay put instead of requiring
+              // a scroll to reach. The other stages are short, so a page-level
+              // scroll is simplest and safest against overflow on small screens.
+              child: switch (_stage) {
+                _ImportStage.landing => SingleChildScrollView(
+                    padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+                    child: _buildLandingCard(context),
+                  ),
+                _ImportStage.uploading => SingleChildScrollView(
+                    padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+                    child: _buildUploadingCard(
+                      context,
+                      caption: 'Mengunggah dan memeriksa file...',
+                    ),
+                  ),
+                _ImportStage.preview => Padding(
+                    padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+                    child: _buildResultView(context, isPreview: true),
+                  ),
+                _ImportStage.committing => SingleChildScrollView(
+                    padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+                    child: _buildUploadingCard(
+                      context,
+                      caption: 'Menyimpan data...',
+                    ),
+                  ),
+                _ImportStage.result => Padding(
+                    padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+                    child: _buildResultView(context, isPreview: false),
+                  ),
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -475,19 +585,20 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
           ],
         ),
         const SizedBox(height: ForuiThemeConfig.spacingMedium),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: sortedResults.length,
-            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
-            itemBuilder: (context, index) =>
-                _buildResultRow(sortedResults[index], isPreview: isPreview),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ListView.separated(
+              itemCount: sortedResults.length,
+              separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+              itemBuilder: (context, index) =>
+                  _buildResultRow(sortedResults[index], isPreview: isPreview),
+            ),
           ),
         ),
       ],
