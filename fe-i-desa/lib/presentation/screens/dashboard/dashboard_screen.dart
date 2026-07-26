@@ -1372,9 +1372,17 @@ class _DemographicDetailCardState extends State<_DemographicDetailCard> {
 
 // ─── Real DB & Dynamic Mock Citizen Datasets ─────────────────────────────────
 
+// Mirrors normalizeLabel in be-apps-i-desa/services/dashboard.service.go,
+// which is what the backend's Pendidikan/Pekerjaan breakdown counts actually
+// group by — a blank or "-" field folds into "Tidak Diketahui", not into any
+// domain-specific bucket. Getting this wrong is what made a chip's badge
+// count (backend) disagree with the citizen list under it (this file): every
+// resident with no pendidikan entered — mostly infants too young to be in
+// school — was being assumed to mean "Tidak/Belum Sekolah" client-side, while
+// the backend counted them separately as unknown.
 String _normalizeEducationString(String raw) {
   final trimmed = raw.trim();
-  if (trimmed.isEmpty) return 'Tidak/Belum Sekolah';
+  if (trimmed.isEmpty || trimmed == '-') return 'Tidak Diketahui';
   const mapping = {
     'SD': 'Tamat SD/Sederajat',
     'SMP': 'SLTP/Sederajat',
@@ -1427,43 +1435,29 @@ Map<String, List<CitizenRecord>> _buildEducationCitizens(
   return map;
 }
 
-/// Pekerjaan is a free-text field (no dropdown, unlike pendidikan), so raw
-/// values vary a lot — "Tani", "Petani", "petani " all mean the same thing.
-/// This maps the common Indonesian synonyms onto the categories the dummy
-/// dataset (and typical dukcapil exports) use, before falling back to
-/// whatever the resident's record actually says.
-String _normalizePekerjaanString(String raw) {
+/// Resolves which backend Pekerjaan chip [raw] belongs under.
+///
+/// Pekerjaan is free text with no dropdown, so the backend does not attempt
+/// to fold synonyms ("Tani"/"Petani"/"Berkebun" all stay distinct raw
+/// values) — it only merges blank/"-" into "Tidak Diketahui"
+/// (dashboard.service.go's normalizeLabel), then keeps the largest
+/// [pekerjaanBreakdownTopN] raw strings as their own chips and sums
+/// everyone else into "Lainnya". Inventing client-side synonym groups here
+/// would just create a different badge/list mismatch, so this mirrors the
+/// backend's actual grouping instead: exact match against a real backend
+/// label first, then "Lainnya" if the backend has one, then the raw value
+/// itself as a last resort (e.g. mock data with no backend breakdown yet).
+String _resolvePekerjaanKey(String raw, List<String> backendLabels) {
   final trimmed = raw.trim();
-  if (trimmed.isEmpty) return 'Belum/Tidak Bekerja';
+  final normalized = (trimmed.isEmpty || trimmed == '-') ? 'Tidak Diketahui' : trimmed;
 
-  const synonyms = {
-    'tidak bekerja': 'Belum/Tidak Bekerja',
-    'belum bekerja': 'Belum/Tidak Bekerja',
-    'pengangguran': 'Belum/Tidak Bekerja',
-    'irt': 'Mengurus Rumah Tangga',
-    'ibu rumah tangga': 'Mengurus Rumah Tangga',
-    'rumah tangga': 'Mengurus Rumah Tangga',
-    'mahasiswa': 'Pelajar/Mahasiswa',
-    'pelajar': 'Pelajar/Mahasiswa',
-    'siswa': 'Pelajar/Mahasiswa',
-    'tani': 'Petani/Pekebun',
-    'petani': 'Petani/Pekebun',
-    'pekebun': 'Petani/Pekebun',
-    'berkebun': 'Petani/Pekebun',
-    'nelayan': 'Nelayan/Perikanan',
-    'wiraswasta': 'Wiraswasta',
-    'wirausaha': 'Wiraswasta',
-    'pedagang': 'Wiraswasta',
-    'pns': 'Pegawai Negeri Sipil',
-    'asn': 'Pegawai Negeri Sipil',
-    'pegawai negeri': 'Pegawai Negeri Sipil',
-    'karyawan swasta': 'Karyawan Swasta',
-    'pegawai swasta': 'Karyawan Swasta',
-    'buruh': 'Buruh Harian Lepas',
-    'buruh harian': 'Buruh Harian Lepas',
-  };
+  final snapped = _snapToBackendLabel(normalized, backendLabels);
+  if (snapped != null) return snapped;
 
-  return synonyms[trimmed.toLowerCase()] ?? trimmed;
+  for (final label in backendLabels) {
+    if (label.trim().toLowerCase() == 'lainnya') return label;
+  }
+  return normalized;
 }
 
 Map<String, List<CitizenRecord>> _buildOccupationCitizens(
@@ -1474,8 +1468,7 @@ Map<String, List<CitizenRecord>> _buildOccupationCitizens(
   final map = <String, List<CitizenRecord>>{};
 
   for (final v in villagers) {
-    final normalized = _normalizePekerjaanString(v.pekerjaan);
-    final key = _snapToBackendLabel(normalized, backendLabels) ?? normalized;
+    final key = _resolvePekerjaanKey(v.pekerjaan, backendLabels);
     final record = CitizenRecord(
       nik: v.nik,
       name: v.namaLengkap,
