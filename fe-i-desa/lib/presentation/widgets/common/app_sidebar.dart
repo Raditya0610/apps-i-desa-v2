@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/import_provider.dart';
+import 'unsaved_changes_dialog.dart';
 
 class AppSidebar extends ConsumerStatefulWidget {
   const AppSidebar({super.key});
@@ -109,7 +111,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                     icon: Icons.dashboard_rounded,
                     label: 'Dashboard',
                     isActive: currentRoute == '/',
-                    onTap: () => context.go('/'),
+                    onTap: () => _navigateTo(context, '/'),
                   ),
                   _ExpandableItem(
                     icon: Icons.people_rounded,
@@ -123,13 +125,13 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                         icon: Icons.home_rounded,
                         label: 'Kartu Keluarga',
                         isActive: currentRoute.startsWith('/family-cards'),
-                        onTap: () => context.go('/family-cards'),
+                        onTap: () => _navigateTo(context, '/family-cards'),
                       ),
                       _SidebarSubItem(
                         icon: Icons.upload_file_rounded,
                         label: 'Import Data',
                         isActive: currentRoute.startsWith('/import-data'),
-                        onTap: () => context.go('/import-data'),
+                        onTap: () => _navigateTo(context, '/import-data'),
                       ),
                     ],
                   ),
@@ -140,7 +142,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                     icon: Icons.bar_chart_rounded,
                     label: 'Indikator Desa',
                     isActive: currentRoute.startsWith('/sub-dimensions'),
-                    onTap: () => context.go('/sub-dimensions'),
+                    onTap: () => _navigateTo(context, '/sub-dimensions'),
                   ),
                   const SizedBox(height: 8),
                   const _SectionLabel('APLIKASI LAIN'),
@@ -233,6 +235,56 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     );
   }
 
+  Future<void> _navigateTo(BuildContext context, String targetRoute) async {
+    final currentRoute = GoRouterState.of(context).uri.path;
+    if (currentRoute == targetRoute) return;
+
+    final hasUnsaved = ref.read(hasUnsavedImportPreviewProvider);
+    if (hasUnsaved) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Ada pratinjau import data yang belum disimpan!',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: ForuiThemeConfig.warningColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+
+      final leave = await showUnsavedChangesDialog(
+        context,
+        title: 'Pratinjau belum disimpan',
+        message: 'Anda belum menekan "Terima & Simpan". Jika keluar sekarang, '
+            'hasil pratinjau ini akan hilang dan Anda perlu mengunggah ulang file.',
+        stayLabel: 'Lanjutkan Pratinjau',
+        leaveLabel: 'Keluar & Batalkan',
+      );
+
+      if (leave != true) return;
+
+      ref.read(hasUnsavedImportPreviewProvider.notifier).state = false;
+    }
+
+    if (context.mounted) {
+      context.go(targetRoute);
+    }
+  }
+
   /// Opens SIMPOI in the system browser. It is a separate app, so this leaves
   /// i-Desa rather than routing inside it.
   Future<void> _openSimpoi(BuildContext context) async {
@@ -247,10 +299,10 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
 
     if (!launched && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Tidak dapat membuka SIMPOI di ${AppConfig.simpoiUrl}. '
               'Pastikan aplikasi SIMPOI sedang berjalan.'),
-          backgroundColor: const Color(0xFFD62828),
+          backgroundColor: Color(0xFFD62828),
         ),
       );
     }
@@ -336,6 +388,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       ),
     );
     if (confirmed == true) {
+      ref.read(hasUnsavedImportPreviewProvider.notifier).state = false;
       await ref.read(authStateProvider.notifier).logout();
     }
   }

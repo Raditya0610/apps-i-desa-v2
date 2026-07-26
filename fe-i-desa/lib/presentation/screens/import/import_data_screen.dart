@@ -2,22 +2,25 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../data/models/import_result.dart';
 import '../../../data/repositories/import_repository.dart';
+import '../../../providers/import_provider.dart';
 import '../../widgets/common/app_shell.dart';
+import '../../widgets/common/unsaved_changes_dialog.dart';
 
 enum _ImportStage { landing, uploading, preview, committing, result }
 
-class ImportDataScreen extends StatefulWidget {
+class ImportDataScreen extends ConsumerStatefulWidget {
   const ImportDataScreen({super.key});
 
   @override
-  State<ImportDataScreen> createState() => _ImportDataScreenState();
+  ConsumerState<ImportDataScreen> createState() => _ImportDataScreenState();
 }
 
-class _ImportDataScreenState extends State<ImportDataScreen> {
+class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
   final ImportRepository _repository = ImportRepository();
 
   _ImportStage _stage = _ImportStage.landing;
@@ -71,6 +74,7 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
         _result = result['data'] as ImportSummaryResponse;
         _stage = _ImportStage.preview;
       });
+      ref.read(hasUnsavedImportPreviewProvider.notifier).state = true;
     } else {
       setState(() => _stage = _ImportStage.landing);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -103,6 +107,7 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
         _pendingFilename = null;
         _stage = _ImportStage.result;
       });
+      ref.read(hasUnsavedImportPreviewProvider.notifier).state = false;
     } else {
       setState(() => _stage = _ImportStage.preview);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -121,6 +126,7 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
       _pendingFilename = null;
       _stage = _ImportStage.landing;
     });
+    ref.read(hasUnsavedImportPreviewProvider.notifier).state = false;
   }
 
   void _handleImportAnother() {
@@ -130,6 +136,19 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
       _pendingFilename = null;
       _stage = _ImportStage.landing;
     });
+    ref.read(hasUnsavedImportPreviewProvider.notifier).state = false;
+  }
+
+  @override
+  void dispose() {
+    // Safety net: if this screen goes away through some path other than the
+    // discard/commit handlers above, don't leave the flag stuck true with no
+    // ImportDataScreen left to ever clear it — that would block navigation
+    // forever with no way to reach the dialog that resolves it.
+    if (ref.read(hasUnsavedImportPreviewProvider)) {
+      Future.microtask(() => ref.read(hasUnsavedImportPreviewProvider.notifier).state = false);
+    }
+    super.dispose();
   }
 
   /// Guards navigating away while a preview hasn't been accepted or
@@ -140,84 +159,49 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
   Future<void> _handlePopAttempt(bool didPop, Object? result) async {
     if (didPop) return;
 
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
-        ),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Padding(
-            padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.warning_amber_rounded, color: ForuiThemeConfig.warningColor, size: 28),
-                ),
-                const SizedBox(height: ForuiThemeConfig.spacingMedium),
-                const Text(
-                  'Pratinjau belum disimpan',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ForuiThemeConfig.textPrimary),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Anda belum menekan "Terima & Simpan". Jika keluar sekarang, hasil pratinjau ini akan hilang dan Anda perlu mengunggah ulang file.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: ForuiThemeConfig.textSecondary),
-                ),
-                const SizedBox(height: ForuiThemeConfig.spacingLarge),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: ForuiThemeConfig.textSecondary,
-                          side: BorderSide(color: Colors.grey.shade300),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
-                          ),
-                        ),
-                        child: const Text('Lanjutkan Pratinjau'),
-                      ),
-                    ),
-                    const SizedBox(width: ForuiThemeConfig.spacingMedium),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ForuiThemeConfig.errorColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
-                          ),
-                        ),
-                        child: const Text('Keluar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Ada pratinjau import data yang belum disimpan!',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
             ),
-          ),
+          ],
         ),
+        backgroundColor: ForuiThemeConfig.warningColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
       ),
+    );
+
+    final leave = await showUnsavedChangesDialog(
+      context,
+      title: 'Pratinjau belum disimpan',
+      message: 'Anda belum menekan "Terima & Simpan". Jika keluar sekarang, '
+          'hasil pratinjau ini akan hilang dan Anda perlu mengunggah ulang file.',
+      stayLabel: 'Lanjutkan Pratinjau',
+      leaveLabel: 'Keluar & Batalkan',
     );
 
     if (leave == true) {
       _handleDiscardPreview();
-      if (mounted) Navigator.of(context).pop(result);
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(result);
+        } else {
+          context.go('/');
+        }
+      }
     }
   }
 
@@ -613,11 +597,11 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
         borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
         border: Border.all(color: ForuiThemeConfig.primaryGreen.withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.fact_check_rounded, color: ForuiThemeConfig.primaryGreen, size: 20),
-          const SizedBox(width: ForuiThemeConfig.spacingSmall),
-          const Expanded(
+          Icon(Icons.fact_check_rounded, color: ForuiThemeConfig.primaryGreen, size: 20),
+          SizedBox(width: ForuiThemeConfig.spacingSmall),
+          Expanded(
             child: Text(
               'Ini pratinjau — belum ada data yang disimpan. Periksa hasilnya, lalu pilih Batalkan atau Terima & Simpan.',
               style: TextStyle(
