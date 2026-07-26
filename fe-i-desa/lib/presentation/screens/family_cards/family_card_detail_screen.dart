@@ -777,30 +777,37 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                   width: 48,
                   child: Text('NO', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: Text('NIK', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 3,
                   child: Text('NAMA', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: Text('STATUS', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 1,
                   child: Text('USIA', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: Text('PENDIDIKAN', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: Text('PEKERJAAN', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                SizedBox(width: 12),
                 SizedBox(
                   width: 100,
                   child: Text('AKSI', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -829,6 +836,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       flex: 2,
                       child: Text(
@@ -840,6 +848,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       flex: 3,
                       child: Row(
@@ -873,6 +882,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       flex: 2,
                       child: Container(
@@ -885,6 +895,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                         ),
                         child: Text(
                           member['status_hubungan'] ?? '-',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: isHead ? FontWeight.bold : FontWeight.w500,
@@ -893,6 +904,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       flex: 1,
                       child: Text(
@@ -900,6 +912,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       flex: 2,
                       child: Text(
@@ -909,6 +922,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       flex: 2,
                       child: Text(
@@ -918,6 +932,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     SizedBox(
                       width: 100,
                       child: Row(
