@@ -32,19 +32,29 @@ class ImportRepository {
     }
   }
 
-  /// Uploads a filled-in workbook and returns the row-by-row report. A 200
-  /// response is returned even when some rows failed or were skipped — that
-  /// is the normal shape of a mixed bulk-import outcome, not an HTTP error.
-  Future<Map<String, dynamic>> uploadImportFile(List<int> bytes, String filename) async {
+  /// Uploads a filled-in workbook and returns the row-by-row report of what
+  /// was actually committed. A 200 response is returned even when some rows
+  /// failed or were skipped — that is the normal shape of a mixed
+  /// bulk-import outcome, not an HTTP error.
+  Future<Map<String, dynamic>> uploadImportFile(List<int> bytes, String filename) {
+    return _postWorkbook(ApiConstants.importUpload, bytes, filename);
+  }
+
+  /// Same file, same validation, but nothing is written to the database —
+  /// the review step shown before the operator commits an import. Returns
+  /// the same report shape as [uploadImportFile], describing what *would*
+  /// happen.
+  Future<Map<String, dynamic>> previewImportFile(List<int> bytes, String filename) {
+    return _postWorkbook(ApiConstants.importPreview, bytes, filename);
+  }
+
+  Future<Map<String, dynamic>> _postWorkbook(String path, List<int> bytes, String filename) async {
     try {
       final formData = FormData.fromMap({
         'file': MultipartFile.fromBytes(bytes, filename: filename),
       });
 
-      final response = await _apiService.post(
-        ApiConstants.importUpload,
-        data: formData,
-      );
+      final response = await _apiService.post(path, data: formData);
 
       if (response.statusCode == 200) {
         return {

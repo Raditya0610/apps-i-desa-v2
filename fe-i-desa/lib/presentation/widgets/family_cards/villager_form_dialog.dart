@@ -4,6 +4,7 @@ import '../../../core/theme/forui_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../data/models/villager.dart';
 import '../../../data/repositories/villager_repository.dart';
+import '../common/review_confirmation_dialog.dart';
 
 class VillagerFormDialog extends StatefulWidget {
   final String familyCardId;
@@ -188,6 +189,38 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
       );
       return;
     }
+
+    final confirmed = await showReviewConfirmationDialog(
+      context,
+      title: widget.isEditMode ? 'Tinjau Perubahan Anggota Keluarga' : 'Tinjau Data Anggota Keluarga',
+      subtitle: 'Periksa kembali data di bawah sebelum menyimpan',
+      icon: widget.isEditMode ? Icons.edit_outlined : Icons.person_add_outlined,
+      fields: [
+        ReviewField('NIK', _nikController.text, section: 'Data Pribadi'),
+        ReviewField('Nama Lengkap', _namaController.text, section: 'Data Pribadi'),
+        ReviewField('Jenis Kelamin', _jenisKelamin ?? '', section: 'Data Pribadi'),
+        ReviewField(
+          'Tanggal Lahir',
+          _tanggalLahir != null ? DateFormat('dd/MM/yyyy').format(_tanggalLahir!) : '',
+          section: 'Data Pribadi',
+        ),
+        ReviewField('Tempat Lahir', _tempatLahirController.text, section: 'Data Pribadi'),
+        ReviewField('Agama', _agama ?? '', section: 'Status'),
+        ReviewField('Status Perkawinan', _statusPerkawinan ?? '', section: 'Status'),
+        ReviewField('Status Hubungan', _statusHubungan ?? '', section: 'Status'),
+        ReviewField('Pendidikan', _pendidikan ?? '', section: 'Pendidikan & Pekerjaan'),
+        ReviewField('Pekerjaan', _pekerjaanController.text, section: 'Pendidikan & Pekerjaan'),
+        ReviewField('Kewarganegaraan', _kewarganegaraan ?? '', section: 'Kewarganegaraan'),
+        if (_kewarganegaraan == 'WNA') ...[
+          ReviewField('Nomor Paspor', _nomorPasporController.text, section: 'Kewarganegaraan'),
+          ReviewField('Nomor KITAS', _nomorKitasController.text, section: 'Kewarganegaraan'),
+        ],
+        ReviewField('Nama Ayah', _namaAyahController.text, section: 'Data Orang Tua'),
+        ReviewField('Nama Ibu', _namaIbuController.text, section: 'Data Orang Tua'),
+      ],
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
 
     setState(() => _isLoading = true);
 

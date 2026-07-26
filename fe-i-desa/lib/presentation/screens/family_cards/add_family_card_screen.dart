@@ -7,6 +7,7 @@ import '../../../data/models/family_card.dart';
 import '../../../data/models/family_card_detail.dart';
 import '../../../providers/family_card_provider.dart';
 import '../../widgets/common/app_shell.dart';
+import '../../widgets/common/review_confirmation_dialog.dart';
 
 class AddFamilyCardScreen extends ConsumerStatefulWidget {
   /// When set, the screen edits this family card instead of creating a new
@@ -72,6 +73,26 @@ class _AddFamilyCardScreenState extends ConsumerState<AddFamilyCardScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    final confirmed = await showReviewConfirmationDialog(
+      context,
+      title: 'Tinjau Data Kartu Keluarga',
+      subtitle: 'Periksa kembali data di bawah sebelum menyimpan',
+      icon: Icons.badge_outlined,
+      fields: [
+        ReviewField('NIK', _nikController.text),
+        ReviewField('Alamat Lengkap', _addressController.text),
+        ReviewField('RT', _rtController.text),
+        ReviewField('RW', _rwController.text),
+        ReviewField('Kelurahan', _kelurahanController.text),
+        ReviewField('Kecamatan', _kecamatanController.text),
+        ReviewField('Kabupaten/Kota', _kabupatenKotaController.text),
+        ReviewField('Kode Pos', _kodePosController.text),
+        ReviewField('Provinsi', _provinsiController.text),
+      ],
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
 
     setState(() {
       _isLoading = true;

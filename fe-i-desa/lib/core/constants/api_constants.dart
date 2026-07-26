@@ -31,6 +31,7 @@ class ApiConstants {
 
   // Bulk import (Excel template download + upload)
   static const String importTemplate = '$apiPrefix/import/template';
+  static const String importPreview = '$apiPrefix/import/preview';
   static const String importUpload = '$apiPrefix/import';
 
   // Sub-Dimension Endpoints

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +8,7 @@ import '../../../data/models/import_result.dart';
 import '../../../data/repositories/import_repository.dart';
 import '../../widgets/common/app_shell.dart';
 
-enum _ImportStage { landing, uploading, result }
+enum _ImportStage { landing, uploading, preview, committing, result }
 
 class ImportDataScreen extends StatefulWidget {
   const ImportDataScreen({super.key});
@@ -21,6 +23,11 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
   _ImportStage _stage = _ImportStage.landing;
   bool _isDownloading = false;
   ImportSummaryResponse? _result;
+
+  // Held in memory from the preview step so "Terima & Simpan" can commit the
+  // same file without asking the operator to re-pick it.
+  Uint8List? _pendingBytes;
+  String? _pendingFilename;
 
   Future<void> _handleDownloadTemplate() async {
     setState(() => _isDownloading = true);
@@ -38,7 +45,10 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
     );
   }
 
-  Future<void> _handlePickAndUpload() async {
+  /// Picks a file and asks the backend what it *would* do with it — nothing
+  /// is written to the database yet. The operator reviews the result on the
+  /// [_ImportStage.preview] screen before anything is committed.
+  Future<void> _handlePickAndPreview() async {
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx'],
@@ -47,17 +57,19 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
     if (picked == null || picked.files.single.bytes == null) return;
 
     final file = picked.files.single;
+    _pendingBytes = file.bytes!;
+    _pendingFilename = file.name;
 
     setState(() => _stage = _ImportStage.uploading);
 
-    final result = await _repository.uploadImportFile(file.bytes!, file.name);
+    final result = await _repository.previewImportFile(file.bytes!, file.name);
 
     if (!mounted) return;
 
     if (result['success'] == true) {
       setState(() {
         _result = result['data'] as ImportSummaryResponse;
-        _stage = _ImportStage.result;
+        _stage = _ImportStage.preview;
       });
     } else {
       setState(() => _stage = _ImportStage.landing);
@@ -70,9 +82,52 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
     }
   }
 
+  /// Commits the same file the preview just showed. Re-validates server-side
+  /// (data may have changed since the preview), so the final report can
+  /// differ slightly from what was previewed.
+  Future<void> _handleCommit() async {
+    final bytes = _pendingBytes;
+    final filename = _pendingFilename;
+    if (bytes == null || filename == null) return;
+
+    setState(() => _stage = _ImportStage.committing);
+
+    final result = await _repository.uploadImportFile(bytes, filename);
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      setState(() {
+        _result = result['data'] as ImportSummaryResponse;
+        _pendingBytes = null;
+        _pendingFilename = null;
+        _stage = _ImportStage.result;
+      });
+    } else {
+      setState(() => _stage = _ImportStage.preview);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] as String),
+          backgroundColor: ForuiThemeConfig.errorColor,
+        ),
+      );
+    }
+  }
+
+  void _handleDiscardPreview() {
+    setState(() {
+      _result = null;
+      _pendingBytes = null;
+      _pendingFilename = null;
+      _stage = _ImportStage.landing;
+    });
+  }
+
   void _handleImportAnother() {
     setState(() {
       _result = null;
+      _pendingBytes = null;
+      _pendingFilename = null;
       _stage = _ImportStage.landing;
     });
   }
@@ -89,8 +144,16 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
               padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
               child: switch (_stage) {
                 _ImportStage.landing => _buildLandingCard(context),
-                _ImportStage.uploading => _buildUploadingCard(context),
-                _ImportStage.result => _buildResultView(context),
+                _ImportStage.uploading => _buildUploadingCard(
+                    context,
+                    caption: 'Mengunggah dan memeriksa file...',
+                  ),
+                _ImportStage.preview => _buildResultView(context, isPreview: true),
+                _ImportStage.committing => _buildUploadingCard(
+                    context,
+                    caption: 'Menyimpan data...',
+                  ),
+                _ImportStage.result => _buildResultView(context, isPreview: false),
               },
             ),
           ),
@@ -222,7 +285,7 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
               const SizedBox(width: ForuiThemeConfig.spacingMedium),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _handlePickAndUpload,
+                  onPressed: _handlePickAndPreview,
                   icon: const Icon(Icons.file_upload_rounded),
                   label: const Text('Unggah File'),
                   style: ElevatedButton.styleFrom(
@@ -277,7 +340,7 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
     );
   }
 
-  Widget _buildUploadingCard(BuildContext context) {
+  Widget _buildUploadingCard(BuildContext context, {required String caption}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -286,18 +349,18 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
       ),
       padding: const EdgeInsets.symmetric(vertical: 64),
       alignment: Alignment.center,
-      child: const Column(
+      child: Column(
         children: [
-          CircularProgressIndicator(
+          const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(ForuiThemeConfig.primaryGreen),
           ),
-          SizedBox(height: ForuiThemeConfig.spacingMedium),
+          const SizedBox(height: ForuiThemeConfig.spacingMedium),
           Text(
-            'Mengunggah dan memproses file...',
-            style: TextStyle(fontSize: 14, color: ForuiThemeConfig.textSecondary),
+            caption,
+            style: const TextStyle(fontSize: 14, color: ForuiThemeConfig.textSecondary),
           ),
-          SizedBox(height: 4),
-          Text(
+          const SizedBox(height: 4),
+          const Text(
             'Bisa memakan waktu beberapa saat untuk file besar.',
             style: TextStyle(fontSize: 12, color: ForuiThemeConfig.textHint),
           ),
@@ -306,13 +369,15 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
     );
   }
 
-  Widget _buildResultView(BuildContext context) {
+  Widget _buildResultView(BuildContext context, {required bool isPreview}) {
     final result = _result!;
     final summary = result.summary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (isPreview) _buildPreviewBanner(context),
+        if (isPreview) const SizedBox(height: ForuiThemeConfig.spacingMedium),
         LayoutBuilder(
           builder: (context, constraints) {
             final isNarrow = constraints.maxWidth < 640;
@@ -324,19 +389,19 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
                 icon: Icons.list_alt_rounded,
               ),
               _ImportStatTile(
-                label: 'Berhasil',
+                label: isPreview ? 'Akan Ditambahkan' : 'Berhasil',
                 value: summary.totalInserted,
                 color: ForuiThemeConfig.successColor,
                 icon: Icons.check_circle_rounded,
               ),
               _ImportStatTile(
-                label: 'Dilewati',
+                label: isPreview ? 'Akan Dilewati' : 'Dilewati',
                 value: summary.totalSkipped,
                 color: ForuiThemeConfig.warningColor,
                 icon: Icons.warning_rounded,
               ),
               _ImportStatTile(
-                label: 'Gagal',
+                label: isPreview ? 'Akan Ditolak' : 'Gagal',
                 value: summary.totalFailed,
                 color: ForuiThemeConfig.errorColor,
                 icon: Icons.cancel_rounded,
@@ -372,15 +437,16 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
                 ),
               ),
             ),
-            OutlinedButton.icon(
-              onPressed: _handleImportAnother,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Impor File Lain'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ForuiThemeConfig.primaryGreen,
-                side: const BorderSide(color: ForuiThemeConfig.primaryGreen),
+            if (!isPreview)
+              OutlinedButton.icon(
+                onPressed: _handleImportAnother,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Impor File Lain'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ForuiThemeConfig.primaryGreen,
+                  side: const BorderSide(color: ForuiThemeConfig.primaryGreen),
+                ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: ForuiThemeConfig.spacingMedium),
@@ -395,18 +461,95 @@ class _ImportDataScreenState extends State<ImportDataScreen> {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: result.results.length,
             separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
-            itemBuilder: (context, index) => _buildResultRow(result.results[index]),
+            itemBuilder: (context, index) =>
+                _buildResultRow(result.results[index], isPreview: isPreview),
           ),
         ),
+        if (isPreview) ...[
+          const SizedBox(height: ForuiThemeConfig.spacingLarge),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _handleDiscardPreview,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    foregroundColor: ForuiThemeConfig.textSecondary,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
+                    ),
+                  ),
+                  child: const Text('Batalkan'),
+                ),
+              ),
+              const SizedBox(width: ForuiThemeConfig.spacingMedium),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _handleCommit,
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('Terima & Simpan'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ForuiThemeConfig.primaryGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildResultRow(ImportRowResult row) {
+  Widget _buildPreviewBanner(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(ForuiThemeConfig.spacingMedium),
+      decoration: BoxDecoration(
+        color: ForuiThemeConfig.surfaceGreen,
+        borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
+        border: Border.all(color: ForuiThemeConfig.primaryGreen.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.fact_check_rounded, color: ForuiThemeConfig.primaryGreen, size: 20),
+          const SizedBox(width: ForuiThemeConfig.spacingSmall),
+          const Expanded(
+            child: Text(
+              'Ini pratinjau — belum ada data yang disimpan. Periksa hasilnya, lalu pilih Batalkan atau Terima & Simpan.',
+              style: TextStyle(
+                fontSize: 13,
+                color: ForuiThemeConfig.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultRow(ImportRowResult row, {required bool isPreview}) {
     final (chipColor, chipBg, chipLabel) = switch (row.status) {
-      'inserted' => (ForuiThemeConfig.successColor, ForuiThemeConfig.surfaceGreen, 'Berhasil'),
-      'skipped_duplicate' => (ForuiThemeConfig.goldDark, ForuiThemeConfig.goldLight, 'Dilewati'),
-      _ => (ForuiThemeConfig.errorColor, const Color(0xFFFDEDED), 'Gagal'),
+      'inserted' => (
+          ForuiThemeConfig.successColor,
+          ForuiThemeConfig.surfaceGreen,
+          isPreview ? 'Akan Ditambahkan' : 'Berhasil',
+        ),
+      'skipped_duplicate' => (
+          ForuiThemeConfig.goldDark,
+          ForuiThemeConfig.goldLight,
+          isPreview ? 'Akan Dilewati' : 'Dilewati',
+        ),
+      _ => (
+          ForuiThemeConfig.errorColor,
+          const Color(0xFFFDEDED),
+          isPreview ? 'Akan Ditolak' : 'Gagal',
+        ),
     };
 
     return Padding(
