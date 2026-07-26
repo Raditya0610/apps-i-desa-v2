@@ -1021,7 +1021,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
       color: Colors.white,
       alignment: Alignment.center,
       child: Text(
-        '© 2025 Apps I-Desa. Hak Cipta Dilindungi.',
+        '© 2026 Apps I-Desa V2. Hak Cipta Dilindungi.',
         style: TextStyle(
           fontSize: 12,
           color: Colors.grey[600],
