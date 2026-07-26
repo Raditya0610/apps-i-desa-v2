@@ -20,7 +20,7 @@ func NewVillagerController(villagerService *services.VillagerService) *VillagerC
 }
 
 func (c *VillagerController) GetAllVillagers(ctx *fiber.Ctx) error {
-	responses, err := c.villagerService.GetAllVillagers(ctx)
+	response, err := c.villagerService.GetAllVillagers(ctx)
 	if err != nil {
 		if err.Error() == "village ID is required" || err.Error() == "invalid village ID format" {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -34,9 +34,7 @@ func (c *VillagerController) GetAllVillagers(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
-		"data": responses,
-	})
+	return ctx.Status(fiber.StatusOK).JSON(response)
 }
 
 func (c *VillagerController) CreateVillager(ctx *fiber.Ctx) error {

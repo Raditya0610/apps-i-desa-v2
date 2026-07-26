@@ -24,9 +24,16 @@ func (r *VillagerRepository) BeginTransaction() *gorm.DB {
 	return r.DB.Begin()
 }
 
-func (r *VillagerRepository) GetAllVillagersByVillageID(villageID *uuid.UUID) ([]*models.Villager, error) {
+func (r *VillagerRepository) GetAllVillagersByVillageID(
+	villageID *uuid.UUID,
+	limit, offset int,
+) ([]*models.Villager, error) {
 	var villagers []*models.Villager
-	err := r.DB.Where("village_id = ?", villageID).Order("nama_lengkap ASC").Find(&villagers).Error
+	err := r.DB.Where("village_id = ?", villageID).
+		Order("nama_lengkap ASC").
+		Limit(limit).
+		Offset(offset).
+		Find(&villagers).Error
 	if err != nil {
 		return nil, err
 	}

@@ -19,5 +19,6 @@ func SetupImportRoutes(app *fiber.App) {
 	api.Use(middleware.JWTAuth())
 
 	api.Get("/template", importController.DownloadTemplate)
+	api.Post("/preview", importController.PreviewImport)
 	api.Post("/", importController.UploadImport)
 }

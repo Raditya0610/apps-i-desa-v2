@@ -306,14 +306,46 @@ func normalizeLabel(label string) string {
 	return label
 }
 
-// mergeLabeledCounts normalizes labels and folds duplicates that collapse
-// onto the same normalized label (e.g. "" and "-" both becoming "Tidak
-// Diketahui") into a single summed entry, preserving first-seen order.
-func mergeLabeledCounts(items []dtos.LabeledCount) []dtos.LabeledCount {
+// legacyPendidikanAliases maps Pendidikan values seen in real data that
+// predate (or were imported outside of) the dtos.ImportPendidikanOptions
+// validation, onto their canonical equivalent. Without this, e.g. "Belum
+// Sekolah" and "Tidak/Belum Sekolah" show as two separate, undercounted
+// breakdown rows for what is the same education level.
+//
+// Only mappings with an unambiguous canonical target are listed here.
+// Values found in production data that were deliberately left out because
+// the correct target isn't clear from the string alone — do not add them
+// without confirming with real records:
+//   - "SD/Sederajat": doesn't say whether school was completed, so it's
+//     unclear whether it means "Tamat SD/Sederajat" or "Belum Tamat
+//     SD/Sederajat".
+//   - "Diploma IV/Strata 2": mixes a Diploma IV (S1-level) label with
+//     "Strata 2" (S2/Master's level) — likely a data-entry mix-up, but
+//     which field is the mistake isn't clear.
+var legacyPendidikanAliases = map[string]string{
+	"Belum Sekolah":       "Tidak/Belum Sekolah",
+	"Belum Tamat SD":      "Belum Tamat SD/Sederajat",
+	"Diploma IV/Strata 1": "Diploma IV/Strata I",
+	"Diploma IV/S1":       "Diploma IV/Strata I",
+	"Diploma III":         "Akademi/Diploma III/Sarjana Muda",
+}
+
+func normalizePendidikanLabel(label string) string {
+	label = normalizeLabel(label)
+	if canonical, ok := legacyPendidikanAliases[label]; ok {
+		return canonical
+	}
+	return label
+}
+
+// mergeLabeledCounts applies normalize to every label and folds duplicates
+// that collapse onto the same normalized label into a single summed entry,
+// preserving first-seen order.
+func mergeLabeledCounts(items []dtos.LabeledCount, normalize func(string) string) []dtos.LabeledCount {
 	totals := make(map[string]int64, len(items))
 	var order []string
 	for _, it := range items {
-		label := normalizeLabel(it.Label)
+		label := normalize(it.Label)
 		if _, seen := totals[label]; !seen {
 			order = append(order, label)
 		}
@@ -332,7 +364,7 @@ func mergeLabeledCounts(items []dtos.LabeledCount) []dtos.LabeledCount {
 // values that don't match any known category (older manual entries predate
 // the dropdown) sort after all known ones, largest first.
 func buildPendidikanBreakdown(raw []dtos.LabeledCount) []dtos.LabeledCount {
-	items := mergeLabeledCounts(raw)
+	items := mergeLabeledCounts(raw, normalizePendidikanLabel)
 
 	rank := make(map[string]int, len(dtos.ImportPendidikanOptions))
 	for i, v := range dtos.ImportPendidikanOptions {
@@ -359,7 +391,7 @@ func buildPendidikanBreakdown(raw []dtos.LabeledCount) []dtos.LabeledCount {
 // pekerjaanBreakdownTopN, folding the remainder into a "Lainnya" bucket so a
 // village with many distinct job titles still gets a readable chart.
 func buildPekerjaanBreakdown(raw []dtos.LabeledCount) []dtos.LabeledCount {
-	items := mergeLabeledCounts(raw)
+	items := mergeLabeledCounts(raw, normalizeLabel)
 
 	sort.SliceStable(items, func(i, j int) bool {
 		return items[i].Total > items[j].Total

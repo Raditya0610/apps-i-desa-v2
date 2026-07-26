@@ -43,6 +43,18 @@ type GetVillagerResponse struct {
 	VillageID        string  `json:"village_id"`
 }
 
+type PaginationMeta struct {
+	Page       int   `json:"page"`
+	Limit      int   `json:"limit"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
+}
+
+type GetVillagersResponse struct {
+	Data       []*GetVillagerResponse `json:"data"`
+	Pagination PaginationMeta         `json:"pagination"`
+}
+
 type GetFamilyMember struct {
 	NIK            string `json:"nik"`
 	Name           string `json:"name"`

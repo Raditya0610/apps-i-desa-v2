@@ -83,3 +83,42 @@ func (c *ImportController) UploadImport(ctx *fiber.Ctx) error {
 
 	return ctx.Status(fiber.StatusOK).JSON(response)
 }
+
+// PreviewImport reports what UploadImport would do for the same file,
+// without writing anything to the database — the review step the operator
+// sees before committing an import. No activity is recorded since nothing
+// changed.
+func (c *ImportController) PreviewImport(ctx *fiber.Ctx) error {
+	fileHeader, err := ctx.FormFile("file")
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "File tidak ditemukan",
+			"error":   "Sertakan file pada field \"file\"",
+		})
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Gagal membuka file",
+			"error":   err.Error(),
+		})
+	}
+	defer file.Close()
+
+	response, err := c.importService.PreviewImport(file, ctx)
+	if err != nil {
+		if err.Error() == "village ID is required" || err.Error() == "village ID is not valid" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Village ID tidak valid",
+				"error":   "Check your token",
+			})
+		}
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Gagal memproses file",
+			"error":   err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(response)
+}

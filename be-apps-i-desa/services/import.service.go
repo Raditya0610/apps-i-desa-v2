@@ -137,50 +137,81 @@ var villagerFieldLabels = map[string]string{
 
 // ── Entry point ──────────────────────────────────────────────────────────
 
-// ProcessImport parses an uploaded workbook, validates every row against the
-// same rules as the manual "Tambah KK/Penduduk" forms, and inserts what
-// passes — one transaction per family group so a bad row in one family never
-// rolls back another. Always returns a full row-by-row report; only
-// structural problems (bad village context, unreadable file, missing sheet)
-// produce an error instead of a report.
-func (s *ImportService) ProcessImport(file interface {
+// resolveImport parses an uploaded workbook and validates every row against
+// the same rules as the manual "Tambah KK/Penduduk" forms — everything
+// ProcessImport/PreviewImport need before either of them decides whether to
+// write anything. Writes nothing to the database itself. Only structural
+// problems (bad village context, unreadable file, missing sheet) produce an
+// error; a row failing validation is reported via its resolution's status,
+// not via this function's error return.
+func (s *ImportService) resolveImport(file interface {
 	Read(p []byte) (n int, err error)
-}, ctx *fiber.Ctx) (*dtos.ImportSummaryResponse, error) {
+}, ctx *fiber.Ctx) (fcResolved []fcResolution, vResolved []villagerResolution, villageID uuid.UUID, err error) {
 	villageIDStr, _ := ctx.Locals("village").(string)
 	if villageIDStr == "" {
 		log.Error("Village ID not found in context")
-		return nil, errors.New("village ID is required")
+		return nil, nil, uuid.Nil, errors.New("village ID is required")
 	}
-	villageID, err := uuid.Parse(villageIDStr)
+	villageID, err = uuid.Parse(villageIDStr)
 	if err != nil {
 		log.Error("Error parsing village ID:", err)
-		return nil, errors.New("village ID is not valid")
+		return nil, nil, uuid.Nil, errors.New("village ID is not valid")
 	}
 
 	wb, err := excelize.OpenReader(file)
 	if err != nil {
 		log.Error("Error opening uploaded workbook:", err)
-		return nil, errors.New("file tidak valid atau bukan format Excel (.xlsx)")
+		return nil, nil, uuid.Nil, errors.New("file tidak valid atau bukan format Excel (.xlsx)")
 	}
 	defer wb.Close()
 
 	rawRows, err := wb.GetRows(importSheetData)
 	if err != nil {
-		return nil, fmt.Errorf("sheet %q tidak ditemukan di file — gunakan template resmi", importSheetData)
+		return nil, nil, uuid.Nil, fmt.Errorf("sheet %q tidak ditemukan di file — gunakan template resmi", importSheetData)
 	}
 
 	rows := parsePersonRows(rawRows)
 
 	existingKKGlobal, existingKKInVillage, err := s.existingFamilyCardNIKs(villageID, rows)
 	if err != nil {
-		return nil, errors.New("gagal memeriksa data Kartu Keluarga yang sudah ada")
+		return nil, nil, uuid.Nil, errors.New("gagal memeriksa data Kartu Keluarga yang sudah ada")
 	}
 	existingPersonNIKs, err := s.existingVillagerNIKs(rows)
 	if err != nil {
-		return nil, errors.New("gagal memeriksa data penduduk yang sudah ada")
+		return nil, nil, uuid.Nil, errors.New("gagal memeriksa data penduduk yang sudah ada")
 	}
 
-	fcResolved, vResolved := s.resolvePersonRows(rows, existingPersonNIKs, existingKKGlobal, existingKKInVillage)
+	fcResolved, vResolved = s.resolvePersonRows(rows, existingPersonNIKs, existingKKGlobal, existingKKInVillage)
+	return fcResolved, vResolved, villageID, nil
+}
+
+// PreviewImport reports what ProcessImport would do for the same file,
+// without writing anything to the database — the review step the operator
+// sees before committing an import.
+func (s *ImportService) PreviewImport(file interface {
+	Read(p []byte) (n int, err error)
+}, ctx *fiber.Ctx) (*dtos.ImportSummaryResponse, error) {
+	fcResolved, vResolved, _, err := s.resolveImport(file, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return buildSummaryResponse(fcResolved, vResolved), nil
+}
+
+// ProcessImport re-validates the uploaded workbook (data may have changed
+// since an earlier PreviewImport call — e.g. someone else inserted a
+// colliding Nomor KK in the meantime) and inserts what passes — one
+// transaction per family group so a bad row in one family never rolls back
+// another. Always returns a full row-by-row report; only structural problems
+// (bad village context, unreadable file, missing sheet) produce an error
+// instead of a report.
+func (s *ImportService) ProcessImport(file interface {
+	Read(p []byte) (n int, err error)
+}, ctx *fiber.Ctx) (*dtos.ImportSummaryResponse, error) {
+	fcResolved, vResolved, villageID, err := s.resolveImport(file, ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	groups := buildFamilyGroups(fcResolved, vResolved)
 	for kk, g := range groups {

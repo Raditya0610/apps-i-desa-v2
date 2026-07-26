@@ -118,19 +118,42 @@ func (s *VillagerService) CreateVillager(
 	}, nil
 }
 
-func (s *VillagerService) GetAllVillagers(ctx *fiber.Ctx) ([]*dtos.GetVillagerResponse, error) {
+// maxVillagerPageLimit caps what a caller can request per page, so a
+// crafted `limit` query param can't force one query to load the whole
+// table anyway.
+const maxVillagerPageLimit = 200
+
+func (s *VillagerService) GetAllVillagers(ctx *fiber.Ctx) (*dtos.GetVillagersResponse, error) {
 	villageID, err := s.villageIDFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	villagers, err := s.villagerRepo.GetAllVillagersByVillageID(&villageID)
+	page := ctx.QueryInt("page", 1)
+	if page < 1 {
+		page = 1
+	}
+	limit := ctx.QueryInt("limit", 100)
+	if limit < 1 {
+		limit = 100
+	} else if limit > maxVillagerPageLimit {
+		limit = maxVillagerPageLimit
+	}
+	offset := (page - 1) * limit
+
+	total, err := s.villagerRepo.CountAllVillagerByVillageID(&villageID)
+	if err != nil {
+		log.Println("Error counting villagers:", err)
+		return nil, errors.New("failed to get villagers")
+	}
+
+	villagers, err := s.villagerRepo.GetAllVillagersByVillageID(&villageID, limit, offset)
 	if err != nil {
 		log.Println("Error finding villagers:", err)
 		return nil, errors.New("failed to get villagers")
 	}
 
-	var responses []*dtos.GetVillagerResponse
+	responses := make([]*dtos.GetVillagerResponse, 0, len(villagers))
 	for _, villager := range villagers {
 		responses = append(responses, &dtos.GetVillagerResponse{
 			NIK:              villager.NIK,
@@ -152,7 +175,21 @@ func (s *VillagerService) GetAllVillagers(ctx *fiber.Ctx) ([]*dtos.GetVillagerRe
 			VillageID:        villager.VillageID.String(),
 		})
 	}
-	return responses, nil
+
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	return &dtos.GetVillagersResponse{
+		Data: responses,
+		Pagination: dtos.PaginationMeta{
+			Page:       page,
+			Limit:      limit,
+			Total:      total,
+			TotalPages: totalPages,
+		},
+	}, nil
 }
 
 func (s *VillagerService) GetVillagerByNIK(nik *string, ctx *fiber.Ctx) (*dtos.GetVillagerResponse, error) {
