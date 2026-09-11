@@ -663,11 +663,12 @@ func (c *SubDimensionController) CreateSubDimensionTataKelolaKeuanganDesa(ctx *f
 
 // â”€â”€ shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-func deleteSubDimHandler(svc func(string) error) fiber.Handler {
+func deleteSubDimHandler(svc func(string, *fiber.Ctx) error) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		if err := svc(ctx.Params("id")); err != nil {
+		if err := svc(ctx.Params("id"), ctx); err != nil {
 			status := fiber.StatusInternalServerError
-			if err.Error() == "record not found" || err.Error() == "invalid ID" {
+			if err.Error() == "record not found" || err.Error() == "invalid ID" ||
+				err.Error() == "village ID not found" || err.Error() == "invalid village ID" {
 				status = fiber.StatusNotFound
 			}
 			return ctx.Status(status).JSON(fiber.Map{"message": err.Error()})
@@ -827,7 +828,13 @@ func (c *SubDimensionController) UpdatePendidikan(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdatePendidikan(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdatePendidikan(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -837,7 +844,13 @@ func (c *SubDimensionController) UpdateKesehatan(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateKesehatan(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateKesehatan(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -847,7 +860,13 @@ func (c *SubDimensionController) UpdateUtilitasDasar(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateUtilitasDasar(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateUtilitasDasar(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -857,7 +876,13 @@ func (c *SubDimensionController) UpdateAktivitas(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateAktivitas(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateAktivitas(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -867,7 +892,13 @@ func (c *SubDimensionController) UpdateFasilitasMasyarakat(ctx *fiber.Ctx) error
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateFasilitasMasyarakat(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateFasilitasMasyarakat(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -877,7 +908,13 @@ func (c *SubDimensionController) UpdateProduksiDesa(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateProduksiDesa(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateProduksiDesa(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -887,7 +924,13 @@ func (c *SubDimensionController) UpdateFasilitasPendukungEkonomi(ctx *fiber.Ctx)
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateFasilitasPendukungEkonomi(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateFasilitasPendukungEkonomi(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -897,7 +940,13 @@ func (c *SubDimensionController) UpdatePengelolaanLingkungan(ctx *fiber.Ctx) err
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdatePengelolaanLingkungan(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdatePengelolaanLingkungan(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -907,7 +956,13 @@ func (c *SubDimensionController) UpdatePenanggulanganBencana(ctx *fiber.Ctx) err
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdatePenanggulanganBencana(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdatePenanggulanganBencana(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -917,7 +972,13 @@ func (c *SubDimensionController) UpdateKondisiAksesJalan(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateKondisiAksesJalan(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateKondisiAksesJalan(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -927,7 +988,13 @@ func (c *SubDimensionController) UpdateKemudahanAkses(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateKemudahanAkses(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateKemudahanAkses(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -937,7 +1004,13 @@ func (c *SubDimensionController) UpdateKelembagaanPelayananDesa(ctx *fiber.Ctx) 
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateKelembagaanPelayananDesa(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateKelembagaanPelayananDesa(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})
@@ -947,7 +1020,13 @@ func (c *SubDimensionController) UpdateTataKelolaKeuanganDesa(ctx *fiber.Ctx) er
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body"})
 	}
-	if err := c.subDimensionService.UpdateTataKelolaKeuanganDesa(ctx.Params("id"), &req); err != nil {
+	if err := c.validate.Struct(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Validation failed",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.subDimensionService.UpdateTataKelolaKeuanganDesa(ctx.Params("id"), &req, ctx); err != nil {
 		return updateErrResponse(ctx, err)
 	}
 	return ctx.JSON(fiber.Map{"message": "updated successfully"})

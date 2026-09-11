@@ -19,6 +19,7 @@ import 'produksi_desa_provider.dart';
 import 'tata_kelola_keuangan_desa_provider.dart';
 import 'utilitas_dasar_provider.dart';
 import 'villager_provider.dart';
+import 'write_queue_provider.dart';
 
 /// Drops every provider that holds data belonging to the logged-in village.
 ///
@@ -56,4 +57,12 @@ void invalidateSessionData(WidgetRef ref) {
   ref.invalidate(kemudahanAksesProvider);
   ref.invalidate(kelembagaanPelayananDesaProvider);
   ref.invalidate(tataKelolaKeuanganDesaProvider);
+
+  // Not village-scoped remote data, but the notifier's in-memory state (and
+  // the NIKs it displays in the sync panel) would otherwise keep showing the
+  // previous village's pending writes after switching accounts. Invalidating
+  // only disposes the Riverpod notifier — WriteQueueService's persisted
+  // queue itself is untouched, so the other village's entries are still
+  // there, just not rendered, until that village logs back in.
+  ref.invalidate(writeQueueProvider);
 }

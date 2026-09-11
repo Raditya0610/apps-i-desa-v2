@@ -68,7 +68,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // in the login screen to avoid the router redirecting to /splash.
     state = state.copyWith(error: null);
 
+    // If there's no connectivity, fall back to the local cache instead of
+    // letting the Dio request time out and show a generic network error.
+    if (!await _authService.hasConnectivity()) {
+      return loginOffline(username, password);
+    }
+
     final result = await _authService.login(username, password);
+
+    if (!result['success']) {
+      // The interface reported connectivity but the server was actually
+      // unreachable (captive portal, server down) — fall back to the local
+      // cache instead of surfacing a generic network error.
+      if (result['unreachable'] == true) {
+        return loginOffline(username, password);
+      }
+      state = state.copyWith(
+        isAuthenticated: false,
+        error: result['message'],
+      );
+    }
+    // On success: caller must invoke finalizeLogin() after showing animation.
+
+    return result;
+  }
+
+  /// Offline login using cached credentials (no network required).
+  Future<Map<String, dynamic>> loginOffline(String username, String password) async {
+    state = state.copyWith(error: null);
+
+    final result = await _authService.loginOffline(username, password);
 
     if (!result['success']) {
       state = state.copyWith(
@@ -76,7 +105,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         error: result['message'],
       );
     }
-    // On success: caller must invoke finalizeLogin() after showing animation.
 
     return result;
   }

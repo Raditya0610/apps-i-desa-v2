@@ -46,6 +46,10 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.8.1
 
+  # Connectivity
+  connectivity_plus: ^6.1.0
+  crypto: ^3.0.3
+
   # Export
   excel: ^4.0.6
   path_provider: ^2.1.5

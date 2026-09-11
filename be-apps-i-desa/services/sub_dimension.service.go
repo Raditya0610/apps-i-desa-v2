@@ -775,12 +775,20 @@ func (s *SubDimensionService) GetTataKelolaKeuanganDesa(ctx *fiber.Ctx) ([]*mode
 
 // ── DELETE ────────────────────────────────────────────────────────────────────
 
-func (s *SubDimensionService) DeletePendidikan(rawID string) error {
+func (s *SubDimensionService) DeletePendidikan(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindPendidikanByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindPendidikanByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -791,12 +799,20 @@ func (s *SubDimensionService) DeletePendidikan(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteKesehatan(rawID string) error {
+func (s *SubDimensionService) DeleteKesehatan(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindKesehatanByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindKesehatanByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -807,12 +823,20 @@ func (s *SubDimensionService) DeleteKesehatan(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteUtilitasDasar(rawID string) error {
+func (s *SubDimensionService) DeleteUtilitasDasar(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindUtilitasDasarByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindUtilitasDasarByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -823,12 +847,20 @@ func (s *SubDimensionService) DeleteUtilitasDasar(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteAktivitas(rawID string) error {
+func (s *SubDimensionService) DeleteAktivitas(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindAktivitasByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindAktivitasByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -839,12 +871,20 @@ func (s *SubDimensionService) DeleteAktivitas(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteFasilitasMasyarakat(rawID string) error {
+func (s *SubDimensionService) DeleteFasilitasMasyarakat(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindFasilitasMasyarakatByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindFasilitasMasyarakatByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -855,12 +895,20 @@ func (s *SubDimensionService) DeleteFasilitasMasyarakat(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteProduksiDesa(rawID string) error {
+func (s *SubDimensionService) DeleteProduksiDesa(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindProduksiDesaByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindProduksiDesaByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -871,12 +919,20 @@ func (s *SubDimensionService) DeleteProduksiDesa(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteFasilitasPendukungEkonomi(rawID string) error {
+func (s *SubDimensionService) DeleteFasilitasPendukungEkonomi(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindFasilitasPendukungEkonomiByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindFasilitasPendukungEkonomiByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -887,12 +943,20 @@ func (s *SubDimensionService) DeleteFasilitasPendukungEkonomi(rawID string) erro
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeletePengelolaanLingkungan(rawID string) error {
+func (s *SubDimensionService) DeletePengelolaanLingkungan(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindPengelolaanLingkunganByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindPengelolaanLingkunganByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -903,12 +967,20 @@ func (s *SubDimensionService) DeletePengelolaanLingkungan(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeletePenanggulanganBencana(rawID string) error {
+func (s *SubDimensionService) DeletePenanggulanganBencana(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindPenanggulanganBencanaByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindPenanggulanganBencanaByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -919,12 +991,20 @@ func (s *SubDimensionService) DeletePenanggulanganBencana(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteKondisiAksesJalan(rawID string) error {
+func (s *SubDimensionService) DeleteKondisiAksesJalan(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindKondisiAksesJalanByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindKondisiAksesJalanByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -935,12 +1015,20 @@ func (s *SubDimensionService) DeleteKondisiAksesJalan(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteKemudahanAkses(rawID string) error {
+func (s *SubDimensionService) DeleteKemudahanAkses(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindKemudahanAksesByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindKemudahanAksesByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -951,12 +1039,20 @@ func (s *SubDimensionService) DeleteKemudahanAkses(rawID string) error {
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteKelembagaanPelayananDesa(rawID string) error {
+func (s *SubDimensionService) DeleteKelembagaanPelayananDesa(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindKelembagaanPelayananDesaByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindKelembagaanPelayananDesaByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -967,12 +1063,20 @@ func (s *SubDimensionService) DeleteKelembagaanPelayananDesa(rawID string) error
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) DeleteTataKelolaKeuanganDesa(rawID string) error {
+func (s *SubDimensionService) DeleteTataKelolaKeuanganDesa(rawID string, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
-	if _, err := s.subDimensionRepo.FindTataKelolaKeuanganDesaByID(id); err != nil {
+	rec, err := s.subDimensionRepo.FindTataKelolaKeuanganDesaByID(id)
+	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	tx := s.subDimensionRepo.BeginTransaction()
@@ -985,13 +1089,20 @@ func (s *SubDimensionService) DeleteTataKelolaKeuanganDesa(rawID string) error {
 
 // ── PUT (update) ──────────────────────────────────────────────────────────────
 
-func (s *SubDimensionService) UpdatePendidikan(rawID string, req *dtos.AddSubDimensionPendidikanRequest) error {
+func (s *SubDimensionService) UpdatePendidikan(rawID string, req *dtos.AddSubDimensionPendidikanRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindPendidikanByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.KetersediaanPaud = req.KetersediaanPaud
@@ -1014,13 +1125,20 @@ func (s *SubDimensionService) UpdatePendidikan(rawID string, req *dtos.AddSubDim
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateKesehatan(rawID string, req *dtos.AddSubDimensionKesehatanRequest) error {
+func (s *SubDimensionService) UpdateKesehatan(rawID string, req *dtos.AddSubDimensionKesehatanRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindKesehatanByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.KemudahanAksesSaranaKesehatan = req.KemudahanAksesSaranaKesehatan
@@ -1054,13 +1172,20 @@ func (s *SubDimensionService) UpdateKesehatan(rawID string, req *dtos.AddSubDime
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateUtilitasDasar(rawID string, req *dtos.AddSubDimensionUtilitasDasarRequest) error {
+func (s *SubDimensionService) UpdateUtilitasDasar(rawID string, req *dtos.AddSubDimensionUtilitasDasarRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindUtilitasDasarByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.OperasionalAirMinum = req.OperasionalAirMinum
@@ -1079,13 +1204,20 @@ func (s *SubDimensionService) UpdateUtilitasDasar(rawID string, req *dtos.AddSub
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateAktivitas(rawID string, req *dtos.AddSubDimensionAktivitasRequest) error {
+func (s *SubDimensionService) UpdateAktivitas(rawID string, req *dtos.AddSubDimensionAktivitasRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindAktivitasByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.KearifanBudayaSosial = req.KearifanBudayaSosial
@@ -1112,13 +1244,20 @@ func (s *SubDimensionService) UpdateAktivitas(rawID string, req *dtos.AddSubDime
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateFasilitasMasyarakat(rawID string, req *dtos.AddSubDimensionFasilitasMasyarakatRequest) error {
+func (s *SubDimensionService) UpdateFasilitasMasyarakat(rawID string, req *dtos.AddSubDimensionFasilitasMasyarakatRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindFasilitasMasyarakatByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.TerdapatTamanBacaanMasyarakat = req.TerdapatTamanBacaanMasyarakat
@@ -1136,13 +1275,20 @@ func (s *SubDimensionService) UpdateFasilitasMasyarakat(rawID string, req *dtos.
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateProduksiDesa(rawID string, req *dtos.AddSubDimensionProduksiDesaRequest) error {
+func (s *SubDimensionService) UpdateProduksiDesa(rawID string, req *dtos.AddSubDimensionProduksiDesaRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindProduksiDesaByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.KeragamanAktivitasEkonomi = req.KeragamanAktivitasEkonomi
@@ -1164,13 +1310,20 @@ func (s *SubDimensionService) UpdateProduksiDesa(rawID string, req *dtos.AddSubD
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateFasilitasPendukungEkonomi(rawID string, req *dtos.AddSubDimensionFasilitasPendukungEkonomiRequest) error {
+func (s *SubDimensionService) UpdateFasilitasPendukungEkonomi(rawID string, req *dtos.AddSubDimensionFasilitasPendukungEkonomiRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindFasilitasPendukungEkonomiByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.KetersediaanPendidikanNonFormal = req.KetersediaanPendidikanNonFormal
@@ -1208,13 +1361,20 @@ func (s *SubDimensionService) UpdateFasilitasPendukungEkonomi(rawID string, req 
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdatePengelolaanLingkungan(rawID string, req *dtos.AddSubDimensionPengelolaanLingkunganRequest) error {
+func (s *SubDimensionService) UpdatePengelolaanLingkungan(rawID string, req *dtos.AddSubDimensionPengelolaanLingkunganRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindPengelolaanLingkunganByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.UpayaMenjagaKelestarianLingkungan = req.UpayaMenjagaKelestarianLingkungan
@@ -1240,13 +1400,20 @@ func (s *SubDimensionService) UpdatePengelolaanLingkungan(rawID string, req *dto
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdatePenanggulanganBencana(rawID string, req *dtos.AddSubDimensionPenanggulanganBencanaRequest) error {
+func (s *SubDimensionService) UpdatePenanggulanganBencana(rawID string, req *dtos.AddSubDimensionPenanggulanganBencanaRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindPenanggulanganBencanaByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.AspekInformasiKebencanaan = req.AspekInformasiKebencanaan
@@ -1265,13 +1432,20 @@ func (s *SubDimensionService) UpdatePenanggulanganBencana(rawID string, req *dto
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateKondisiAksesJalan(rawID string, req *dtos.AddSubDimensionKondisiAksesJalanRequest) error {
+func (s *SubDimensionService) UpdateKondisiAksesJalan(rawID string, req *dtos.AddSubDimensionKondisiAksesJalanRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindKondisiAksesJalanByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.JenisPermukaanJalan = req.JenisPermukaanJalan
@@ -1289,13 +1463,20 @@ func (s *SubDimensionService) UpdateKondisiAksesJalan(rawID string, req *dtos.Ad
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateKemudahanAkses(rawID string, req *dtos.AddSubDimensionKemudahanAksesRequest) error {
+func (s *SubDimensionService) UpdateKemudahanAkses(rawID string, req *dtos.AddSubDimensionKemudahanAksesRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindKemudahanAksesByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.AngkutanPerdesaan = req.AngkutanPerdesaan
@@ -1315,13 +1496,20 @@ func (s *SubDimensionService) UpdateKemudahanAkses(rawID string, req *dtos.AddSu
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateKelembagaanPelayananDesa(rawID string, req *dtos.AddSubDimensionKelembagaanPelayananDesaRequest) error {
+func (s *SubDimensionService) UpdateKelembagaanPelayananDesa(rawID string, req *dtos.AddSubDimensionKelembagaanPelayananDesaRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindKelembagaanPelayananDesaByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.LayananDiberikan = req.LayananDiberikan
@@ -1342,13 +1530,20 @@ func (s *SubDimensionService) UpdateKelembagaanPelayananDesa(rawID string, req *
 	return tx.Commit().Error
 }
 
-func (s *SubDimensionService) UpdateTataKelolaKeuanganDesa(rawID string, req *dtos.AddSubDimensionTataKelolaKeuanganDesaRequest) error {
+func (s *SubDimensionService) UpdateTataKelolaKeuanganDesa(rawID string, req *dtos.AddSubDimensionTataKelolaKeuanganDesaRequest, ctx *fiber.Ctx) error {
 	id, err := parseID(rawID)
 	if err != nil {
 		return err
 	}
 	rec, err := s.subDimensionRepo.FindTataKelolaKeuanganDesaByID(id)
 	if err != nil {
+		return errors.New("record not found")
+	}
+	villageID, err := s.villageIDFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if rec.VillageID != villageID {
 		return errors.New("record not found")
 	}
 	rec.PendapatanAsliDesa = req.PendapatanAsliDesa

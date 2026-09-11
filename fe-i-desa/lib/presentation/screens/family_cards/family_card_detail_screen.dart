@@ -535,7 +535,7 @@ class FamilyCardDetailScreen extends ConsumerWidget {
       }
 
       final repository = VillagerRepository();
-      final result = await repository.deleteVillager(memberNik);
+      final result = await repository.deleteVillager(memberNik, familyCardId: nik);
 
       // Hide loading
       if (context.mounted) {

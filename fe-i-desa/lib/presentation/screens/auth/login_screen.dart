@@ -77,6 +77,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       });
       _successController.forward();
 
+      // Offline login is lower-confidence than a server-validated one: show a
+      // persistent notice so the operator knows edits may not sync until the
+      // internet is back.
+      if (result['isOffline'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Anda sedang offline. Data mungkin tidak tersinkronisasi.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
       await Future.delayed(const Duration(milliseconds: 1600));
       if (!mounted) return;
 

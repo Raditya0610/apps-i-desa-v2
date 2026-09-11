@@ -5,3 +5,14 @@ simpoi/
 # Environment secrets (jangan pernah di-commit)
 .env
 .env.*
+
+# Ruflo plugin (ruvnet/ruflo) local agent state — not project source
+.claude-flow/
+verification-history.jsonl
+verification.md.json
+witness-fixes.json
+
+# Claude Code local/session state — .claude/settings.json itself stays tracked
+.claude/.proven-config-version
+.claude/proven-config.json
+.claude/worktrees/

@@ -249,6 +249,7 @@ class _VillagerFormDialogState extends State<VillagerFormDialog> {
         result = await _villagerRepository.updateVillager(
           widget.existingMember!['nik'],
           updateData,
+          familyCardId: widget.familyCardId,
         );
       } else {
         final villager = Villager(

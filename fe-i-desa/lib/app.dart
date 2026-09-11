@@ -6,6 +6,7 @@ import 'core/router/app_router.dart';
 import 'data/services/api_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/session.dart';
+import 'providers/write_queue_provider.dart';
 
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
@@ -34,6 +35,11 @@ class MyApp extends ConsumerWidget {
     ApiService.onSessionExpired ??= () {
       ref.read(authStateProvider.notifier).sessionExpired();
     };
+
+    // Keeps the connectivity-regained listener alive for the whole session —
+    // there is no ShellRoute in this app, so MyApp is the only widget that
+    // stays mounted across every screen. See connectivitySyncProvider's doc.
+    ref.watch(connectivitySyncProvider);
 
     return MaterialApp.router(
       title: 'Apps I-Desa',

@@ -6,6 +6,8 @@ import '../../../core/config/app_config.dart';
 import '../../../core/theme/forui_theme.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/import_provider.dart';
+import '../../../providers/write_queue_provider.dart';
+import 'pending_sync_sheet.dart';
 import 'unsaved_changes_dialog.dart';
 
 class AppSidebar extends ConsumerStatefulWidget {
@@ -206,16 +208,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                           color: Colors.white,
                         ),
                       ),
-                      const Row(
-                        children: [
-                          Icon(Icons.circle, size: 6, color: Color(0xFF52B788)),
-                          SizedBox(width: 4),
-                          Text(
-                            'Online',
-                            style: TextStyle(fontSize: 11, color: Colors.white54),
-                          ),
-                        ],
-                      ),
+                      _SyncStatusRow(pendingCount: ref.watch(writeQueueProvider).length),
                     ],
                   ),
                 ),
@@ -225,7 +218,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   tooltip: 'Keluar',
-                  onPressed: () => _confirmLogout(context, ref),
+                  onPressed: () => _confirmLogout(context, ref, ref.read(writeQueueProvider).length),
                 ),
               ],
             ),
@@ -308,7 +301,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     }
   }
 
-  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref, int pendingSyncCount) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => Dialog(
@@ -341,10 +334,15 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Anda akan keluar dari sesi ini.\nPastikan semua data telah tersimpan.',
+              Text(
+                pendingSyncCount > 0
+                    // Unlike the unsaved-import-preview warning, this is not a
+                    // data-loss warning — queued writes stay safely on this
+                    // device and resume syncing automatically next login.
+                    ? 'Anda memiliki $pendingSyncCount perubahan yang belum tersinkronisasi ke server. Perubahan tetap tersimpan di perangkat ini dan akan otomatis dikirim saat Anda login kembali dan online.'
+                    : 'Anda akan keluar dari sesi ini.\nPastikan semua data telah tersimpan.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Color(0xFF6B7C74)),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7C74)),
               ),
               const SizedBox(height: 24),
               Row(
@@ -391,6 +389,43 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       ref.read(hasUnsavedImportPreviewProvider.notifier).state = false;
       await ref.read(authStateProvider.notifier).logout();
     }
+  }
+}
+
+// ─── Sync status ──────────────────────────────────────────────────────────────
+
+/// Replaces the old hardcoded "Online" label. Green when nothing is pending;
+/// amber + a tappable count once offline writes are queued — matches the
+/// warning color `OfflineBanner` already uses elsewhere for the same idea.
+class _SyncStatusRow extends StatelessWidget {
+  final int pendingCount;
+  const _SyncStatusRow({required this.pendingCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPending = pendingCount > 0;
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.circle,
+          size: 6,
+          color: hasPending ? ForuiThemeConfig.warningColor : const Color(0xFF52B788),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          hasPending ? '$pendingCount belum sinkron' : 'Online',
+          style: const TextStyle(fontSize: 11, color: Colors.white54),
+        ),
+      ],
+    );
+
+    if (!hasPending) return row;
+    return InkWell(
+      onTap: () => showPendingSyncSheet(context),
+      borderRadius: BorderRadius.circular(4),
+      child: row,
+    );
   }
 }
 

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/constants/api_constants.dart';
@@ -22,6 +25,11 @@ class AuthService {
   static const String _usernameKey = 'username';
   static const String _villageIdKey = 'village_id';
   static const String _villageNameKey = 'village_name';
+  static const String _passwordHashKey = 'password_hash';
+  static const String _lastValidatedKey = 'last_validated_at';
+
+  /// Grace period for offline token reuse (72 hours)
+  static const Duration _offlineGracePeriod = Duration(hours: 72);
 
   // Helper methods for storage abstraction
   Future<void> _write(String key, String value) async {
@@ -87,6 +95,10 @@ class AuthService {
   }
 
   // Login
+  //
+  // On failure, the result carries an `unreachable` flag (see
+  // [CacheService.isOffline]) so callers can tell a connectivity failure
+  // (safe to retry offline) apart from a real rejection like bad credentials.
   Future<Map<String, dynamic>> login(String username, String password) async {
     try {
       final response = await _api.post(
@@ -112,6 +124,10 @@ class AuthService {
         await _write(_tokenKey, token);
         await _write(_usernameKey, username);
         ApiService.setAuthToken(token);
+
+        // Cache password hash for offline login
+        await _cachePasswordHash(password);
+        await _updateLastValidated();
 
         // Save village_id/village_name straight from the login response —
         // display-only (the greeting), never used for any access decision.
@@ -141,6 +157,7 @@ class AuthService {
       return {
         'success': false,
         'message': ApiService.getErrorMessage(e),
+        'unreachable': CacheService.isOffline(e),
       };
     }
   }
@@ -229,6 +246,13 @@ class AuthService {
   Future<bool> isLoggedIn() async {
     final token = await _read(_tokenKey);
     if (token != null && token.isNotEmpty) {
+      // If offline, make sure the cached session is still within the grace
+      // period before letting the user straight in.
+      if (!await hasConnectivity()) {
+        if (!await isTokenValidOffline()) {
+          return false;
+        }
+      }
       ApiService.setAuthToken(token);
       return true;
     }
@@ -290,6 +314,115 @@ class AuthService {
       return {
         'success': false,
         'message': ApiService.getErrorMessage(e),
+      };
+    }
+  }
+
+  // ─── Offline Support ──────────────────────────────────────────────────────
+
+  /// Check if device has internet connectivity
+  Future<bool> hasConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    return !connectivityResult.contains(ConnectivityResult.none);
+  }
+
+  /// Hash password for secure local storage
+  String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  /// Cache password hash for offline login (called after successful online login)
+  Future<void> _cachePasswordHash(String password) async {
+    final hash = _hashPassword(password);
+    await _write(_passwordHashKey, hash);
+  }
+
+  /// Update last validated timestamp
+  Future<void> _updateLastValidated() async {
+    await _write(_lastValidatedKey, DateTime.now().toIso8601String());
+  }
+
+  /// Check if cached token is within offline grace period
+  Future<bool> isTokenValidOffline() async {
+    final token = await _read(_tokenKey);
+    final lastValidatedStr = await _read(_lastValidatedKey);
+
+    if (token == null || token.isEmpty || lastValidatedStr == null) {
+      return false;
+    }
+
+    final lastValidated = DateTime.tryParse(lastValidatedStr);
+    if (lastValidated == null) return false;
+
+    final elapsed = DateTime.now().difference(lastValidated);
+    return elapsed < _offlineGracePeriod;
+  }
+
+  /// Attempt offline login using cached credentials
+  ///
+  /// Returns success if:
+  /// 1. Password hash matches cached hash
+  /// 2. Token is within offline grace period
+  Future<Map<String, dynamic>> loginOffline(
+    String username,
+    String password,
+  ) async {
+    try {
+      // Check if we have cached credentials
+      final storedUsername = await _read(_usernameKey);
+      final storedHash = await _read(_passwordHashKey);
+
+      if (storedUsername == null || storedHash == null) {
+        return {
+          'success': false,
+          'message': 'Tidak ada data login tersimpan. Silakan login online terlebih dahulu.',
+        };
+      }
+
+      // Verify username matches
+      if (username != storedUsername) {
+        return {
+          'success': false,
+          'message': 'Username tidak cocok dengan data tersimpan.',
+        };
+      }
+
+      // Verify password hash
+      final inputHash = _hashPassword(password);
+      if (inputHash != storedHash) {
+        return {
+          'success': false,
+          'message': 'Password salah.',
+        };
+      }
+
+      // Check if token is within grace period
+      if (!await isTokenValidOffline()) {
+        return {
+          'success': false,
+          'message': 'Sesi telah berakhir. Silakan login online untuk memperbarui.',
+        };
+      }
+
+      // Restore session from cache
+      final token = await _read(_tokenKey);
+      final villageName = await _read(_villageNameKey);
+
+      ApiService.setAuthToken(token);
+
+      return {
+        'success': true,
+        'message': 'Login offline berhasil',
+        'token': token,
+        'villageName': villageName ?? '',
+        'isOffline': true,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Gagal login offline: ${e.toString()}',
       };
     }
   }
