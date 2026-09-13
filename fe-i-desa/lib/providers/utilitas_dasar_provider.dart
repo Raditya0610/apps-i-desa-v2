@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/utilitas_dasar.dart';
 import '../data/repositories/utilitas_dasar_repository.dart';
+import 'idm_score_provider.dart';
 
 final utilitasDasarRepositoryProvider = Provider<UtilitasDasarRepository>((ref) {
   return UtilitasDasarRepository();
@@ -23,13 +24,14 @@ class UtilitasDasarState {
 }
 
 final utilitasDasarProvider = StateNotifierProvider<UtilitasDasarNotifier, UtilitasDasarState>((ref) {
-  return UtilitasDasarNotifier(ref.read(utilitasDasarRepositoryProvider));
+  return UtilitasDasarNotifier(ref.read(utilitasDasarRepositoryProvider), ref);
 });
 
 class UtilitasDasarNotifier extends StateNotifier<UtilitasDasarState> {
   final UtilitasDasarRepository _repository;
+  final Ref _ref;
 
-  UtilitasDasarNotifier(this._repository) : super(UtilitasDasarState()) {
+  UtilitasDasarNotifier(this._repository, this._ref) : super(UtilitasDasarState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class UtilitasDasarNotifier extends StateNotifier<UtilitasDasarState> {
 
   Future<Map<String, dynamic>> create(UtilitasDasar data) async {
     final result = await _repository.createUtilitasDasar(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, UtilitasDasar data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

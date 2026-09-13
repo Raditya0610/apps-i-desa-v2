@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/tata_kelola_keuangan_desa.dart';
 import '../data/repositories/tata_kelola_keuangan_desa_repository.dart';
+import 'idm_score_provider.dart';
 
 final tataKelolaKeuanganDesaRepositoryProvider = Provider<TataKelolaKeuanganDesaRepository>((ref) {
   return TataKelolaKeuanganDesaRepository();
@@ -23,13 +24,14 @@ class TataKelolaKeuanganDesaState {
 }
 
 final tataKelolaKeuanganDesaProvider = StateNotifierProvider<TataKelolaKeuanganDesaNotifier, TataKelolaKeuanganDesaState>((ref) {
-  return TataKelolaKeuanganDesaNotifier(ref.read(tataKelolaKeuanganDesaRepositoryProvider));
+  return TataKelolaKeuanganDesaNotifier(ref.read(tataKelolaKeuanganDesaRepositoryProvider), ref);
 });
 
 class TataKelolaKeuanganDesaNotifier extends StateNotifier<TataKelolaKeuanganDesaState> {
   final TataKelolaKeuanganDesaRepository _repository;
+  final Ref _ref;
 
-  TataKelolaKeuanganDesaNotifier(this._repository) : super(TataKelolaKeuanganDesaState()) {
+  TataKelolaKeuanganDesaNotifier(this._repository, this._ref) : super(TataKelolaKeuanganDesaState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class TataKelolaKeuanganDesaNotifier extends StateNotifier<TataKelolaKeuanganDes
 
   Future<Map<String, dynamic>> create(TataKelolaKeuanganDesa data) async {
     final result = await _repository.createTataKelolaKeuanganDesa(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, TataKelolaKeuanganDesa data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

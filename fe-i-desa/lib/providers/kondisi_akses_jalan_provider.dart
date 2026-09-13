@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/kondisi_akses_jalan.dart';
 import '../data/repositories/kondisi_akses_jalan_repository.dart';
+import 'idm_score_provider.dart';
 
 final kondisiAksesJalanRepositoryProvider = Provider<KondisiAksesJalanRepository>((ref) {
   return KondisiAksesJalanRepository();
@@ -23,13 +24,14 @@ class KondisiAksesJalanState {
 }
 
 final kondisiAksesJalanProvider = StateNotifierProvider<KondisiAksesJalanNotifier, KondisiAksesJalanState>((ref) {
-  return KondisiAksesJalanNotifier(ref.read(kondisiAksesJalanRepositoryProvider));
+  return KondisiAksesJalanNotifier(ref.read(kondisiAksesJalanRepositoryProvider), ref);
 });
 
 class KondisiAksesJalanNotifier extends StateNotifier<KondisiAksesJalanState> {
   final KondisiAksesJalanRepository _repository;
+  final Ref _ref;
 
-  KondisiAksesJalanNotifier(this._repository) : super(KondisiAksesJalanState()) {
+  KondisiAksesJalanNotifier(this._repository, this._ref) : super(KondisiAksesJalanState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class KondisiAksesJalanNotifier extends StateNotifier<KondisiAksesJalanState> {
 
   Future<Map<String, dynamic>> create(KondisiAksesJalan data) async {
     final result = await _repository.createKondisiAksesJalan(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, KondisiAksesJalan data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

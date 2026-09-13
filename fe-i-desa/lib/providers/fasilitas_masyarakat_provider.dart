@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/fasilitas_masyarakat.dart';
 import '../data/repositories/fasilitas_masyarakat_repository.dart';
+import 'idm_score_provider.dart';
 
 final fasilitasMasyarakatRepositoryProvider = Provider<FasilitasMasyarakatRepository>((ref) {
   return FasilitasMasyarakatRepository();
@@ -23,13 +24,14 @@ class FasilitasMasyarakatState {
 }
 
 final fasilitasMasyarakatProvider = StateNotifierProvider<FasilitasMasyarakatNotifier, FasilitasMasyarakatState>((ref) {
-  return FasilitasMasyarakatNotifier(ref.read(fasilitasMasyarakatRepositoryProvider));
+  return FasilitasMasyarakatNotifier(ref.read(fasilitasMasyarakatRepositoryProvider), ref);
 });
 
 class FasilitasMasyarakatNotifier extends StateNotifier<FasilitasMasyarakatState> {
   final FasilitasMasyarakatRepository _repository;
+  final Ref _ref;
 
-  FasilitasMasyarakatNotifier(this._repository) : super(FasilitasMasyarakatState()) {
+  FasilitasMasyarakatNotifier(this._repository, this._ref) : super(FasilitasMasyarakatState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class FasilitasMasyarakatNotifier extends StateNotifier<FasilitasMasyarakatState
 
   Future<Map<String, dynamic>> create(FasilitasMasyarakat data) async {
     final result = await _repository.createFasilitasMasyarakat(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, FasilitasMasyarakat data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/fasilitas_pendukung_ekonomi.dart';
 import '../data/repositories/fasilitas_pendukung_ekonomi_repository.dart';
+import 'idm_score_provider.dart';
 
 final fasilitasPendukungEkonomiRepositoryProvider = Provider<FasilitasPendukungEkonomiRepository>((ref) {
   return FasilitasPendukungEkonomiRepository();
@@ -23,13 +24,14 @@ class FasilitasPendukungEkonomiState {
 }
 
 final fasilitasPendukungEkonomiProvider = StateNotifierProvider<FasilitasPendukungEkonomiNotifier, FasilitasPendukungEkonomiState>((ref) {
-  return FasilitasPendukungEkonomiNotifier(ref.read(fasilitasPendukungEkonomiRepositoryProvider));
+  return FasilitasPendukungEkonomiNotifier(ref.read(fasilitasPendukungEkonomiRepositoryProvider), ref);
 });
 
 class FasilitasPendukungEkonomiNotifier extends StateNotifier<FasilitasPendukungEkonomiState> {
   final FasilitasPendukungEkonomiRepository _repository;
+  final Ref _ref;
 
-  FasilitasPendukungEkonomiNotifier(this._repository) : super(FasilitasPendukungEkonomiState()) {
+  FasilitasPendukungEkonomiNotifier(this._repository, this._ref) : super(FasilitasPendukungEkonomiState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class FasilitasPendukungEkonomiNotifier extends StateNotifier<FasilitasPendukung
 
   Future<Map<String, dynamic>> create(FasilitasPendukungEkonomi data) async {
     final result = await _repository.createFasilitasPendukungEkonomi(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, FasilitasPendukungEkonomi data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

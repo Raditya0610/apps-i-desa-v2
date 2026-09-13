@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/kesehatan.dart';
 import '../data/repositories/kesehatan_repository.dart';
+import 'idm_score_provider.dart';
 
 final kesehatanRepositoryProvider = Provider<KesehatanRepository>((ref) {
   return KesehatanRepository();
@@ -23,13 +24,14 @@ class KesehatanState {
 }
 
 final kesehatanProvider = StateNotifierProvider<KesehatanNotifier, KesehatanState>((ref) {
-  return KesehatanNotifier(ref.read(kesehatanRepositoryProvider));
+  return KesehatanNotifier(ref.read(kesehatanRepositoryProvider), ref);
 });
 
 class KesehatanNotifier extends StateNotifier<KesehatanState> {
   final KesehatanRepository _repository;
+  final Ref _ref;
 
-  KesehatanNotifier(this._repository) : super(KesehatanState()) {
+  KesehatanNotifier(this._repository, this._ref) : super(KesehatanState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class KesehatanNotifier extends StateNotifier<KesehatanState> {
 
   Future<Map<String, dynamic>> create(Kesehatan data) async {
     final result = await _repository.createKesehatan(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, Kesehatan data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

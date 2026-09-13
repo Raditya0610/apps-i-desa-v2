@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/kemudahan_akses.dart';
 import '../data/repositories/kemudahan_akses_repository.dart';
+import 'idm_score_provider.dart';
 
 final kemudahanAksesRepositoryProvider = Provider<KemudahanAksesRepository>((ref) {
   return KemudahanAksesRepository();
@@ -23,13 +24,14 @@ class KemudahanAksesState {
 }
 
 final kemudahanAksesProvider = StateNotifierProvider<KemudahanAksesNotifier, KemudahanAksesState>((ref) {
-  return KemudahanAksesNotifier(ref.read(kemudahanAksesRepositoryProvider));
+  return KemudahanAksesNotifier(ref.read(kemudahanAksesRepositoryProvider), ref);
 });
 
 class KemudahanAksesNotifier extends StateNotifier<KemudahanAksesState> {
   final KemudahanAksesRepository _repository;
+  final Ref _ref;
 
-  KemudahanAksesNotifier(this._repository) : super(KemudahanAksesState()) {
+  KemudahanAksesNotifier(this._repository, this._ref) : super(KemudahanAksesState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class KemudahanAksesNotifier extends StateNotifier<KemudahanAksesState> {
 
   Future<Map<String, dynamic>> create(KemudahanAkses data) async {
     final result = await _repository.createKemudahanAkses(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, KemudahanAkses data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

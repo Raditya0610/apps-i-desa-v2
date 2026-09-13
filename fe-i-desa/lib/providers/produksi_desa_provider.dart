@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/produksi_desa.dart';
 import '../data/repositories/produksi_desa_repository.dart';
+import 'idm_score_provider.dart';
 
 final produksiDesaRepositoryProvider = Provider<ProduksiDesaRepository>((ref) {
   return ProduksiDesaRepository();
@@ -23,13 +24,14 @@ class ProduksiDesaState {
 }
 
 final produksiDesaProvider = StateNotifierProvider<ProduksiDesaNotifier, ProduksiDesaState>((ref) {
-  return ProduksiDesaNotifier(ref.read(produksiDesaRepositoryProvider));
+  return ProduksiDesaNotifier(ref.read(produksiDesaRepositoryProvider), ref);
 });
 
 class ProduksiDesaNotifier extends StateNotifier<ProduksiDesaState> {
   final ProduksiDesaRepository _repository;
+  final Ref _ref;
 
-  ProduksiDesaNotifier(this._repository) : super(ProduksiDesaState()) {
+  ProduksiDesaNotifier(this._repository, this._ref) : super(ProduksiDesaState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class ProduksiDesaNotifier extends StateNotifier<ProduksiDesaState> {
 
   Future<Map<String, dynamic>> create(ProduksiDesa data) async {
     final result = await _repository.createProduksiDesa(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, ProduksiDesa data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

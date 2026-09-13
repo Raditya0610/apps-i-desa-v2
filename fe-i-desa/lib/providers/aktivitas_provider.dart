@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/aktivitas.dart';
 import '../data/repositories/aktivitas_repository.dart';
+import 'idm_score_provider.dart';
 
 final aktivitasRepositoryProvider = Provider<AktivitasRepository>((ref) {
   return AktivitasRepository();
@@ -23,13 +24,14 @@ class AktivitasState {
 }
 
 final aktivitasProvider = StateNotifierProvider<AktivitasNotifier, AktivitasState>((ref) {
-  return AktivitasNotifier(ref.read(aktivitasRepositoryProvider));
+  return AktivitasNotifier(ref.read(aktivitasRepositoryProvider), ref);
 });
 
 class AktivitasNotifier extends StateNotifier<AktivitasState> {
   final AktivitasRepository _repository;
+  final Ref _ref;
 
-  AktivitasNotifier(this._repository) : super(AktivitasState()) {
+  AktivitasNotifier(this._repository, this._ref) : super(AktivitasState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class AktivitasNotifier extends StateNotifier<AktivitasState> {
 
   Future<Map<String, dynamic>> create(Aktivitas data) async {
     final result = await _repository.createAktivitas(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, Aktivitas data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/kelembagaan_pelayanan_desa.dart';
 import '../data/repositories/kelembagaan_pelayanan_desa_repository.dart';
+import 'idm_score_provider.dart';
 
 final kelembagaanPelayananDesaRepositoryProvider = Provider<KelembagaanPelayananDesaRepository>((ref) {
   return KelembagaanPelayananDesaRepository();
@@ -23,13 +24,14 @@ class KelembagaanPelayananDesaState {
 }
 
 final kelembagaanPelayananDesaProvider = StateNotifierProvider<KelembagaanPelayananDesaNotifier, KelembagaanPelayananDesaState>((ref) {
-  return KelembagaanPelayananDesaNotifier(ref.read(kelembagaanPelayananDesaRepositoryProvider));
+  return KelembagaanPelayananDesaNotifier(ref.read(kelembagaanPelayananDesaRepositoryProvider), ref);
 });
 
 class KelembagaanPelayananDesaNotifier extends StateNotifier<KelembagaanPelayananDesaState> {
   final KelembagaanPelayananDesaRepository _repository;
+  final Ref _ref;
 
-  KelembagaanPelayananDesaNotifier(this._repository) : super(KelembagaanPelayananDesaState()) {
+  KelembagaanPelayananDesaNotifier(this._repository, this._ref) : super(KelembagaanPelayananDesaState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class KelembagaanPelayananDesaNotifier extends StateNotifier<KelembagaanPelayana
 
   Future<Map<String, dynamic>> create(KelembagaanPelayananDesa data) async {
     final result = await _repository.createKelembagaanPelayananDesa(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, KelembagaanPelayananDesa data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }

@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/sub_dimensions/pengelolaan_lingkungan.dart';
 import '../data/repositories/pengelolaan_lingkungan_repository.dart';
+import 'idm_score_provider.dart';
 
 final pengelolaanLingkunganRepositoryProvider = Provider<PengelolaanLingkunganRepository>((ref) {
   return PengelolaanLingkunganRepository();
@@ -23,13 +24,14 @@ class PengelolaanLingkunganState {
 }
 
 final pengelolaanLingkunganProvider = StateNotifierProvider<PengelolaanLingkunganNotifier, PengelolaanLingkunganState>((ref) {
-  return PengelolaanLingkunganNotifier(ref.read(pengelolaanLingkunganRepositoryProvider));
+  return PengelolaanLingkunganNotifier(ref.read(pengelolaanLingkunganRepositoryProvider), ref);
 });
 
 class PengelolaanLingkunganNotifier extends StateNotifier<PengelolaanLingkunganState> {
   final PengelolaanLingkunganRepository _repository;
+  final Ref _ref;
 
-  PengelolaanLingkunganNotifier(this._repository) : super(PengelolaanLingkunganState()) {
+  PengelolaanLingkunganNotifier(this._repository, this._ref) : super(PengelolaanLingkunganState()) {
     loadRecords();
   }
 
@@ -45,19 +47,28 @@ class PengelolaanLingkunganNotifier extends StateNotifier<PengelolaanLingkunganS
 
   Future<Map<String, dynamic>> create(PengelolaanLingkungan data) async {
     final result = await _repository.createPengelolaanLingkungan(data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> update(String id, PengelolaanLingkungan data) async {
     final result = await _repository.update(id, data);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 
   Future<Map<String, dynamic>> delete(String id) async {
     final result = await _repository.delete(id);
-    if (result['success'] == true) await loadRecords();
+    if (result['success'] == true) {
+      await loadRecords();
+      _ref.invalidate(idmScoreProvider);
+    }
     return result;
   }
 }
