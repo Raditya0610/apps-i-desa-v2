@@ -1578,7 +1578,8 @@ func (s *SubDimensionService) GetIDMScores(ctx *fiber.Ctx) (*dtos.IDMScoreRespon
 		return nil, errors.New("invalid village ID")
 	}
 
-	scores := make(map[string]float64)
+	rawAchieved := make(map[string]int)
+	rawMax := make(map[string]int)
 	complete := make(map[string]bool)
 	latestYear := 0
 
@@ -1588,154 +1589,100 @@ func (s *SubDimensionService) GetIDMScores(ctx *fiber.Ctx) (*dtos.IDMScoreRespon
 		}
 	}
 
-	// Ketahanan Sosial sub-dimensions
 	if r, err := s.subDimensionRepo.GetLatestPendidikanByVillage(villageID); err == nil {
-		scores["pendidikan"] = scorePendidikan(r)
+		rawAchieved["pendidikan"], rawMax["pendidikan"] = scorePendidikan(r)
 		complete["pendidikan"] = true
 		tryYear(r.Year)
-	} else {
-		scores["pendidikan"] = 0
-		complete["pendidikan"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestKesehatanByVillage(villageID); err == nil {
-		scores["kesehatan"] = scoreKesehatan(r)
+		rawAchieved["kesehatan"], rawMax["kesehatan"] = scoreKesehatan(r)
 		complete["kesehatan"] = true
 		tryYear(r.Year)
-	} else {
-		scores["kesehatan"] = 0
-		complete["kesehatan"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestUtilitasDasarByVillage(villageID); err == nil {
-		scores["utilitas_dasar"] = scoreUtilitasDasar(r)
+		rawAchieved["utilitas_dasar"], rawMax["utilitas_dasar"] = scoreUtilitasDasar(r)
 		complete["utilitas_dasar"] = true
 		tryYear(r.Year)
-	} else {
-		scores["utilitas_dasar"] = 0
-		complete["utilitas_dasar"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestAktivitasByVillage(villageID); err == nil {
-		scores["aktivitas"] = scoreAktivitas(r)
+		rawAchieved["aktivitas"], rawMax["aktivitas"] = scoreAktivitas(r)
 		complete["aktivitas"] = true
 		tryYear(r.Year)
-	} else {
-		scores["aktivitas"] = 0
-		complete["aktivitas"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestFasilitasMasyarakatByVillage(villageID); err == nil {
-		scores["fasilitas_masyarakat"] = scoreFasilitasMasyarakat(r)
+		rawAchieved["fasilitas_masyarakat"], rawMax["fasilitas_masyarakat"] = scoreFasilitasMasyarakat(r)
 		complete["fasilitas_masyarakat"] = true
 		tryYear(r.Year)
-	} else {
-		scores["fasilitas_masyarakat"] = 0
-		complete["fasilitas_masyarakat"] = false
 	}
 
-	// Ketahanan Ekonomi sub-dimensions
 	if r, err := s.subDimensionRepo.GetLatestProduksiDesaByVillage(villageID); err == nil {
-		scores["produksi_desa"] = scoreProduksiDesa(r)
+		rawAchieved["produksi_desa"], rawMax["produksi_desa"] = scoreProduksiDesa(r)
 		complete["produksi_desa"] = true
 		tryYear(r.Year)
-	} else {
-		scores["produksi_desa"] = 0
-		complete["produksi_desa"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestFasilitasPendukungEkonomiByVillage(villageID); err == nil {
-		scores["fasilitas_pendukung_ekonomi"] = scoreFasilitasPendukungEkonomi(r)
+		rawAchieved["fasilitas_pendukung_ekonomi"], rawMax["fasilitas_pendukung_ekonomi"] = scoreFasilitasPendukungEkonomi(r)
 		complete["fasilitas_pendukung_ekonomi"] = true
 		tryYear(r.Year)
-	} else {
-		scores["fasilitas_pendukung_ekonomi"] = 0
-		complete["fasilitas_pendukung_ekonomi"] = false
 	}
 
-	// Ketahanan Lingkungan sub-dimensions
 	if r, err := s.subDimensionRepo.GetLatestPengelolaanLingkunganByVillage(villageID); err == nil {
-		scores["pengelolaan_lingkungan"] = scorePengelolaanLingkungan(r)
+		rawAchieved["pengelolaan_lingkungan"], rawMax["pengelolaan_lingkungan"] = scorePengelolaanLingkungan(r)
 		complete["pengelolaan_lingkungan"] = true
 		tryYear(r.Year)
-	} else {
-		scores["pengelolaan_lingkungan"] = 0
-		complete["pengelolaan_lingkungan"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestPenanggulanganBencanaByVillage(villageID); err == nil {
-		scores["penanggulangan_bencana"] = scorePenanggulanganBencana(r)
+		rawAchieved["penanggulangan_bencana"], rawMax["penanggulangan_bencana"] = scorePenanggulanganBencana(r)
 		complete["penanggulangan_bencana"] = true
 		tryYear(r.Year)
-	} else {
-		scores["penanggulangan_bencana"] = 0
-		complete["penanggulangan_bencana"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestKondisiAksesJalanByVillage(villageID); err == nil {
-		scores["kondisi_akses_jalan"] = scoreKondisiAksesJalan(r)
+		rawAchieved["kondisi_akses_jalan"], rawMax["kondisi_akses_jalan"] = scoreKondisiAksesJalan(r)
 		complete["kondisi_akses_jalan"] = true
 		tryYear(r.Year)
-	} else {
-		scores["kondisi_akses_jalan"] = 0
-		complete["kondisi_akses_jalan"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestKemudahanAksesByVillage(villageID); err == nil {
-		scores["kemudahan_akses"] = scoreKemudahanAkses(r)
+		rawAchieved["kemudahan_akses"], rawMax["kemudahan_akses"] = scoreKemudahanAkses(r)
 		complete["kemudahan_akses"] = true
 		tryYear(r.Year)
-	} else {
-		scores["kemudahan_akses"] = 0
-		complete["kemudahan_akses"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestKelembagaanPelayananDesaByVillage(villageID); err == nil {
-		scores["kelembagaan_pelayanan_desa"] = scoreKelembagaanPelayananDesa(r)
+		rawAchieved["kelembagaan_pelayanan_desa"], rawMax["kelembagaan_pelayanan_desa"] = scoreKelembagaanPelayananDesa(r)
 		complete["kelembagaan_pelayanan_desa"] = true
 		tryYear(r.Year)
-	} else {
-		scores["kelembagaan_pelayanan_desa"] = 0
-		complete["kelembagaan_pelayanan_desa"] = false
 	}
 
 	if r, err := s.subDimensionRepo.GetLatestTataKelolaKeuanganDesaByVillage(villageID); err == nil {
-		scores["tata_kelola_keuangan_desa"] = scoreTataKelolaKeuanganDesa(r)
+		rawAchieved["tata_kelola_keuangan_desa"], rawMax["tata_kelola_keuangan_desa"] = scoreTataKelolaKeuanganDesa(r)
 		complete["tata_kelola_keuangan_desa"] = true
 		tryYear(r.Year)
-	} else {
-		scores["tata_kelola_keuangan_desa"] = 0
-		complete["tata_kelola_keuangan_desa"] = false
 	}
 
-	// ── Official IDM 2024 Index Calculations (Permendesa / IDM 2024 Standard) ──
-	// 1. IKS (Indeks Ketahanan Sosial): Pendidikan, Kesehatan, Utilitas Dasar, Aktivitas, Fasilitas Masyarakat
-	iksRaw := avg(
-		scores["pendidikan"],
-		scores["kesehatan"],
-		scores["utilitas_dasar"],
-		scores["aktivitas"],
-		scores["fasilitas_masyarakat"],
-	)
+	// Proportionally rescale each sub-dimension's raw indicator sum onto its
+	// official ceiling (see idm_calculator.go doc comment) — every one of the
+	// 13 sub-dimensions counts now, none excluded like the old IKS/IKE/IKL model.
+	subDimensionPoints := make(map[string]int, len(subDimensionCeiling))
+	for key, ceiling := range subDimensionCeiling {
+		subDimensionPoints[key] = scaleToOfficial(rawAchieved[key], rawMax[key], ceiling)
+	}
 
-	// 2. IKE (Indeks Ketahanan Ekonomi): Produksi Desa, Fasilitas Pendukung Ekonomi, Akses Jalan, Kemudahan Akses
-	ikeRaw := avg(
-		scores["produksi_desa"],
-		scores["fasilitas_pendukung_ekonomi"],
-		scores["kondisi_akses_jalan"],
-		scores["kemudahan_akses"],
-	)
-
-	// 3. IKL (Indeks Ketahanan Lingkungan): Pengelolaan Lingkungan, Penanggulangan Bencana
-	iklRaw := avg(
-		scores["pengelolaan_lingkungan"],
-		scores["penanggulangan_bencana"],
-	)
-
-	// 4. Governance (kelembagaan_pelayanan_desa, tata_kelola_keuangan_desa) are excluded from composite IDM score.
-
-	var iks, ike, ikl, idm float64
-	var status string
+	dimensionPoints := make(map[string]int, len(dimensionSubDimensions))
+	totalScore := 0
+	for dimension, subs := range dimensionSubDimensions {
+		for _, sub := range subs {
+			dimensionPoints[dimension] += subDimensionPoints[sub]
+		}
+		totalScore += dimensionPoints[dimension]
+	}
 
 	completedCount := 0
 	for _, isDone := range complete {
@@ -1744,30 +1691,29 @@ func (s *SubDimensionService) GetIDMScores(ctx *fiber.Ctx) (*dtos.IDMScoreRespon
 		}
 	}
 
-	if completedCount == 0 {
-		iks, ike, ikl, idm = 0.0, 0.0, 0.0, 0.0
-		status = "Belum Ada Data"
-	} else {
-		// Scale 0.0-1.0 normalized scores to official IDM 1-5 scale [0.200, 1.000]
-		iks = 0.2 + (0.8 * iksRaw)
-		ike = 0.2 + (0.8 * ikeRaw)
-		ikl = 0.2 + (0.8 * iklRaw)
-		idm = (iks + ike + ikl) / 3.0
-		status = idmStatus(idm)
+	var percentage float64
+	status := "Belum Ada Data"
+	if completedCount > 0 {
+		percentage = float64(totalScore) / 635.0 * 100.0
+		status = idStatus(percentage)
 	}
 
-	round3 := func(v float64) float64 {
-		return float64(int(v*1000+0.5)) / 1000
+	round2 := func(v float64) float64 {
+		return float64(int(v*100+0.5)) / 100
 	}
 
 	return &dtos.IDMScoreResponse{
 		Year:               latestYear,
-		IDMScore:           round3(idm),
-		IKSScore:           round3(iks),
-		IKEScore:           round3(ike),
-		IKLScore:           round3(ikl),
+		TotalScore:         totalScore,
+		Percentage:         round2(percentage),
 		Status:             status,
-		SubDimensionScores: scores,
+		LayananDasarScore:  dimensionPoints["layanan_dasar"],
+		SosialScore:        dimensionPoints["sosial"],
+		EkonomiScore:       dimensionPoints["ekonomi"],
+		LingkunganScore:    dimensionPoints["lingkungan"],
+		AksesibilitasScore: dimensionPoints["aksesibilitas"],
+		TataKelolaScore:    dimensionPoints["tata_kelola"],
+		SubDimensionScores: subDimensionPoints,
 		DataCompleteness:   complete,
 	}, nil
 }

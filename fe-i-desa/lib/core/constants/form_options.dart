@@ -1,5 +1,8 @@
-/// Centralized form dropdown options for sub-dimension forms
-/// These options must match the backend validation in be-apps-i-desa/constants/form_enums.go
+/// Centralized form dropdown options for sub-dimension forms.
+/// These option lists (order = best-to-worst) must match the ordered lists
+/// scored in be-apps-i-desa/services/idm_calculator.go's scoreLinear calls —
+/// the backend does not validate enum membership, only `required`, so a
+/// mismatch here silently scores 0 rather than failing loudly.
 class FormOptions {
   // Ketersediaan - Availability options
   static const List<String> ketersediaan = ['Tersedia', 'Tidak Tersedia'];

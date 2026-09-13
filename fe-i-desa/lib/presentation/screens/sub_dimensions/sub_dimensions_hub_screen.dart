@@ -25,7 +25,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.menu_book_outlined,
       route: '/sub-dimensions/pendidikan',
       scoreKey: 'pendidikan',
-      indexBadge: 'IKS',
+      dimension: 'Layanan Dasar',
+      ceiling: 45,
+      sdgs: ['SDG 4'],
     ),
     const _CategoryItem(
       id: 'kesehatan',
@@ -34,7 +36,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.favorite_border,
       route: '/sub-dimensions/kesehatan',
       scoreKey: 'kesehatan',
-      indexBadge: 'IKS',
+      dimension: 'Layanan Dasar',
+      ceiling: 100,
+      sdgs: ['SDG 3', 'SDG 2'],
     ),
     const _CategoryItem(
       id: 'utilitas-dasar',
@@ -43,7 +47,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.lightbulb_outline,
       route: '/sub-dimensions/utilitas-dasar',
       scoreKey: 'utilitas_dasar',
-      indexBadge: 'IKS',
+      dimension: 'Layanan Dasar',
+      ceiling: 25,
+      sdgs: ['SDG 6', 'SDG 7', 'SDG 9', 'SDG 11'],
     ),
     const _CategoryItem(
       id: 'aktivitas',
@@ -52,7 +58,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.auto_awesome_outlined,
       route: '/sub-dimensions/aktivitas',
       scoreKey: 'aktivitas',
-      indexBadge: 'IKS',
+      dimension: 'Sosial',
+      ceiling: 65,
+      sdgs: ['SDG 16', 'SDG 18', 'SDG 3'],
     ),
     const _CategoryItem(
       id: 'fasilitas-masyarakat',
@@ -61,7 +69,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.people_outline,
       route: '/sub-dimensions/fasilitas-masyarakat',
       scoreKey: 'fasilitas_masyarakat',
-      indexBadge: 'IKS',
+      dimension: 'Sosial',
+      ceiling: 20,
+      sdgs: ['SDG 11', 'SDG 4', 'SDG 3'],
     ),
     const _CategoryItem(
       id: 'produksi-desa',
@@ -70,7 +80,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.agriculture_outlined,
       route: '/sub-dimensions/produksi-desa',
       scoreKey: 'produksi_desa',
-      indexBadge: 'IKE',
+      dimension: 'Ekonomi',
+      ceiling: 40,
+      sdgs: ['SDG 8', 'SDG 17'],
     ),
     const _CategoryItem(
       id: 'fasilitas-ekonomi',
@@ -79,7 +91,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.store_outlined,
       route: '/sub-dimensions/fasilitas-ekonomi',
       scoreKey: 'fasilitas_pendukung_ekonomi',
-      indexBadge: 'IKE',
+      dimension: 'Ekonomi',
+      ceiling: 120,
+      sdgs: ['SDG 8', 'SDG 9', 'SDG 10'],
     ),
     const _CategoryItem(
       id: 'pengelolaan-lingkungan',
@@ -88,7 +102,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.eco_outlined,
       route: '/sub-dimensions/pengelolaan-lingkungan',
       scoreKey: 'pengelolaan_lingkungan',
-      indexBadge: 'IKL',
+      dimension: 'Lingkungan',
+      ceiling: 65,
+      sdgs: ['SDG 12', 'SDG 15'],
     ),
     const _CategoryItem(
       id: 'penanggulangan-bencana',
@@ -97,7 +113,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.warning_amber_outlined,
       route: '/sub-dimensions/penanggulangan-bencana',
       scoreKey: 'penanggulangan_bencana',
-      indexBadge: 'IKL',
+      dimension: 'Lingkungan',
+      ceiling: 25,
+      sdgs: ['SDG 13', 'SDG 11'],
     ),
     const _CategoryItem(
       id: 'kondisi-akses-jalan',
@@ -106,7 +124,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.route_outlined,
       route: '/sub-dimensions/kondisi-akses-jalan',
       scoreKey: 'kondisi_akses_jalan',
-      indexBadge: 'IKE',
+      dimension: 'Aksesibilitas',
+      ceiling: 20,
+      sdgs: ['SDG 9', 'SDG 11'],
     ),
     const _CategoryItem(
       id: 'kemudahan-akses',
@@ -115,7 +135,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.directions_car_outlined,
       route: '/sub-dimensions/kemudahan-akses',
       scoreKey: 'kemudahan_akses',
-      indexBadge: 'IKE',
+      dimension: 'Aksesibilitas',
+      ceiling: 30,
+      sdgs: ['SDG 9', 'SDG 10'],
     ),
     const _CategoryItem(
       id: 'kelembagaan-pelayanan',
@@ -124,7 +146,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.business_outlined,
       route: '/sub-dimensions/kelembagaan-pelayanan',
       scoreKey: 'kelembagaan_pelayanan_desa',
-      indexBadge: 'Laporan Tambahan',
+      dimension: 'Tata Kelola',
+      ceiling: 35,
+      sdgs: ['SDG 18', 'SDG 16'],
     ),
     const _CategoryItem(
       id: 'tata-kelola-keuangan',
@@ -133,7 +157,9 @@ class _SubDimensionsHubScreenState
       icon: Icons.account_balance_outlined,
       route: '/sub-dimensions/tata-kelola-keuangan',
       scoreKey: 'tata_kelola_keuangan_desa',
-      indexBadge: 'Laporan Tambahan',
+      dimension: 'Tata Kelola',
+      ceiling: 45,
+      sdgs: ['SDG 18', 'SDG 8'],
     ),
   ];
 
@@ -225,7 +251,8 @@ class _SubDimensionsHubScreenState
 
   Widget _buildHeroCard(IdmScoreState idmState) {
     final scores = idmState.scores;
-    final idm = scores?.idmScore ?? 0.0;
+    final percentage = scores?.percentage ?? 0.0;
+    final totalScore = scores?.totalScore ?? 0;
     final status = scores?.status ?? '-';
     final year = scores?.year ?? 0;
     final isLoading = idmState.isLoading;
@@ -258,7 +285,7 @@ class _SubDimensionsHubScreenState
                         fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
-                  Text('Status Indeks Desa Membangun (IDM).',
+                  Text('Status Indeks Desa.',
                       style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 13)),
@@ -272,7 +299,7 @@ class _SubDimensionsHubScreenState
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2.5))
                           : Text(
-                              idm.toStringAsFixed(3),
+                              '${percentage.toStringAsFixed(2)}%',
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 40,
@@ -280,7 +307,7 @@ class _SubDimensionsHubScreenState
                                   height: 1),
                             ),
                       const SizedBox(width: 10),
-                      Text('Skor Indeks\nKomposit',
+                      Text('Indeks Desa\n$totalScore/635 poin',
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 12)),
@@ -304,7 +331,7 @@ class _SubDimensionsHubScreenState
                               fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 6),
-                        Text('Status Indeks Desa Membangun (IDM).',
+                        Text('Status Indeks Desa.',
                             style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.85),
                                 fontSize: 14)),
@@ -331,7 +358,7 @@ class _SubDimensionsHubScreenState
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 3))
                           : Text(
-                              idm.toStringAsFixed(3),
+                              '${percentage.toStringAsFixed(2)}%',
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 52,
@@ -339,7 +366,7 @@ class _SubDimensionsHubScreenState
                                   height: 1),
                             ),
                       const SizedBox(height: 6),
-                      Text('Skor Indeks Komposit',
+                      Text('$totalScore/635 poin Indeks Desa',
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.85),
                               fontSize: 13)),
@@ -379,51 +406,67 @@ class _SubDimensionsHubScreenState
   Widget _buildScoreCardsRow(BuildContext context, IdmScoreState idmState) {
     final scores = idmState.scores;
     final isLoading = idmState.isLoading;
+    final isDesktop = AppShell.isDesktop(context);
 
     final cards = [
       _ScoreCardData(
-        title: 'Ketahanan Sosial',
-        score: scores?.iksScore ?? 0.0,
-        color: const Color(0xFF00897B),
+        title: 'Layanan Dasar',
+        score: scores?.layananDasarScore ?? 0,
+        max: 170,
+        color: const Color(0xFF00695C),
+        icon: Icons.local_hospital_outlined,
+        isLoading: isLoading,
+      ),
+      _ScoreCardData(
+        title: 'Sosial',
+        score: scores?.sosialScore ?? 0,
+        max: 85,
+        color: const Color(0xFF6D28D9),
         icon: Icons.people_alt_outlined,
         isLoading: isLoading,
       ),
       _ScoreCardData(
-        title: 'Ketahanan Ekonomi',
-        score: scores?.ikeScore ?? 0.0,
-        color: const Color(0xFFFFA000),
+        title: 'Ekonomi',
+        score: scores?.ekonomiScore ?? 0,
+        max: 160,
+        color: const Color(0xFFD97706),
         icon: Icons.monetization_on_outlined,
         isLoading: isLoading,
       ),
       _ScoreCardData(
-        title: 'Ketahanan Lingkungan',
-        score: scores?.iklScore ?? 0.0,
-        color: const Color(0xFF43A047),
+        title: 'Lingkungan',
+        score: scores?.lingkunganScore ?? 0,
+        max: 90,
+        color: const Color(0xFF15803D),
         icon: Icons.eco_outlined,
+        isLoading: isLoading,
+      ),
+      _ScoreCardData(
+        title: 'Aksesibilitas',
+        score: scores?.aksesibilitasScore ?? 0,
+        max: 50,
+        color: const Color(0xFF1D4ED8),
+        icon: Icons.directions_car_outlined,
+        isLoading: isLoading,
+      ),
+      _ScoreCardData(
+        title: 'Tata Kelola Pemdes',
+        score: scores?.tataKelolaScore ?? 0,
+        max: 80,
+        color: const Color(0xFF475569),
+        icon: Icons.account_balance_outlined,
         isLoading: isLoading,
       ),
     ];
 
-    if (AppShell.isDesktop(context)) {
-      return Row(
-        children: [
-          Expanded(child: _ScoreCard(data: cards[0])),
-          const SizedBox(width: ForuiThemeConfig.spacingMedium),
-          Expanded(child: _ScoreCard(data: cards[1])),
-          const SizedBox(width: ForuiThemeConfig.spacingMedium),
-          Expanded(child: _ScoreCard(data: cards[2])),
-        ],
-      );
-    }
-
-    return Column(
-      children: [
-        _ScoreCard(data: cards[0]),
-        const SizedBox(height: ForuiThemeConfig.spacingMedium),
-        _ScoreCard(data: cards[1]),
-        const SizedBox(height: ForuiThemeConfig.spacingMedium),
-        _ScoreCard(data: cards[2]),
-      ],
+    return GridView.count(
+      crossAxisCount: isDesktop ? 3 : 1,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: ForuiThemeConfig.spacingMedium,
+      mainAxisSpacing: ForuiThemeConfig.spacingMedium,
+      childAspectRatio: isDesktop ? 1.5 : 2.6,
+      children: cards.map((c) => _ScoreCard(data: c)).toList(),
     );
   }
 
@@ -514,6 +557,7 @@ class _SubDimensionsHubScreenState
                     child: Icon(selectedCategoryData.icon,
                         color: ForuiThemeConfig.primaryGreen, size: 22),
                   );
+                  final dimColor = _dimensionColor(selectedCategoryData.dimension);
                   final infoCol = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -529,27 +573,15 @@ class _SubDimensionsHubScreenState
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: selectedCategoryData.indexBadge == 'IKS'
-                                  ? const Color(0xFFE0F2F1)
-                                  : selectedCategoryData.indexBadge == 'IKE'
-                                      ? const Color(0xFFFEF3C7)
-                                      : selectedCategoryData.indexBadge == 'IKL'
-                                          ? const Color(0xFFDCFCE7)
-                                          : const Color(0xFFF1F5F9),
+                              color: dimColor.background,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              selectedCategoryData.indexBadge,
+                              selectedCategoryData.dimension,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: selectedCategoryData.indexBadge == 'IKS'
-                                    ? const Color(0xFF00695C)
-                                    : selectedCategoryData.indexBadge == 'IKE'
-                                        ? const Color(0xFFD97706)
-                                        : selectedCategoryData.indexBadge == 'IKL'
-                                            ? const Color(0xFF15803D)
-                                            : const Color(0xFF475569),
+                                color: dimColor.foreground,
                               ),
                             ),
                           ),
@@ -565,7 +597,7 @@ class _SubDimensionsHubScreenState
                                     color: Colors.green.shade200),
                               ),
                               child: Text(
-                                '${(categoryScore * 100).toStringAsFixed(1)}%',
+                                '$categoryScore/${selectedCategoryData.ceiling}',
                                 style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -579,33 +611,30 @@ class _SubDimensionsHubScreenState
                       Text(selectedCategoryData.description,
                           style: TextStyle(
                               fontSize: 13, color: Colors.grey[600])),
-                      if (selectedCategoryData.indexBadge == 'Laporan Tambahan') ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.info_outline,
-                                  size: 14, color: Colors.blue.shade700),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Laporan Tambahan: Tidak mempengaruhi skor IDM komposit final (Metodologi Kemendes 2024).',
-                                  style: TextStyle(
-                                      fontSize: 11, color: Colors.blue.shade900),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: selectedCategoryData.sdgs
+                            .map((sdg) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                        color: const Color(0xFFCBD5E1)),
+                                  ),
+                                  child: Text(
+                                    sdg,
+                                    style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF475569)),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
                     ],
                   );
                   final openBtn = OutlinedButton.icon(
@@ -652,6 +681,7 @@ class _SubDimensionsHubScreenState
                 if (subScores.containsKey(selectedCategoryData.scoreKey))
                   _buildScoreBar(
                     score: subScores[selectedCategoryData.scoreKey]!,
+                    max: selectedCategoryData.ceiling,
                     label: selectedCategoryData.title,
                   )
                 else
@@ -688,13 +718,34 @@ class _SubDimensionsHubScreenState
     );
   }
 
-  Widget _buildScoreBar({required double score, required String label}) {
-    final pct = (score * 100).clamp(0.0, 100.0);
-    final color = score >= 0.8
+  /// Background/foreground colors for a dimension badge, keyed by dimension
+  /// name (one of the 6 official Indeks Desa dimensions).
+  ({Color background, Color foreground}) _dimensionColor(String dimension) {
+    switch (dimension) {
+      case 'Layanan Dasar':
+        return (background: const Color(0xFFE0F2F1), foreground: const Color(0xFF00695C));
+      case 'Sosial':
+        return (background: const Color(0xFFEDE9FE), foreground: const Color(0xFF6D28D9));
+      case 'Ekonomi':
+        return (background: const Color(0xFFFEF3C7), foreground: const Color(0xFFD97706));
+      case 'Lingkungan':
+        return (background: const Color(0xFFDCFCE7), foreground: const Color(0xFF15803D));
+      case 'Aksesibilitas':
+        return (background: const Color(0xFFDBEAFE), foreground: const Color(0xFF1D4ED8));
+      case 'Tata Kelola':
+        return (background: const Color(0xFFF1F5F9), foreground: const Color(0xFF475569));
+      default:
+        return (background: const Color(0xFFF1F5F9), foreground: const Color(0xFF475569));
+    }
+  }
+
+  Widget _buildScoreBar({required int score, required int max, required String label}) {
+    final fraction = max > 0 ? (score / max).clamp(0.0, 1.0) : 0.0;
+    final color = fraction >= 0.8
         ? const Color(0xFF00897B)
-        : score >= 0.6
+        : fraction >= 0.6
             ? const Color(0xFF43A047)
-            : score >= 0.4
+            : fraction >= 0.4
                 ? const Color(0xFFFFA000)
                 : Colors.red.shade400;
 
@@ -720,7 +771,7 @@ class _SubDimensionsHubScreenState
                         color: ForuiThemeConfig.textPrimary)),
               ),
               Text(
-                '${pct.toStringAsFixed(1)}%',
+                '$score/$max',
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -732,7 +783,7 @@ class _SubDimensionsHubScreenState
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              value: score,
+              value: fraction,
               backgroundColor: Colors.grey[200],
               valueColor: AlwaysStoppedAnimation<Color>(color),
               minHeight: 10,
@@ -740,7 +791,7 @@ class _SubDimensionsHubScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            _scoreLabel(score),
+            _scoreLabel(fraction),
             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
         ],
@@ -761,7 +812,8 @@ class _SubDimensionsHubScreenState
 
 class _ScoreCardData {
   final String title;
-  final double score;
+  final int score;
+  final int max;
   final Color color;
   final IconData icon;
   final bool isLoading;
@@ -769,10 +821,13 @@ class _ScoreCardData {
   const _ScoreCardData({
     required this.title,
     required this.score,
+    required this.max,
     required this.color,
     required this.icon,
     required this.isLoading,
   });
+
+  double get fraction => max > 0 ? (score / max).clamp(0.0, 1.0) : 0.0;
 }
 
 class _ScoreCard extends StatelessWidget {
@@ -811,7 +866,7 @@ class _ScoreCard extends StatelessWidget {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: data.color))
                   : Text(
-                      data.score.toStringAsFixed(3),
+                      '${data.score}/${data.max}',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -833,7 +888,7 @@ class _ScoreCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: data.score,
+              value: data.fraction,
               backgroundColor: Colors.grey[200],
               valueColor: AlwaysStoppedAnimation<Color>(data.color),
               minHeight: 6,
@@ -912,7 +967,17 @@ class _CategoryItem {
   final IconData icon;
   final String route;
   final String scoreKey;
-  final String indexBadge;
+
+  /// One of the 6 official Indeks Desa dimensions this sub-dimension rolls
+  /// into (Layanan Dasar/Sosial/Ekonomi/Lingkungan/Aksesibilitas/Tata Kelola).
+  final String dimension;
+
+  /// This sub-dimension's own official point ceiling (sums to 635 across all
+  /// 13 sub-dimensions) — used to render "achieved/ceiling" and a percentage.
+  final int ceiling;
+
+  /// SDGs Desa goals this sub-dimension covers, shown as small badges.
+  final List<String> sdgs;
 
   const _CategoryItem({
     required this.id,
@@ -921,6 +986,8 @@ class _CategoryItem {
     required this.icon,
     required this.route,
     required this.scoreKey,
-    required this.indexBadge,
+    required this.dimension,
+    required this.ceiling,
+    required this.sdgs,
   });
 }
