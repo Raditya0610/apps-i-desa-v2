@@ -406,7 +406,6 @@ class _SubDimensionsHubScreenState
   Widget _buildScoreCardsRow(BuildContext context, IdmScoreState idmState) {
     final scores = idmState.scores;
     final isLoading = idmState.isLoading;
-    final isDesktop = AppShell.isDesktop(context);
 
     final cards = [
       _ScoreCardData(
@@ -459,14 +458,17 @@ class _SubDimensionsHubScreenState
       ),
     ];
 
-    return GridView.count(
-      crossAxisCount: isDesktop ? 3 : 1,
+    return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: ForuiThemeConfig.spacingMedium,
-      mainAxisSpacing: ForuiThemeConfig.spacingMedium,
-      childAspectRatio: isDesktop ? 1.5 : 2.6,
-      children: cards.map((c) => _ScoreCard(data: c)).toList(),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 300,
+        mainAxisExtent: 116,
+        crossAxisSpacing: ForuiThemeConfig.spacingMedium,
+        mainAxisSpacing: ForuiThemeConfig.spacingMedium,
+      ),
+      itemCount: cards.length,
+      itemBuilder: (context, index) => _ScoreCard(data: cards[index]),
     );
   }
 
@@ -838,60 +840,63 @@ class _ScoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
+      padding: const EdgeInsets.all(ForuiThemeConfig.spacingMedium),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
+        borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusMedium),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
                   color: data.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(data.icon, color: data.color, size: 20),
+                child: Icon(data.icon, color: data.color, size: 16),
               ),
               data.isLoading
                   ? SizedBox(
-                      width: 24,
-                      height: 24,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: data.color))
                   : Text(
                       '${data.score}/${data.max}',
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: ForuiThemeConfig.textPrimary,
                       ),
                     ),
             ],
           ),
-          const SizedBox(height: ForuiThemeConfig.spacingMedium),
+          const SizedBox(height: ForuiThemeConfig.spacingSmall),
           Text(
             data.title,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: ForuiThemeConfig.textPrimary,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: ForuiThemeConfig.spacingSmall),
+          const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: data.fraction,
               backgroundColor: Colors.grey[200],
               valueColor: AlwaysStoppedAnimation<Color>(data.color),
-              minHeight: 6,
+              minHeight: 5,
             ),
           ),
         ],
