@@ -458,18 +458,22 @@ class _SubDimensionsHubScreenState
       ),
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 300,
-        mainAxisExtent: 116,
-        crossAxisSpacing: ForuiThemeConfig.spacingMedium,
-        mainAxisSpacing: ForuiThemeConfig.spacingMedium,
-      ),
-      itemCount: cards.length,
-      itemBuilder: (context, index) => _ScoreCard(data: cards[index]),
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = constraints.maxWidth;
+      final crossAxisCount = width >= 720 ? 3 : (width >= 480 ? 2 : 1);
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisExtent: 116,
+          crossAxisSpacing: ForuiThemeConfig.spacingMedium,
+          mainAxisSpacing: ForuiThemeConfig.spacingMedium,
+        ),
+        itemCount: cards.length,
+        itemBuilder: (context, index) => _ScoreCard(data: cards[index]),
+      );
+    });
   }
 
   Widget _buildDetailInputSection(
@@ -563,14 +567,16 @@ class _SubDimensionsHubScreenState
                   final infoCol = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 6,
                         children: [
                           Text(selectedCategoryData.title,
                               style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: ForuiThemeConfig.textPrimary)),
-                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
@@ -587,8 +593,7 @@ class _SubDimensionsHubScreenState
                               ),
                             ),
                           ),
-                          if (isDone && categoryScore != null) ...[
-                            const SizedBox(width: 8),
+                          if (isDone && categoryScore != null)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
@@ -606,7 +611,6 @@ class _SubDimensionsHubScreenState
                                     color: Colors.green.shade700),
                               ),
                             ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 3),
