@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -32,6 +33,33 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
   Uint8List? _pendingBytes;
   String? _pendingFilename;
 
+  // Progress for the uploading/committing stages, so the operator can see
+  // the request is alive instead of staring at a bare spinner for minutes.
+  // _sendProgress is 0..1 while the file is uploading (null = size unknown);
+  // once it reaches 1 the server is processing and only _elapsed moves.
+  double? _sendProgress;
+  Duration _elapsed = Duration.zero;
+  Timer? _elapsedTimer;
+
+  void _startProgress() {
+    _elapsedTimer?.cancel();
+    _sendProgress = 0;
+    _elapsed = Duration.zero;
+    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _elapsed += const Duration(seconds: 1));
+    });
+  }
+
+  void _stopProgress() {
+    _elapsedTimer?.cancel();
+    _elapsedTimer = null;
+  }
+
+  void _onSendProgress(int sent, int total) {
+    if (!mounted) return;
+    setState(() => _sendProgress = total > 0 ? sent / total : null);
+  }
+
   Future<void> _handleDownloadTemplate() async {
     setState(() => _isDownloading = true);
     final result = await _repository.downloadTemplate();
@@ -63,10 +91,18 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
     _pendingBytes = file.bytes!;
     _pendingFilename = file.name;
 
-    setState(() => _stage = _ImportStage.uploading);
+    setState(() {
+      _stage = _ImportStage.uploading;
+      _startProgress();
+    });
 
-    final result = await _repository.previewImportFile(file.bytes!, file.name);
+    final result = await _repository.previewImportFile(
+      file.bytes!,
+      file.name,
+      onSendProgress: _onSendProgress,
+    );
 
+    _stopProgress();
     if (!mounted) return;
 
     if (result['success'] == true) {
@@ -94,10 +130,18 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
     final filename = _pendingFilename;
     if (bytes == null || filename == null) return;
 
-    setState(() => _stage = _ImportStage.committing);
+    setState(() {
+      _stage = _ImportStage.committing;
+      _startProgress();
+    });
 
-    final result = await _repository.uploadImportFile(bytes, filename);
+    final result = await _repository.uploadImportFile(
+      bytes,
+      filename,
+      onSendProgress: _onSendProgress,
+    );
 
+    _stopProgress();
     if (!mounted) return;
 
     if (result['success'] == true) {
@@ -108,6 +152,14 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
         _stage = _ImportStage.result;
       });
       ref.read(hasUnsavedImportPreviewProvider.notifier).state = false;
+    } else if (result['uncertain'] == true) {
+      // The connection dropped / timed out / server 5xx'd after the file may
+      // already have reached the server, which keeps saving regardless. Do
+      // NOT tell the operator it failed — tell them it may be saved and how
+      // to check safely (re-uploading skips every NIK/KK that already exists).
+      setState(() => _stage = _ImportStage.preview);
+      final retry = await _showUncertainImportDialog();
+      if (retry == true && mounted) _handleCommit();
     } else {
       setState(() => _stage = _ImportStage.preview);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,6 +169,39 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
         ),
       );
     }
+  }
+
+  Future<bool?> _showUncertainImportDialog() {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: ForuiThemeConfig.warningColor, size: 40),
+        title: const Text('Koneksi terputus saat menyimpan'),
+        content: const Text(
+          'Data mungkin sudah tersimpan sebagian atau seluruhnya di server — '
+          'server tetap memproses file walaupun koneksi Anda terputus.\n\n'
+          'JANGAN memasukkan data ini secara manual. Pastikan internet sudah '
+          'tersambung, lalu unggah ulang file yang sama untuk memeriksa: '
+          'baris yang sudah tersimpan akan otomatis dilewati ("sudah terdaftar"), '
+          'dan hanya baris yang belum masuk yang akan disimpan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Nanti Saja'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: ForuiThemeConfig.primaryGreen,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Unggah Ulang untuk Memeriksa'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleDiscardPreview() {
@@ -141,6 +226,7 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
 
   @override
   void dispose() {
+    _elapsedTimer?.cancel();
     // Safety net: if this screen goes away through some path other than the
     // discard/commit handlers above, don't leave the flag stuck true with no
     // ImportDataScreen left to ever clear it — that would block navigation
@@ -158,6 +244,18 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
   /// attempt alike, since [PopScope] intercepts all of them the same way.
   Future<void> _handlePopAttempt(bool didPop, Object? result) async {
     if (didPop) return;
+
+    // Mid-request: leaving would orphan the request and lose its report.
+    if (_stage == _ImportStage.uploading || _stage == _ImportStage.committing) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tunggu hingga proses selesai sebelum keluar dari halaman ini.'),
+          backgroundColor: ForuiThemeConfig.warningColor,
+        ),
+      );
+      return;
+    }
 
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -208,7 +306,7 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _stage != _ImportStage.preview,
+      canPop: _stage == _ImportStage.landing || _stage == _ImportStage.result,
       onPopInvokedWithResult: _handlePopAttempt,
       child: AppShell(
         child: Column(
@@ -230,7 +328,7 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
                     padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
                     child: _buildUploadingCard(
                       context,
-                      caption: 'Mengunggah dan memeriksa file...',
+                      caption: 'Memeriksa file (belum ada data yang disimpan)',
                     ),
                   ),
                 _ImportStage.preview => Padding(
@@ -241,7 +339,7 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
                     padding: const EdgeInsets.all(ForuiThemeConfig.spacingLarge),
                     child: _buildUploadingCard(
                       context,
-                      caption: 'Menyimpan data...',
+                      caption: 'Menyimpan data ke server',
                     ),
                   ),
                 _ImportStage.result => Padding(
@@ -441,26 +539,133 @@ class _ImportDataScreenState extends ConsumerState<ImportDataScreen> {
         borderRadius: BorderRadius.circular(ForuiThemeConfig.borderRadiusLarge),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 64),
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
       alignment: Alignment.center,
-      child: Column(
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(ForuiThemeConfig.primaryGreen),
-          ),
-          const SizedBox(height: ForuiThemeConfig.spacingMedium),
-          Text(
-            caption,
-            style: const TextStyle(fontSize: 14, color: ForuiThemeConfig.textSecondary),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Bisa memakan waktu beberapa saat untuk file besar.',
-            style: TextStyle(fontSize: 12, color: ForuiThemeConfig.textHint),
-          ),
-        ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          children: [
+            Text(
+              caption,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: ForuiThemeConfig.textPrimary,
+              ),
+            ),
+            const SizedBox(height: ForuiThemeConfig.spacingMedium),
+            _buildProgressSteps(),
+            const SizedBox(height: ForuiThemeConfig.spacingMedium),
+            Text(
+              'Waktu berjalan: ${_formatElapsed(_elapsed)} '
+              '(batas ${ImportRepository.importTimeout.inMinutes} menit)',
+              style: const TextStyle(fontSize: 12, color: ForuiThemeConfig.textSecondary),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Jangan tutup aplikasi atau pindah halaman sampai proses selesai.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: ForuiThemeConfig.textHint),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  /// Two visible phases: (1) the file uploading, with a real percentage, and
+  /// (2) the server checking/saving, which has no measurable progress, so it
+  /// shows an indeterminate bar plus the elapsed timer.
+  Widget _buildProgressSteps() {
+    final progress = _sendProgress;
+    final uploadDone = progress != null && progress >= 1.0;
+    final serverStep = _stage == _ImportStage.committing
+        ? 'Server menyimpan data per keluarga...'
+        : 'Server memeriksa isi file...';
+
+    Widget step({
+      required String label,
+      required bool active,
+      required bool done,
+      double? value,
+    }) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  done
+                      ? Icons.check_circle_rounded
+                      : active
+                          ? Icons.radio_button_checked_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                  size: 18,
+                  color: done || active
+                      ? ForuiThemeConfig.primaryGreen
+                      : ForuiThemeConfig.textHint,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: done || active
+                          ? ForuiThemeConfig.textPrimary
+                          : ForuiThemeConfig.textHint,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (active) ...[
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: value,
+                  minHeight: 6,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                      ForuiThemeConfig.primaryGreen),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        step(
+          label: uploadDone
+              ? 'File terunggah'
+              : progress == null
+                  ? 'Mengunggah file...'
+                  : 'Mengunggah file... ${(progress * 100).toStringAsFixed(0)}%',
+          active: !uploadDone,
+          done: uploadDone,
+          value: progress,
+        ),
+        step(
+          label: serverStep,
+          active: uploadDone,
+          done: false,
+          value: null,
+        ),
+      ],
+    );
+  }
+
+  static String _formatElapsed(Duration d) {
+    final m = d.inMinutes;
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   Widget _buildResultView(BuildContext context, {required bool isPreview}) {

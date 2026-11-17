@@ -85,3 +85,6 @@ coverage/
 .env
 .env.local
 .env.*.local
+
+# Firebase CLI local deploy cache (regenerated on every `firebase deploy`)
+.firebase/

@@ -129,6 +129,7 @@ class ApiService {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
+    ProgressCallback? onSendProgress,
   }) async {
     try {
       final response = await _dio.post(
@@ -136,6 +137,7 @@ class ApiService {
         data: data,
         queryParameters: queryParameters,
         options: options,
+        onSendProgress: onSendProgress,
       );
       return response;
     } catch (e) {
