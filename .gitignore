@@ -16,3 +16,6 @@ witness-fixes.json
 .claude/.proven-config-version
 .claude/proven-config.json
 .claude/worktrees/
+
+# Editor settings — machine-specific paths
+.vscode/
